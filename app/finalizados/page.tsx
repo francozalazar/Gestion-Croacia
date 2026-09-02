@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import FinalizadosLista from "@/components/finalizadosLista";
 
 export default async function FinalizadosPage() {
   const supabase = await createClient();
@@ -26,7 +27,9 @@ export default async function FinalizadosPage() {
     notFound();
   }
 
-  const { data: solicitudes, error } = await supabase
+  // ADMIN y COORDINACIÓN ven todos.
+  // OFICINA solamente ve los trabajos que ella misma cargó.
+  let query = supabase
     .from("solicitudes")
     .select("*")
     .eq("estado", "FINALIZADO")
@@ -34,8 +37,14 @@ export default async function FinalizadosPage() {
       ascending: false,
     });
 
+  if (profile.rol === "OFICINA") {
+    query = query.eq("creado_por", user.id);
+  }
+
+  const { data: solicitudes, error } = await query;
+
   if (error) {
-    console.error(error);
+    console.error("Error al cargar trabajos finalizados:", error);
   }
 
   const solicitudesFinalizadas = solicitudes || [];
@@ -59,117 +68,59 @@ export default async function FinalizadosPage() {
     clientes = data || [];
   }
 
+  const trabajos = solicitudesFinalizadas.map((solicitud) => {
+    const cliente = clientes.find(
+      (c) => c.id === solicitud.cliente_id
+    );
+
+    return {
+      id: solicitud.id,
+      numero: solicitud.numero,
+      clienteNombre:
+        cliente?.nombre ||
+        solicitud.cliente_nombre ||
+        "Sin cliente",
+      direccion: solicitud.direccion || "",
+      localidad: solicitud.localidad || "",
+      trabajoRealizado: solicitud.trabajo_realizado || "",
+      fechaFinalizacion: solicitud.fecha_finalizacion || null,
+    };
+  });
+
   return (
     <main className="min-h-screen bg-slate-50 p-6">
       <div className="mx-auto max-w-7xl">
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">
-            Trabajos finalizados
-          </h1>
+        {/* VOLVER */}
+        <Link
+          href="/dashboard"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
+        >
+          ← Volver al inicio
+        </Link>
 
-          <p className="mt-2 text-slate-500">
-            Trabajos realizados y enviados por los técnicos.
-          </p>
+        {/* ENCABEZADO */}
+        <div className="mb-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Trabajos finalizados
+              </h1>
+
+              <p className="mt-2 text-slate-500">
+                Trabajos realizados y enviados por los técnicos.
+              </p>
+            </div>
+
+            {profile.rol === "OFICINA" && (
+              <div className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                Mostrando los trabajos cargados por vos.
+              </div>
+            )}
+          </div>
         </div>
 
-        {solicitudesFinalizadas.length === 0 ? (
-          <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-            <p className="text-lg font-semibold text-slate-700">
-              No hay trabajos finalizados
-            </p>
-
-            <p className="mt-2 text-sm text-slate-500">
-              Cuando un técnico termine un trabajo,
-              aparecerá acá.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-
-            {solicitudesFinalizadas.map((solicitud) => {
-              const cliente = clientes.find(
-                (c) => c.id === solicitud.cliente_id
-              );
-
-              return (
-                <div
-                  key={solicitud.id}
-                  className="rounded-2xl bg-white p-6 shadow-sm"
-                >
-
-                  <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-
-                    <div className="space-y-3">
-
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-lg font-bold text-slate-900">
-                          Trabajo #{solicitud.id}
-                        </h2>
-
-                        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                          FINALIZADO
-                        </span>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-slate-500">
-                          Cliente
-                        </p>
-
-                        <p className="font-semibold text-slate-900">
-                          {cliente?.nombre || "Sin cliente"}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-slate-500">
-                          Trabajo realizado
-                        </p>
-
-                        <p className="max-w-2xl whitespace-pre-wrap text-sm text-slate-700">
-                          {solicitud.trabajo_realizado ||
-                            "Sin detalle"}
-                        </p>
-                      </div>
-
-                      {solicitud.fecha_finalizacion && (
-                        <p className="text-xs text-slate-500">
-                          Finalizado:{" "}
-                          {new Date(
-                            solicitud.fecha_finalizacion
-                          ).toLocaleString("es-AR")}
-                        </p>
-                      )}
-
-                    </div>
-
-                    <div className="flex flex-col gap-2 sm:flex-row">
-
-                      <Link
-                        href={`/mis-trabajos/${solicitud.id}`}
-                        className="rounded-xl border border-slate-300 px-5 py-3 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                      >
-                        Ver trabajo
-                      </Link>
-
-                      <Link
-                        href={`/finalizados/${solicitud.id}`}
-                        className="rounded-xl bg-slate-900 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-slate-800"
-                      >
-                        Ver comprobante
-                      </Link>
-
-                    </div>
-
-                  </div>
-
-                </div>
-              );
-            })}
-
-          </div>
-        )}
+        <FinalizadosLista trabajos={trabajos} />
 
       </div>
     </main>

@@ -23,12 +23,14 @@ export default async function MisTrabajosPage() {
     redirect("/dashboard");
   }
 
+  // Traemos las asignaciones del técnico ordenadas por la prioridad que puso el coordinador
   const { data: asignaciones, error } = await supabase
     .from("asignaciones")
     .select("*")
     .eq("usuario_id", user.id)
-    .order("created_at", {
-      ascending: false,
+    .order("prioridad", {
+      ascending: true,
+      nullsFirst: false,
     });
 
   let solicitudes: any[] = [];
@@ -41,12 +43,35 @@ export default async function MisTrabajosPage() {
     const { data } = await supabase
       .from("solicitudes")
       .select("*")
-      .in("id", solicitudIds)
-      .order("fecha", {
-        ascending: true,
+      .in("id", solicitudIds);
+
+    if (data) {
+      // Mapeamos para asociar la prioridad de la asignación a cada solicitud
+      const solicitudesConPrioridad = data.map((solicitud) => {
+        const asig = asignaciones.find((a) => a.solicitud_id === solicitud.id);
+        return {
+          ...solicitud,
+          prioridad: asig?.prioridad ?? 99,
+        };
       });
 
-    solicitudes = data || [];
+      // ORDENAMIENTO: 
+      // 1. Los FINALIZADOS van abajo de todo.
+      // 2. Los pendientes/activos se ordenan por prioridad (menor número = más arriba).
+      solicitudesConPrioridad.sort((a, b) => {
+        const aFinalizado = a.estado === "FINALIZADO" ? 1 : 0;
+        const bFinalizado = b.estado === "FINALIZADO" ? 1 : 0;
+
+        if (aFinalizado !== bFinalizado) {
+          return aFinalizado - bFinalizado; // Los finalizados van al final
+        }
+
+        // Si ambos tienen el mismo estado, mandan los de menor prioridad arriba
+        return a.prioridad - b.prioridad;
+      });
+
+      solicitudes = solicitudesConPrioridad;
+    }
   }
 
   const clienteIds = solicitudes
@@ -81,7 +106,7 @@ export default async function MisTrabajosPage() {
           </h1>
 
           <p className="mt-2 text-gray-600">
-            Acá vas a encontrar los trabajos que te fueron asignados.
+            Acá vas a encontrar los trabajos que te fueron asignados ordenados por prioridad.
           </p>
         </div>
 
@@ -124,25 +149,37 @@ export default async function MisTrabajosPage() {
                 (c) => c.id === solicitud.cliente_id
               );
 
+              const esFinalizado = solicitud.estado === "FINALIZADO";
+
               return (
                 <div
                   key={solicitud.id}
-                  className="rounded-xl bg-white p-6 shadow"
+                  className={`rounded-xl bg-white p-6 shadow transition-opacity ${
+                    esFinalizado ? "opacity-75 bg-slate-50" : ""
+                  }`}
                 >
 
                   <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
 
                     <div>
 
-                      <div className="mb-3 flex items-center gap-3">
+                      <div className="mb-3 flex items-center gap-3 flex-wrap">
 
                         <span className="rounded-full bg-gray-900 px-3 py-1 text-sm font-bold text-white">
                           #{solicitud.numero}
                         </span>
 
-                        <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+                        <span className={`rounded-full px-3 py-1 text-sm font-medium ${
+                          esFinalizado ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"
+                        }`}>
                           {solicitud.estado}
                         </span>
+
+                        {solicitud.prioridad !== 99 && !esFinalizado && (
+                          <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-800">
+                            Prioridad #{solicitud.prioridad}
+                          </span>
+                        )}
 
                       </div>
 

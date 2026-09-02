@@ -75,7 +75,8 @@ export default async function DashboardPage() {
         rol={profile.rol}
       />
 
-      <main className="ml-64 min-h-screen p-8">
+      {/* Cambiamos ml-64 por md:ml-64 para que en mobile no deje espacio vacío, y agregamos padding superior para el header mobile */}
+      <main className="md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
         
         {/* Encabezado */}
         <div className="mb-8">
@@ -83,13 +84,13 @@ export default async function DashboardPage() {
             Bienvenido nuevamente
           </p>
 
-          <h1 className="mt-1 text-3xl font-bold text-slate-900">
+          <h1 className="mt-1 text-2xl md:text-3xl font-bold text-slate-900">
             Panel principal
           </h1>
         </div>
 
         {/* Estadísticas */}
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
 
           {/* Total */}
           <div className="rounded-2xl bg-white p-6 shadow-sm">
@@ -170,7 +171,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Bienvenida */}
-        <div className="mt-6 rounded-2xl bg-white p-8 shadow-sm">
+        <div className="mt-6 rounded-2xl bg-white p-6 md:p-8 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">
             Hola, {profile.nombre} 👋
           </h2>
