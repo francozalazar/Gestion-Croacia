@@ -3,7 +3,6 @@
 import {
   LayoutDashboard,
   ClipboardList,
-  Users,
   Wrench,
   Factory,
   Truck,
@@ -59,20 +58,10 @@ export default function Sidebar({
       ],
     },
     {
-  nombre: "Listos para colocar",
-  href: "/listos-para-colocar",
-  icon: Truck,
-  roles: ["ADMIN", "OFICINA"],
-},
-    {
-      nombre: "Clientes",
-      href: "/clientes",
-      icon: Users,
-      roles: [
-        "ADMIN",
-        "OFICINA",
-        "COORDINACION",
-      ],
+      nombre: "Listos para colocar",
+      href: "/listos-para-colocar",
+      icon: Truck,
+      roles: ["ADMIN", "OFICINA"],
     },
 
     {
