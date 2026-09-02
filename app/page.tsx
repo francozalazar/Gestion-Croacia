@@ -34,6 +34,9 @@ export default function Home() {
     router.refresh();
   }
 
+  // Clases estandarizadas para los inputs
+  const inputClassName = "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
+
   return (
     <main className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
@@ -64,7 +67,7 @@ export default function Home() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="usuario@empresa.com"
                 required
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                className={inputClassName}
               />
             </div>
 
@@ -79,7 +82,7 @@ export default function Home() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                className={inputClassName}
               />
             </div>
 
