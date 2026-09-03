@@ -21,24 +21,20 @@ export default function ActualizarEstadoFabrica({
   const router = useRouter();
   const supabase = createClient();
 
-  const [guardando, setGuardando] =
-    useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [mensaje, setMensaje] = useState("");
 
-  const [mensaje, setMensaje] =
-    useState("");
-
-  async function cambiarEstado(
-    nuevoEstado: string
-  ) {
-    if (nuevoEstado === estadoActual) {
+  async function cambiarEstado(nuevoEstado: string) {
+    if (nuevoEstado === estadoActual && nuevoEstado !== "LISTO_PARA_COLOCAR") {
       return;
     }
 
     setGuardando(true);
     setMensaje("");
 
+    // Actualizamos el estado directamente en solicitudes_fabrica
     const { error } = await supabase
-      .from("solicitudes")
+      .from("solicitudes_fabrica")
       .update({
         estado: nuevoEstado,
       })
@@ -46,19 +42,12 @@ export default function ActualizarEstadoFabrica({
 
     if (error) {
       console.error(error);
-
-      setMensaje(
-        `Error: ${error.message}`
-      );
-
+      setMensaje(`Error: ${error.message}`);
       setGuardando(false);
       return;
     }
 
-    setMensaje(
-      "Estado actualizado correctamente."
-    );
-
+    setMensaje("Estado actualizado correctamente.");
     setGuardando(false);
 
     router.refresh();
@@ -72,58 +61,32 @@ export default function ActualizarEstadoFabrica({
 
       <div className="flex flex-col gap-3 md:flex-row">
         {/* EN FABRICACIÓN */}
-
         <button
-          onClick={() =>
-            cambiarEstado(
-              "EN_FABRICACION"
-            )
-          }
-          disabled={
-            guardando ||
-            estadoActual ===
-              "EN_FABRICACION"
-          }
+          onClick={() => cambiarEstado("EN_FABRICACION")}
+          disabled={guardando || estadoActual === "EN_FABRICACION"}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Factory size={18} />
-
           En fabricación
         </button>
 
         {/* FALTANTES */}
-
         <button
-          onClick={() =>
-            cambiarEstado(
-              "FALTANTES"
-            )
-          }
-          disabled={
-            guardando ||
-            estadoActual ===
-              "FALTANTES"
-          }
+          onClick={() => cambiarEstado("FALTANTES")}
+          disabled={guardando || estadoActual === "FALTANTES"}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <AlertTriangle size={18} />
-
           Faltantes
         </button>
 
         {/* LISTO PARA COLOCAR */}
-
         <button
-          onClick={() =>
-            cambiarEstado(
-              "LISTO_PARA_COLOCAR"
-            )
-          }
+          onClick={() => cambiarEstado("LISTO_PARA_COLOCAR")}
           disabled={guardando}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <CheckCircle2 size={18} />
-
           Listo para colocar
         </button>
       </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
+import { ArrowLeft } from "lucide-react";
 
 type SolicitudFabrica = {
   id: number;
@@ -117,7 +118,7 @@ export default function DetalleAprobacionFabricaPage() {
     }
 
     const confirmar = window.confirm(
-      `¿Enviar el remito Nº ${solicitud.numero_remito} a cortar?`
+      `¿Enviar el remito Nº ${solicitud.numero_remito} a cortar? Esto lo pasará directo a la bandeja de fábrica.`
     );
 
     if (!confirmar) return;
@@ -126,11 +127,14 @@ export default function DetalleAprobacionFabricaPage() {
     setMensaje("");
     setError("");
 
+    const fechaActual = new Date().toISOString();
+
+    // 1. Actualizamos el estado en solicitudes_fabrica
     const { error: errorUpdate } = await supabase
       .from("solicitudes_fabrica")
       .update({
         estado: "EN_CORTE",
-        fecha_enviada_cortar: new Date().toISOString(),
+        fecha_enviada_cortar: fechaActual,
       })
       .eq("id", solicitud.id);
 
@@ -141,12 +145,71 @@ export default function DetalleAprobacionFabricaPage() {
       return;
     }
 
-    setMensaje("La solicitud fue enviada a cortar correctamente.");
+    // 2. CREAMOS EL REGISTRO EN LA TABLA PRINCIPAL `solicitudes` PARA QUE APAREZCA EN FÁBRICA
+    // Buscamos o creamos el cliente primero si es necesario, o usamos los datos directamente en la solicitud
+    let clienteId = null;
+    
+    // Verificamos si ya existe un cliente con ese nombre o lo creamos
+    const { data: clienteExistente } = await supabase
+      .from("clientes")
+      .select("id")
+      .eq("nombre", solicitud.cliente_nombre)
+      .maybeSingle();
+
+    if (clienteExistente) {
+      clienteId = clienteExistente.id;
+    } else {
+      const { data: nuevoCliente } = await supabase
+        .from("clientes")
+        .insert({
+          nombre: solicitud.cliente_nombre,
+          direccion: solicitud.direccion,
+          localidad: solicitud.localidad,
+          telefono: solicitud.cliente_telefono,
+        })
+        .select("id")
+        .single();
+      
+      if (nuevoCliente) {
+        clienteId = nuevoCliente.id;
+      }
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // Insertamos en la tabla `solicitudes` con estado "ASIGNADO_FABRICA"
+    const { error: errorSolicitudPrincipal } = await supabase
+      .from("solicitudes")
+      .insert({
+        cliente_id: clienteId,
+        cliente_nombre: solicitud.cliente_nombre,
+        cliente_telefono: solicitud.cliente_telefono,
+        direccion: solicitud.direccion,
+        localidad: solicitud.localidad,
+        fecha: solicitud.fecha,
+        horario_desde: solicitud.horario_desde,
+        horario_hasta: solicitud.horario_hasta,
+        tipo_visita: solicitud.tipo_visita || "Instalación",
+        observaciones: solicitud.observaciones,
+        estado: "ASIGNADO_FABRICA", // Estado que lee la pantalla de fábrica
+        creado_por: user?.id,
+      });
+
+    if (errorSolicitudPrincipal) {
+      console.error("Error al pasar a la tabla de solicitudes:", errorSolicitudPrincipal);
+      setError("Se actualizó el remito pero hubo un error al enviarlo a fábrica: " + errorSolicitudPrincipal.message);
+      setProcesando(false);
+      return;
+    }
+
+    setMensaje("La solicitud fue enviada a cortar y ya figura en los trabajos de fábrica.");
 
     setSolicitud({
       ...solicitud,
       estado: "EN_CORTE",
-      fecha_enviada_cortar: new Date().toISOString(),
+      fecha_enviada_cortar: fechaActual,
     });
 
     setProcesando(false);
@@ -221,9 +284,10 @@ export default function DetalleAprobacionFabricaPage() {
         <div className="mx-auto max-w-5xl">
           <Link
             href="/aprobacion-fabrica"
-            className="mb-6 inline-block text-sm text-slate-600 hover:text-slate-900"
+            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
           >
-            ← Volver a aprobación de fábrica
+            <ArrowLeft size={18} />
+            Volver a aprobación de fábrica
           </Link>
 
           <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -240,9 +304,10 @@ export default function DetalleAprobacionFabricaPage() {
         <div className="mx-auto max-w-5xl">
           <Link
             href="/aprobacion-fabrica"
-            className="mb-6 inline-block text-sm text-slate-600 hover:text-slate-900"
+            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
           >
-            ← Volver a aprobación de fábrica
+            <ArrowLeft size={18} />
+            Volver a aprobación de fábrica
           </Link>
 
           <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700">
@@ -257,12 +322,15 @@ export default function DetalleAprobacionFabricaPage() {
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-5xl">
 
-        <Link
-          href="/aprobacion-fabrica"
-          className="mb-6 inline-block text-sm text-slate-600 hover:text-slate-900"
-        >
-          ← Volver a aprobación de fábrica
-        </Link>
+        <div className="mb-6">
+          <Link
+            href="/aprobacion-fabrica"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+          >
+            <ArrowLeft size={18} />
+            Volver a aprobación de fábrica
+          </Link>
+        </div>
 
         {/* ENCABEZADO */}
         <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm">
@@ -496,8 +564,7 @@ export default function DetalleAprobacionFabricaPage() {
           </div>
 
           <p className="mt-4 text-sm text-slate-500">
-            El administrador decide cuándo enviar a cortar y cuándo
-            marcar la solicitud como finalizada.
+            Al enviar a cortar, la solicitud se genera automáticamente en la bandeja de fábrica con estado asignado.
           </p>
         </section>
 

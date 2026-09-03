@@ -71,11 +71,12 @@ export default function AprobacionFabricaPage() {
       return;
     }
 
-    const { data, error: errorSolicitudes } = await supabase
-      .from("solicitudes_fabrica")
-      .select("*")
-      .order("created_at", { ascending: false });
-
+   const { data, error: errorSolicitudes } = await supabase
+  .from("solicitudes_fabrica")
+  .select("*")
+  .in("estado", ["PENDIENTE_APROBACION", "EN_CORTE"])
+  .order("created_at", { ascending: false });
+  
     if (errorSolicitudes) {
       console.error("ERROR SOLICITUDES FABRICA:", errorSolicitudes);
       setError(errorSolicitudes.message);

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import EnviarACoordinacion from "@/components/EnviarACoordinacion";
+import Link from "next/link";
 import {
   Factory,
   MapPin,
@@ -9,6 +10,7 @@ import {
   Phone,
   ClipboardList,
   Calendar,
+  ArrowLeft,
 } from "lucide-react";
 
 export default async function ListosParaColocarPage() {
@@ -32,28 +34,14 @@ export default async function ListosParaColocarPage() {
     redirect("/");
   }
 
-  // Solo Oficina y Admin
   if (!["OFICINA", "ADMIN"].includes(profile.rol)) {
     redirect("/dashboard");
   }
 
+  // Consultamos directamente de solicitudes_fabrica los que estén listos
   const { data: solicitudes, error } = await supabase
-    .from("solicitudes")
-    .select(`
-      id,
-      numero,
-      cliente_nombre,
-      cliente_telefono,
-      direccion,
-      localidad,
-      fecha,
-      horario_desde,
-      horario_hasta,
-      tipo_visita,
-      observaciones,
-      estado,
-      created_at
-    `)
+    .from("solicitudes_fabrica")
+    .select("*")
     .eq("estado", "LISTO_PARA_COLOCAR")
     .order("created_at", {
       ascending: false,
@@ -67,9 +55,20 @@ export default async function ListosParaColocarPage() {
         rol={profile.rol}
       />
 
-      <main className="ml-64 min-h-screen p-8">
-        {/* ENCABEZADO */}
+      <main className="ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
+        
+        {/* BOTÓN PARA VOLVER ATRÁS */}
+        <div className="mb-6">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+          >
+            <ArrowLeft size={18} />
+            Volver al inicio
+          </Link>
+        </div>
 
+        {/* ENCABEZADO */}
         <div className="mb-8 flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white">
@@ -81,7 +80,7 @@ export default async function ListosParaColocarPage() {
                 Producción terminada
               </p>
 
-              <h1 className="text-3xl font-bold text-slate-900">
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
                 Listos para colocar
               </h1>
             </div>
@@ -107,8 +106,7 @@ export default async function ListosParaColocarPage() {
               </h2>
 
               <p className="mt-2 text-sm text-slate-500">
-                Cuando fábrica termine un trabajo,
-                aparecerá aquí.
+                Cuando fábrica termine un trabajo, aparecerá aquí.
               </p>
             </div>
           )}
@@ -120,13 +118,10 @@ export default async function ListosParaColocarPage() {
               className="rounded-2xl bg-white p-6 shadow-sm"
             >
               {/* CABECERA */}
-
               <div className="flex flex-col justify-between gap-4 border-b border-slate-100 pb-5 md:flex-row">
                 <div>
                   <span className="text-lg font-bold text-slate-900">
-                    #{String(
-                      solicitud.numero || solicitud.id
-                    ).padStart(5, "0")}
+                    Remito Nº {solicitud.numero_remito}
                   </span>
 
                   <p className="mt-2 text-sm text-slate-500">
@@ -141,14 +136,12 @@ export default async function ListosParaColocarPage() {
               </div>
 
               {/* DATOS */}
-
               <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {/* CLIENTE */}
-
                 <div className="flex gap-3">
                   <User
                     size={18}
-                    className="mt-0.5 text-slate-400"
+                    className="mt-0.5 text-slate-400 flex-shrink-0"
                   />
 
                   <div>
@@ -163,11 +156,10 @@ export default async function ListosParaColocarPage() {
                 </div>
 
                 {/* TELÉFONO */}
-
                 <div className="flex gap-3">
                   <Phone
                     size={18}
-                    className="mt-0.5 text-slate-400"
+                    className="mt-0.5 text-slate-400 flex-shrink-0"
                   />
 
                   <div>
@@ -182,11 +174,10 @@ export default async function ListosParaColocarPage() {
                 </div>
 
                 {/* DIRECCIÓN */}
-
                 <div className="flex gap-3">
                   <MapPin
                     size={18}
-                    className="mt-0.5 text-slate-400"
+                    className="mt-0.5 text-slate-400 flex-shrink-0"
                   />
 
                   <div>
@@ -207,11 +198,10 @@ export default async function ListosParaColocarPage() {
                 </div>
 
                 {/* FECHA */}
-
                 <div className="flex gap-3">
                   <Calendar
                     size={18}
-                    className="mt-0.5 text-slate-400"
+                    className="mt-0.5 text-slate-400 flex-shrink-0"
                   />
 
                   <div>
@@ -231,17 +221,16 @@ export default async function ListosParaColocarPage() {
               </div>
 
               {/* DETALLE */}
-
               <div className="mt-6 rounded-xl bg-slate-50 p-5">
                 <div className="flex items-start gap-3">
                   <ClipboardList
                     size={19}
-                    className="mt-0.5 text-slate-500"
+                    className="mt-0.5 text-slate-500 flex-shrink-0"
                   />
 
                   <div>
                     <p className="text-sm font-semibold text-slate-800">
-                      Detalle original de la solicitud
+                      Detalle de las cortinas / Observaciones
                     </p>
 
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
@@ -252,13 +241,22 @@ export default async function ListosParaColocarPage() {
                 </div>
               </div>
 
-              {/* ACCIÓN */}
-
-              <div className="mt-6 border-t border-slate-100 pt-5">
-                <EnviarACoordinacion
-                  solicitudId={solicitud.id}
-                />
+              {/* DATOS ECONÓMICOS */}
+              <div className="mt-5 border-t border-slate-100 pt-4 flex flex-wrap gap-6 text-sm text-slate-700">
+                <div>
+                  <span className="font-medium text-slate-400">Total: </span>
+                  <span className="font-bold">${solicitud.total_pesos ?? "-"}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-slate-400">Saldo: </span>
+                  <span className="font-bold">${solicitud.saldo_restante ?? "-"}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-slate-400">Pago: </span>
+                  <span>{solicitud.medio_pago ?? "-"}</span>
+                </div>
               </div>
+
             </div>
           ))}
         </div>

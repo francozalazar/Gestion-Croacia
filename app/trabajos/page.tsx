@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 
 export default async function MisTrabajosPage() {
@@ -23,7 +24,7 @@ export default async function MisTrabajosPage() {
     redirect("/dashboard");
   }
 
-  // Traemos las asignaciones del técnico ordenadas por la prioridad que puso el coordinador
+  // Traemos las asignaciones del técnico ordenadas por la prioridad
   const { data: asignaciones, error } = await supabase
     .from("asignaciones")
     .select("*")
@@ -40,10 +41,12 @@ export default async function MisTrabajosPage() {
       (a) => a.solicitud_id
     );
 
+    // FILTRO DIRECTO EN SUPABASE: Excluimos los finalizados de cuajo
     const { data } = await supabase
       .from("solicitudes")
       .select("*")
-      .in("id", solicitudIds);
+      .in("id", solicitudIds)
+      .not("estado", "ilike", "FINALIZADO"); // 'ilike' ignora mayúsculas/minúsculas
 
     if (data) {
       // Mapeamos para asociar la prioridad de la asignación a cada solicitud
@@ -55,20 +58,8 @@ export default async function MisTrabajosPage() {
         };
       });
 
-      // ORDENAMIENTO: 
-      // 1. Los FINALIZADOS van abajo de todo.
-      // 2. Los pendientes/activos se ordenan por prioridad (menor número = más arriba).
-      solicitudesConPrioridad.sort((a, b) => {
-        const aFinalizado = a.estado === "FINALIZADO" ? 1 : 0;
-        const bFinalizado = b.estado === "FINALIZADO" ? 1 : 0;
-
-        if (aFinalizado !== bFinalizado) {
-          return aFinalizado - bFinalizado; // Los finalizados van al final
-        }
-
-        // Si ambos tienen el mismo estado, mandan los de menor prioridad arriba
-        return a.prioridad - b.prioridad;
-      });
+      // Ordenamos por prioridad (menor número = más arriba)
+      solicitudesConPrioridad.sort((a, b) => a.prioridad - b.prioridad);
 
       solicitudes = solicitudesConPrioridad;
     }
@@ -98,15 +89,25 @@ export default async function MisTrabajosPage() {
         rol={perfil.rol}
       />
 
-      <main className="ml-64 flex-1 p-8">
+      <main className="ml-0 md:ml-64 flex-1 p-4 md:p-8 pt-20 md:pt-8">
+
+        {/* Botón para volver atrás */}
+        <div className="mb-6">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center text-sm font-medium text-slate-600 transition hover:text-slate-900"
+          >
+            ← Volver al panel
+          </Link>
+        </div>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
             Mis trabajos
           </h1>
 
-          <p className="mt-2 text-gray-600">
-            Acá vas a encontrar los trabajos que te fueron asignados ordenados por prioridad.
+          <p className="mt-2 text-sm md:text-base text-gray-600">
+            Acá vas a encontrar los trabajos activos asignados ordenados por prioridad.
           </p>
         </div>
 
@@ -130,12 +131,11 @@ export default async function MisTrabajosPage() {
             </div>
 
             <h2 className="mt-4 text-xl font-bold text-gray-800">
-              No tenés trabajos asignados
+              No tenés trabajos pendientes
             </h2>
 
             <p className="mt-2 text-gray-500">
-              Cuando coordinación te asigne un trabajo,
-              aparecerá acá.
+              Todos tus trabajos asignados ya fueron finalizados o no tenés nuevos encargos.
             </p>
 
           </div>
@@ -149,14 +149,10 @@ export default async function MisTrabajosPage() {
                 (c) => c.id === solicitud.cliente_id
               );
 
-              const esFinalizado = solicitud.estado === "FINALIZADO";
-
               return (
                 <div
                   key={solicitud.id}
-                  className={`rounded-xl bg-white p-6 shadow transition-opacity ${
-                    esFinalizado ? "opacity-75 bg-slate-50" : ""
-                  }`}
+                  className="rounded-xl bg-white p-6 shadow"
                 >
 
                   <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
@@ -169,13 +165,11 @@ export default async function MisTrabajosPage() {
                           #{solicitud.numero}
                         </span>
 
-                        <span className={`rounded-full px-3 py-1 text-sm font-medium ${
-                          esFinalizado ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"
-                        }`}>
+                        <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
                           {solicitud.estado}
                         </span>
 
-                        {solicitud.prioridad !== 99 && !esFinalizado && (
+                        {solicitud.prioridad !== 99 && (
                           <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-800">
                             Prioridad #{solicitud.prioridad}
                           </span>
