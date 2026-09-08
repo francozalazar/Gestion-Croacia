@@ -71,10 +71,10 @@ export default function AprobacionFabricaPage() {
       return;
     }
 
-   const { data, error: errorSolicitudes } = await supabase
+  const { data, error: errorSolicitudes } = await supabase
   .from("solicitudes_fabrica")
   .select("*")
-  .in("estado", ["PENDIENTE_APROBACION", "EN_CORTE"])
+  .neq("estado", "FINALIZADO") // Muestra todos los remitos activos hasta que se presione Finalizar
   .order("created_at", { ascending: false });
   
     if (errorSolicitudes) {

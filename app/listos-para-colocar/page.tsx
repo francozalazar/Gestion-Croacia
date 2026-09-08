@@ -37,16 +37,14 @@ export default async function ListosParaColocarPage() {
   if (!["OFICINA", "ADMIN"].includes(profile.rol)) {
     redirect("/dashboard");
   }
-
-  // Consultamos directamente de solicitudes_fabrica los que estén listos
+// Debe consultar a la tabla principal "solicitudes"
   const { data: solicitudes, error } = await supabase
-    .from("solicitudes_fabrica")
+    .from("solicitudes")
     .select("*")
     .eq("estado", "LISTO_PARA_COLOCAR")
     .order("created_at", {
       ascending: false,
     });
-
   return (
     <div className="min-h-screen bg-slate-100">
       <Sidebar

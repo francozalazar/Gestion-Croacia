@@ -33,21 +33,21 @@ export default function ActualizarEstadoFabrica({
     setMensaje("");
 
     // Actualizamos el estado directamente en solicitudes_fabrica
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("solicitudes_fabrica")
-      .update({
-        estado: nuevoEstado,
-      })
-      .eq("id", solicitudId);
+      .update({ estado: nuevoEstado })
+      .eq("id", solicitudId)
+      .select();
 
     if (error) {
-      console.error(error);
+      console.error("Error al actualizar estado:", error);
       setMensaje(`Error: ${error.message}`);
       setGuardando(false);
       return;
     }
 
-    setMensaje("Estado actualizado correctamente.");
+    console.log("Actualizado con éxito:", data);
+    setMensaje("¡Estado actualizado correctamente!");
     setGuardando(false);
 
     router.refresh();
