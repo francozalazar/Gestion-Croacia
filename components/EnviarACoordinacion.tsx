@@ -4,13 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { Send } from "lucide-react";
+import { ESTADO_FABRICA, ESTADO_SOLICITUD } from "@/lib/estados";
 
 interface Props {
-  solicitudId: number;
+  // id del remito en `solicitudes_fabrica`
+  solicitudFabricaId: number;
 }
 
 export default function EnviarACoordinacion({
-  solicitudId,
+  solicitudFabricaId,
 }: Props) {
   const supabase = createClient();
   const router = useRouter();
@@ -22,21 +24,45 @@ export default function EnviarACoordinacion({
     setEnviando(true);
     setMensaje("");
 
-    const { error } = await supabase
+    // 1. El trabajo vinculado en `solicitudes` pasa a Coordinación
+    const { data: actualizadas, error } = await supabase
       .from("solicitudes")
       .update({
-        estado: "PENDIENTE_COORDINACION",
+        estado: ESTADO_SOLICITUD.PENDIENTE_COORDINACION,
       })
-      .eq("id", solicitudId);
+      .eq("solicitud_fabrica_id", solicitudFabricaId)
+      .select("id");
 
     if (error) {
       console.error(error);
-
-      setMensaje(
-        `Error: ${error.message}`
-      );
-
+      setMensaje(`Error: ${error.message}`);
       setEnviando(false);
+      return;
+    }
+
+    if (!actualizadas || actualizadas.length === 0) {
+      setMensaje(
+        "Error: no se encontró el trabajo vinculado a este remito. Revisá que tenga cargado solicitud_fabrica_id en la tabla solicitudes."
+      );
+      setEnviando(false);
+      return;
+    }
+
+    // 2. El remito sale de "Listos para colocar"
+    const { error: errorFabrica } = await supabase
+      .from("solicitudes_fabrica")
+      .update({
+        estado: ESTADO_FABRICA.ENVIADO_COORDINACION,
+      })
+      .eq("id", solicitudFabricaId);
+
+    if (errorFabrica) {
+      console.error(errorFabrica);
+      setMensaje(
+        `El trabajo llegó a Coordinación, pero no se pudo actualizar el remito: ${errorFabrica.message}`
+      );
+      setEnviando(false);
+      router.refresh();
       return;
     }
 
@@ -64,7 +90,13 @@ export default function EnviarACoordinacion({
       </button>
 
       {mensaje && (
-        <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">
+        <div
+          className={`mt-3 rounded-xl p-3 text-sm ${
+            mensaje.startsWith("Error")
+              ? "bg-red-50 text-red-700"
+              : "bg-emerald-50 text-emerald-700"
+          }`}
+        >
           {mensaje}
         </div>
       )}
