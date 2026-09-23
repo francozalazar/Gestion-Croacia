@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { ArrowLeft } from "lucide-react";
+import { ESTADO_FABRICA, ESTADO_SOLICITUD } from "@/lib/estados";
 
 type SolicitudFabrica = {
   id: number;
@@ -133,7 +134,7 @@ export default function DetalleAprobacionFabricaPage() {
     const { error: errorUpdate } = await supabase
       .from("solicitudes_fabrica")
       .update({
-        estado: "EN_CORTE",
+        estado: ESTADO_FABRICA.EN_CORTE,
         fecha_enviada_cortar: fechaActual,
       })
       .eq("id", solicitud.id);
@@ -193,8 +194,11 @@ export default function DetalleAprobacionFabricaPage() {
         horario_hasta: solicitud.horario_hasta,
         tipo_visita: solicitud.tipo_visita || "Instalación",
         observaciones: solicitud.observaciones,
-        estado: "ASIGNADO_FABRICA", // Estado que lee la pantalla de fábrica
+        estado: ESTADO_SOLICITUD.ASIGNADO_FABRICA, // Queda en fábrica hasta que fábrica lo marque listo
         creado_por: user?.id,
+        // Vínculo con el remito de fábrica: así, cuando fábrica lo marca listo,
+        // este trabajo pasa solo a "Listos para colocar".
+        solicitud_fabrica_id: solicitud.id,
       });
 
     if (errorSolicitudPrincipal) {
