@@ -118,13 +118,30 @@ export default function DashboardPage() {
       // 1. DATOS ESPECÍFICOS PARA TÉCNICO
       const { data: asignaciones } = await supabase
         .from("asignaciones")
-        .select("solicitud_id, solicitudes(*)")
-        .eq("tecnico_id", profile.id);
+        .select("*")
+        .eq("usuario_id", user.id);
 
       const listaAsignaciones = asignaciones || [];
-      const solicitudesTecnico = listaAsignaciones
-        .map((a: any) => a.solicitudes)
+      const solicitudIds = listaAsignaciones
+        .map((a: any) => a.solicitud_id)
         .filter(Boolean);
+      const solicitudFabricaIds = listaAsignaciones
+        .map((a: any) => a.solicitud_fabrica_id)
+        .filter(Boolean);
+
+      const [{ data: solBase }, { data: solFab }] = await Promise.all([
+        solicitudIds.length
+          ? supabase.from("solicitudes").select("*").in("id", solicitudIds)
+          : Promise.resolve({ data: [] as any[] }),
+        solicitudFabricaIds.length
+          ? supabase.from("solicitudes_fabrica").select("*").in("id", solicitudFabricaIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
+      const solicitudesTecnico: any[] = [
+        ...(solBase || []),
+        ...(solFab || []),
+      ];
 
       setMetricasTecnico({
         asignadas: solicitudesTecnico.length,
@@ -153,7 +170,7 @@ export default function DashboardPage() {
       const { data: solicitudes } = await supabase
         .from("solicitudes")
         .select("*")
-        .order("updated_at", { ascending: false });
+        .order("created_at", { ascending: false });
 
       const { data: trabajosFabrica } = await supabase
         .from("solicitudes_fabrica")
