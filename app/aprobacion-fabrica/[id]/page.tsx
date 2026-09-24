@@ -374,7 +374,7 @@ export default function DetalleAprobacionFabricaPage() {
         </div>
 
         {/* ENCABEZADO */}
-        <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm">
+        <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
             <div>
@@ -382,7 +382,7 @@ export default function DetalleAprobacionFabricaPage() {
                 Solicitud de fabricación
               </p>
 
-              <h1 className="text-3xl font-bold">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
                 Remito Nº {solicitud.numero_remito}
               </h1>
             </div>
@@ -416,7 +416,7 @@ export default function DetalleAprobacionFabricaPage() {
         )}
 
         {/* DATOS DEL CLIENTE */}
-        <section className="mb-6 rounded-2xl bg-white p-6 shadow-sm">
+        <section className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-5 text-xl font-bold">
             Datos del cliente
           </h2>
@@ -463,7 +463,7 @@ export default function DetalleAprobacionFabricaPage() {
         </section>
 
         {/* DATOS DE LA FABRICACIÓN */}
-        <section className="mb-6 rounded-2xl bg-white p-6 shadow-sm">
+        <section className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-5 text-xl font-bold">
             Datos de fabricación
           </h2>
@@ -513,7 +513,7 @@ export default function DetalleAprobacionFabricaPage() {
         </section>
 
         {/* DATOS ECONÓMICOS */}
-        <section className="mb-6 rounded-2xl bg-white p-6 shadow-sm">
+        <section className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-5 text-xl font-bold">
             Datos económicos
           </h2>
@@ -569,7 +569,7 @@ export default function DetalleAprobacionFabricaPage() {
         </section>
 
         {/* ACCIONES ADMIN */}
-        <section className="rounded-2xl bg-white p-6 shadow-sm">
+        <section className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-5 text-xl font-bold">
             Acciones
           </h2>
