@@ -4,22 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { anularProduccionAction } from "./actions";
 
 const estadosVisibles = [
-  "PENDIENTE_APROBACION",
   "ENVIADO_A_CORTAR",
   "EN_CORTE",
   "EN_FABRICACION",
   "EN_FABRICA",
   "FALTANTES",
-  "LISTO_PARA_COLOCAR",
-  "LISTO_INSTALACION",
-  "PENDIENTE_COORDINACION",
-  "ENVIADO_COORDINACION",
-  "COORDINACION",
-  "ASIGNADO",
-  "PENDIENTE_PRECIO",
-  "PRESUPUESTADO",
-  "FINALIZADO",
-  "ANULADO",
 ];
 
 function textoEstado(estado: string) {
