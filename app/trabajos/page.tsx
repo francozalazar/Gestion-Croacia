@@ -65,7 +65,9 @@ export default async function MisTrabajosPage() {
     const estadosOcultos = [
       "FINALIZADO",
       "PRESUPUESTADO",
-      "LISTO_INSTALACION",
+      "PENDIENTE_PRECIO",
+      "CANCELADO",
+      "LISTO_PARA_COLOCAR",
       "ANULADO",
     ];
 
