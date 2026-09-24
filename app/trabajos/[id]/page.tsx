@@ -213,7 +213,7 @@ export default async function TrabajoPage({
 
               </div>
 
-              <h1 className="mt-3 text-2xl md:text-3xl font-bold text-slate-900">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
                 Detalle del trabajo
               </h1>
 
