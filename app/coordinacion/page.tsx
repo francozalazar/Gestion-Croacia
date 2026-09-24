@@ -404,7 +404,7 @@ export default function CoordinacionPage() {
         rol={perfil?.rol || "OFICINA"}
       />
 
-      <main className="ml-0 flex-1 p-6 md:ml-64 md:p-10">
+      <main className="ml-0 flex-1 p-6 pt-20 md:ml-64 md:p-10">
 
         <h1 className="mb-2 text-3xl font-bold text-slate-900">
           Coordinación de Trabajos
