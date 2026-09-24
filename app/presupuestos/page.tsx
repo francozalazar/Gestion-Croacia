@@ -106,7 +106,7 @@ export default function InboxPresupuestoOficinaPage() {
       <Sidebar nombre={perfil?.nombre || "Usuario"} apellido={perfil?.apellido || ""} rol={perfil?.rol || "OFICINA"} />
 
       <main className="ml-0 md:ml-64 flex-1 p-6 pt-20 md:p-10">
-        <h1 className="text-3xl font-bold text-center text-slate-900 mb-2">Inbox de presupuesto</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Inbox de presupuesto</h1>
 
         <div className="mx-auto max-w-4xl mb-8 flex items-center gap-2 bg-slate-100 p-3.5 rounded-xl text-xs text-slate-500 border border-slate-200">
           <Info size={16} className="text-blue-500 shrink-0" />
@@ -116,7 +116,7 @@ export default function InboxPresupuestoOficinaPage() {
         {cargando ? (
           <p className="text-center text-sm text-slate-400">Cargando presupuestos...</p>
         ) : presupuestos.length === 0 ? (
-          <div className="bg-white p-12 rounded-2xl text-center max-w-md mx-auto shadow-xs border border-slate-100">
+          <div className="bg-white p-12 rounded-xl text-center max-w-md mx-auto shadow-sm border border-slate-100">
             <p className="text-sm text-slate-500">No tenés trabajos en tu inbox por el momento.</p>
           </div>
         ) : (
@@ -135,7 +135,7 @@ export default function InboxPresupuestoOficinaPage() {
                 <div
                   key={p.id}
                   onClick={() => setModalPrincipal(p)}
-                  className="cursor-pointer rounded-2xl bg-white p-6 shadow-xs border border-slate-200 transition hover:shadow-md hover:border-emerald-400"
+                  className="cursor-pointer rounded-xl bg-white p-6 shadow-sm border border-slate-200 transition hover:shadow-md hover:border-emerald-400"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
@@ -189,12 +189,12 @@ export default function InboxPresupuestoOficinaPage() {
                 <X size={20} />
               </button>
 
-              <h1 className="text-2xl font-bold text-slate-900">{modalPrincipal.cliente_nombre || "Cliente"}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">{modalPrincipal.cliente_nombre || "Cliente"}</h1>
               <p className="text-base font-semibold text-slate-600 mt-1">
                 {modalPrincipal.direccion} {modalPrincipal.localidad ? `- ${modalPrincipal.localidad}` : ""}
               </p>
 
-              <div className="mt-5 space-y-3 text-xs text-slate-700 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <div className="mt-5 space-y-3 text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <p><strong>Cargado por:</strong> {modalPrincipal.usuario_creador}</p>
                 <p><strong>Tipo de visita:</strong> {modalPrincipal.tipo_visita || "No especificado"}</p>
                 <p><strong>Solicitud de origen:</strong> {modalPrincipal.detalles || modalPrincipal.observaciones || "Sin observaciones"}</p>
@@ -212,7 +212,7 @@ export default function InboxPresupuestoOficinaPage() {
                 <p><strong>Adicionales del precio:</strong> {modalPrincipal.adicionales_visita || modalPrincipal.adicionales_precio || "Sin adicionales"}</p>
               </div>
 
-              <div className="mt-6 flex items-center justify-between p-4 bg-slate-100 rounded-2xl">
+              <div className="mt-6 flex items-center justify-between p-4 bg-slate-100 rounded-xl">
                 <span className="text-xs uppercase font-bold text-slate-500">
                   {["presupuesto", "mantenimiento", "instalacion", "urgencia"].includes(
                     (modalPrincipal.tipo_visita || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
