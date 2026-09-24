@@ -15,16 +15,14 @@ import {
 } from "lucide-react";
 
 const tiposVisita = [
-  "Ir a medir",
   "Presupuesto aceptado",
-  "Mantenimiento",
   "Presupuesto",
-  "Retiro",
-  "Amurar guias",
-  "Supervision",
-  "Urgencia",
-  "Trabajo aceptado",
+  "Reclamo",
   "Trabajo pendiente",
+  "Guias para amurar",
+  "Verificar Medidas",
+  "Urgencia",
+  "Supervision",
 ];
 
 export default function NuevaSolicitudPage() {
