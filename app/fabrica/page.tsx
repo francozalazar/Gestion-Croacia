@@ -45,6 +45,7 @@ export default async function FabricaPage() {
       "ENVIADO_A_CORTAR",
       "EN_CORTE",
       "EN_FABRICACION",
+      "EN_FABRICA",
       "FALTANTES",
     ])
     .order("id", { ascending: false });
@@ -53,7 +54,9 @@ export default async function FabricaPage() {
 
   // Contadores para las tarjetas de arriba
   const enCorte = trabajos.filter((s) => s.estado === "EN_CORTE").length;
-  const enFabricacion = trabajos.filter((s) => s.estado === "EN_FABRICACION").length;
+  const enFabricacion = trabajos.filter((s) =>
+    s.estado === "EN_FABRICACION" || s.estado === "EN_FABRICA"
+  ).length;
   const faltantes = trabajos.filter((s) => s.estado === "FALTANTES").length;
 
   return (
@@ -139,7 +142,8 @@ export default async function FabricaPage() {
             const textoEstado =
               estadoActual === "ENVIADO_A_CORTAR" || estadoActual === "EN_CORTE"
                 ? "Pendiente"
-                : estadoActual === "EN_FABRICACION"
+                : estadoActual === "EN_FABRICACION" ||
+                  estadoActual === "EN_FABRICA"
                   ? "En proceso"
                   : estadoActual === "FALTANTES"
                     ? "Faltantes"
@@ -161,7 +165,8 @@ export default async function FabricaPage() {
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
                           estadoActual === "EN_CORTE"
                             ? "bg-slate-100 text-slate-700"
-                            : estadoActual === "EN_FABRICACION"
+                            : estadoActual === "EN_FABRICACION" ||
+                              estadoActual === "EN_FABRICA"
                             ? "bg-blue-100 text-blue-700"
                             : "bg-amber-100 text-amber-700"
                         }`}
