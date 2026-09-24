@@ -67,7 +67,7 @@ export default function ProduccionLista({
           <article
             key={trabajo.id}
             onClick={() => abrir(trabajo)}
-            className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow"
+            className="cursor-pointer rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -127,7 +127,7 @@ export default function ProduccionLista({
           onClick={cerrar}
         >
           <div
-            className="relative w-full max-w-2xl rounded-2xl bg-white p-8 shadow-xl"
+            className="relative w-full max-w-2xl rounded-xl bg-white p-8 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
