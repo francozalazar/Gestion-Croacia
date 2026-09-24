@@ -111,7 +111,7 @@ export default async function FinalizadosPage() {
           <div className="mb-8">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-slate-900">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
                   Trabajos finalizados
                 </h1>
 
