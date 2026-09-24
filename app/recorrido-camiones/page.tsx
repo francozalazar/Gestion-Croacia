@@ -299,12 +299,12 @@ export default function RecorridoCamionesPage() {
       />
 
       <main className="ml-0 md:ml-64 flex-1 p-6 pt-20 md:p-10">
-        <h1 className="text-3xl font-bold text-center text-slate-800 mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
           Recorrido de camiones
         </h1>
 
         {/* FILTROS DE BÚSQUEDA */}
-        <div className="mx-auto max-w-2xl bg-white p-5 rounded-2xl shadow-xs border border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between mb-10">
+        <div className="mx-auto max-w-2xl bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between mb-10">
           <div className="w-full">
             <label className="text-xs font-semibold text-slate-400 block mb-1 uppercase flex items-center gap-1.5">
               <Truck size={14} /> Seleccionar Camión / Técnico
@@ -348,7 +348,7 @@ export default function RecorridoCamionesPage() {
         {cargando ? (
           <p className="text-center text-sm text-slate-400">Buscando asignaciones...</p>
         ) : trabajos.length === 0 ? (
-          <div className="text-center bg-white p-10 rounded-2xl max-w-md mx-auto shadow-xs border border-slate-100">
+          <div className="text-center bg-white p-10 rounded-xl max-w-md mx-auto shadow-sm border border-slate-100">
             <p className="text-sm text-slate-500">
               {tecnicoSeleccionado
                 ? "No hay trabajos asignados para este camión en la fecha seleccionada."
@@ -366,7 +366,7 @@ export default function RecorridoCamionesPage() {
                     t.prioridad ? String(t.prioridad) : ""
                   );
                 }}
-                className="bg-white rounded-xl p-5 shadow-xs border border-slate-200 hover:shadow-md cursor-pointer transition flex flex-col justify-between hover:border-blue-400"
+                className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 hover:shadow-md cursor-pointer transition flex flex-col justify-between hover:border-blue-400"
               >
                 <div>
                   <div className="flex justify-between items-center mb-1">
