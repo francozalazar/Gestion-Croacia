@@ -249,7 +249,7 @@ export default function DashboardPage() {
         rol={perfil?.rol || "OFICINA"}
       />
 
-      <main className="ml-0 md:ml-64 flex-1 p-6 md:p-10">
+      <main className="ml-0 md:ml-64 flex-1 p-6 pt-20 md:p-10">
         {/* ENCABEZADO */}
         <div className="mb-6">
           <p className="text-xs font-semibold text-slate-400">Bienvenido nuevamente</p>
