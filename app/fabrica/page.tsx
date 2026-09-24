@@ -89,7 +89,7 @@ export default async function FabricaPage() {
             <div>
               <p className="text-sm text-slate-500">Gestión de producción</p>
 
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
                 Trabajos de fábrica
               </h1>
             </div>
@@ -98,19 +98,19 @@ export default async function FabricaPage() {
 
         {/* RESUMEN / CONTADORES */}
         <div className="mb-8 grid gap-5 md:grid-cols-3">
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">En corte / Asignados</p>
             <p className="mt-2 text-3xl font-bold text-slate-900">{enCorte}</p>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">En fabricación</p>
             <p className="mt-2 text-3xl font-bold text-blue-600">
               {enFabricacion}
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Con faltantes</p>
             <p className="mt-2 text-3xl font-bold text-amber-600">{faltantes}</p>
           </div>
@@ -123,7 +123,7 @@ export default async function FabricaPage() {
         )}
 
         {!error && trabajos.length === 0 && (
-          <div className="rounded-2xl bg-white p-12 text-center shadow-sm">
+          <div className="rounded-xl bg-white p-12 text-center shadow-sm">
             <Factory size={48} className="mx-auto text-slate-300" />
             <h2 className="mt-4 text-lg font-bold text-slate-900">
               No hay trabajos pendientes en fábrica
@@ -152,7 +152,7 @@ export default async function FabricaPage() {
             return (
               <div
                 key={solicitud.id}
-                className="rounded-2xl bg-white p-6 shadow-sm"
+                className="rounded-xl bg-white p-6 shadow-sm"
               >
                 <div className="flex flex-col justify-between gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-start">
                   <div>
@@ -344,7 +344,7 @@ export default async function FabricaPage() {
             <Link
               key={trabajo.id}
               href={`/fabrica/${trabajo.id}`}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-amber-400 hover:shadow-md"
+              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-amber-400 hover:shadow-md"
             >
               <h2 className="truncate text-lg font-bold text-slate-900">
                 {trabajo.cliente || trabajo.cliente_nombre || "Cliente sin nombre"}
