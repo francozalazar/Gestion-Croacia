@@ -43,12 +43,16 @@ export default function Home() {
         <div className="w-full max-w-md">
           <div className="rounded-2xl bg-white p-8 shadow-xl">
             <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 text-2xl font-bold text-white">
-                GC
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-1.5 shadow-sm border border-slate-200">
+                <img
+                  src="/logo.png"
+                  alt="Croacia"
+                  className="h-full w-full object-contain"
+                />
               </div>
 
               <h1 className="text-2xl font-bold text-slate-900">
-                Cortinas Gestión
+                Croacia
               </h1>
 
               <p className="mt-2 text-sm text-slate-500">
