@@ -157,6 +157,7 @@ export default function CoordinacionPage() {
     const baseFiltradas = (solBase || [])
       .filter(
         (s) =>
+          !s.solicitud_fabrica_id &&
           !idsFab.has(
             String(s.numero || s.numero_remito)
           )
@@ -346,6 +347,15 @@ export default function CoordinacionPage() {
           errEstado.message
       );
     } else {
+      // Si es un trabajo de fabrica, sincronizamos la solicitud principal
+      // para que oficina vea el estado real.
+      if (solicitudModal.es_fabrica) {
+        await supabase
+          .from("solicitudes")
+          .update(datosActualizacion)
+          .eq("solicitud_fabrica_id", solicitudModal.id);
+      }
+
       cerrarModal();
       await cargarDatos();
     }
