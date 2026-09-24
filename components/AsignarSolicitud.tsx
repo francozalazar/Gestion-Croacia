@@ -39,6 +39,7 @@ export default function AsignarSolicitud({
   const [fechaPactada, setFechaPactada] = useState(
     fecha || new Date().toISOString().split("T")[0]
   );
+  const [prioridad, setPrioridad] = useState("3");
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
 
@@ -62,6 +63,7 @@ export default function AsignarSolicitud({
           usuario_id: usuarioId,
           tipo: "TECNICO",
           fecha: fechaPactada,
+          prioridad: Number(prioridad),
         },
         { onConflict: "solicitud_id" }
       );
@@ -72,6 +74,7 @@ export default function AsignarSolicitud({
         usuario_id: usuarioId,
         tipo: "TECNICO",
         fecha: fechaPactada,
+        prioridad: Number(prioridad),
       });
     }
 
@@ -137,6 +140,21 @@ export default function AsignarSolicitud({
           ))}
         </select>
       )}
+
+      <label className="mb-2 mt-4 block text-sm font-medium text-gray-700">
+        Prioridad
+      </label>
+      <select
+        value={prioridad}
+        onChange={(e) => setPrioridad(e.target.value)}
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-gray-900"
+      >
+        <option value="1">1 - Urgente</option>
+        <option value="2">2 - Alta</option>
+        <option value="3">3 - Normal</option>
+        <option value="4">4 - Baja</option>
+        <option value="5">5 - Muy baja</option>
+      </select>
 
       <div className="mt-4 rounded-lg bg-white p-3 text-sm text-gray-600">
         <div className="flex gap-2">
