@@ -215,11 +215,14 @@ export async function GET(
   y -= 24;
 
   campo("Estado", String(remito.estado || "-").replaceAll("_", " "), margen, y);
+  if (remito.tipo_visita) campo("Tipo", remito.tipo_visita, 300, y);
+  y -= 24;
+
   if (remito.horario_desde && remito.horario_hasta) {
-    campo("Horario", `${remito.horario_desde} a ${remito.horario_hasta}`, 195, y);
+    campo("Horario", `${remito.horario_desde} a ${remito.horario_hasta}`, margen, y);
+    y -= 24;
   }
-  if (remito.tipo_visita) campo("Tipo", remito.tipo_visita, 400, y);
-  y -= 20;
+  y -= 4;
 
   regla(y, 1.4);
   y -= 28;
