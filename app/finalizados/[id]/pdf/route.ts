@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { PDFDocument, StandardFonts, rgb, PDFPage } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import fs from "fs/promises";
 import path from "path";
 
@@ -63,61 +63,43 @@ export async function GET(
       .single();
 
     if (tecnicoData) {
-      tecnico = `${tecnicoData.nombre || ""} ${tecnicoData.apellido || ""}`.trim() || "-";
+      tecnico =
+        `${tecnicoData.nombre || ""} ${tecnicoData.apellido || ""}`.trim() ||
+        "-";
     }
   }
 
   const datos = solicitud as Record<string, any>;
 
   const clienteNombre = datos.cliente_nombre || "-";
-  const clienteTelefono = datos.cliente_telefono || "-";
+  const contacto = datos.contacto || datos.aclaracion_cliente || "-";
   const direccion = datos.direccion || "-";
   const localidad = datos.localidad || "-";
-  const tipoSolicitud = datos.tipo_visita || datos.tipo_solicitud || datos.tipo || "Instalacion";
-  const detalleVisita = datos.observaciones || datos.detalle_visita || datos.detalle || "-";
+  const tipoSolicitud =
+    datos.tipo_visita || datos.tipo_solicitud || datos.tipo || "-";
+  const detalleVisita =
+    datos.observaciones || datos.detalle_visita || datos.detalle || "-";
   const trabajoRealizado = datos.trabajo_realizado || "-";
   const observacionesTecnico = datos.observaciones_tecnico || "-";
   const aclaracionCliente = datos.aclaracion_cliente || clienteNombre;
-  const ayudante = datos.ayudante || "Armando";
-
-  let fechaCarga = "-";
-  if (datos.created_at) {
-    fechaCarga = new Date(datos.created_at).toLocaleString("es-AR", {
-      timeZone: "America/Argentina/Buenos_Aires",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
+  const ayudante = datos.ayudante || "-";
 
   let fechaVisita = "-";
   if (datos.fecha) {
-    fechaVisita = new Date(`${datos.fecha}T12:00:00`).toLocaleDateString("es-AR", {
-      timeZone: "America/Argentina/Buenos_Aires",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  }
-
-  let fechaFinalizacion = "-";
-  if (datos.fecha_finalizacion) {
-    fechaFinalizacion = new Date(datos.fecha_finalizacion).toLocaleString("es-AR", {
-      timeZone: "America/Argentina/Buenos_Aires",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }) + " hs";
+    fechaVisita = new Date(`${datos.fecha}T12:00:00`).toLocaleDateString(
+      "es-AR",
+      {
+        timeZone: "America/Argentina/Buenos_Aires",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }
+    );
   }
 
   const pdf = await PDFDocument.create();
   const fuente = await pdf.embedFont(StandardFonts.Helvetica);
   const fuenteNegrita = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const fuenteItalica = await pdf.embedFont(StandardFonts.HelveticaOblique);
 
   let logo = null;
   try {
@@ -130,65 +112,82 @@ export async function GET(
 
   const ancho = 595.28;
   const alto = 841.89;
-  const margen = 40;
+  const margen = 45;
   const anchoContenido = ancho - margen * 2;
+  const negro = rgb(0.05, 0.05, 0.05);
 
-  let pagina!: PDFPage;
-  let y = 0;
+  const pagina = pdf.addPage([ancho, alto]);
+  let y = alto - 40;
 
-  function nuevaPagina() {
-    pagina = pdf.addPage([ancho, alto]);
-    y = alto - 35;
-  }
-
-  function verificarEspacio(alturaRequerida: number) {
-    if (y - alturaRequerida < 50) {
-      nuevaPagina();
-    }
-  }
-
-  nuevaPagina();
-
-  function texto(contenido: string, x: number, yPos: number, size = 9, bold = false, italic = false) {
-    pagina.drawText(String(contenido || "-"), {
-      x,
+  function centrado(
+    contenido: string,
+    yPos: number,
+    size: number,
+    bold = false
+  ) {
+    const f = bold ? fuenteNegrita : fuente;
+    const w = f.widthOfTextAtSize(contenido, size);
+    pagina.drawText(contenido, {
+      x: (ancho - w) / 2,
       y: yPos,
       size,
-      font: italic ? fuenteItalica : bold ? fuenteNegrita : fuente,
-      color: rgb(0.1, 0.1, 0.1),
+      font: f,
+      color: negro,
     });
   }
 
-  function linea(yPos: number) {
+  function regla(yPos: number, grosor = 1.6) {
     pagina.drawLine({
       start: { x: margen, y: yPos },
       end: { x: ancho - margen, y: yPos },
-      thickness: 0.8,
-      color: rgb(0.78, 0.78, 0.78),
+      thickness: grosor,
+      color: negro,
     });
   }
 
-  function caja(x: number, yTop: number, width: number, height: number) {
-    pagina.drawRectangle({
+  function campo(
+    etiqueta: string,
+    valor: string,
+    x: number,
+    yPos: number,
+    size = 11
+  ) {
+    pagina.drawText(`${etiqueta}:`, {
       x,
-      y: yTop - height,
-      width,
-      height,
-      borderWidth: 0.8,
-      borderColor: rgb(0.82, 0.82, 0.82),
-      color: rgb(0.98, 0.98, 0.98),
+      y: yPos,
+      size,
+      font: fuenteNegrita,
+      color: negro,
+    });
+    const offset = fuenteNegrita.widthOfTextAtSize(`${etiqueta}: `, size);
+    pagina.drawText(String(valor || "-"), {
+      x: x + offset,
+      y: yPos,
+      size,
+      font: fuente,
+      color: negro,
     });
   }
 
-  function textoEnvuelto(contenido: string, x: number, yInicial: number, maxCaracteres: number, size = 8.5, espacio = 11) {
+  function envuelto(
+    contenido: string,
+    x: number,
+    yInicial: number,
+    maxWidth: number,
+    size = 10.5,
+    interlineado = 15
+  ) {
     const palabras = String(contenido || "-").split(/\s+/);
     const lineas: string[] = [];
     let actual = "";
 
     for (const palabra of palabras) {
       const prueba = actual ? `${actual} ${palabra}` : palabra;
-      if (prueba.length > maxCaracteres) {
-        if (actual) lineas.push(actual);
+      if (
+        fuente.widthOfTextAtSize(prueba, size) > maxWidth &&
+        actual
+      ) {
+        lineas.push(actual);
         actual = palabra;
       } else {
         actual = prueba;
@@ -198,125 +197,114 @@ export async function GET(
 
     let posicion = yInicial;
     for (const lineaTexto of lineas) {
-      verificarEspacio(espacio);
-      texto(lineaTexto, x, posicion, size);
-      posicion -= espacio;
+      pagina.drawText(lineaTexto, {
+        x,
+        y: posicion,
+        size,
+        font: fuente,
+        color: negro,
+      });
+      posicion -= interlineado;
     }
     return posicion;
   }
 
-  function tituloSeccion(tituloStr: string) {
-    verificarEspacio(25);
-    texto(tituloStr, margen, y, 11, true);
-    y -= 16;
-  }
+  // =========================
+  // ENCABEZADO
+  // =========================
 
-  // HEADER & LOGO
   if (logo) {
+    const altoLogo = 58;
+    const anchoLogo = (logo.width / logo.height) * altoLogo;
     pagina.drawImage(logo, {
-      x: margen,
-      y: y - 38,
-      width: 42,
-      height: 42,
+      x: (ancho - anchoLogo) / 2,
+      y: y - altoLogo,
+      width: anchoLogo,
+      height: altoLogo,
     });
+    y -= altoLogo + 8;
   }
 
-  texto("CROACIA S.R.L.", margen + 55, y - 2, 18, true);
-  texto("Fábrica de cortinas metálicas", margen + 55, y - 18, 8.5);
-  texto("SOLICITUD DE TRABAJO", margen + 55, y - 32, 10.5, true);
+  centrado("CROACIA SRL", y - 16, 20, true);
+  y -= 26;
+  centrado("FÁBRICA DE CORTINAS METÁLICAS", y - 8, 9, true);
+  y -= 22;
 
-  pagina.drawRectangle({
-    x: 420,
-    y: y - 43,
-    width: 135,
-    height: 63,
-    borderWidth: 1.3,
-    borderColor: rgb(0.15, 0.15, 0.15),
-  });
+  centrado(
+    "Fábrica: Ruta de la Tradición 670, Luis Guillón  4281-3813 / 3966-6430 / 11 5450-2050",
+    y,
+    7.5
+  );
+  y -= 11;
+  centrado(
+    "Suc. Lomas de Zamora: Camino negro, Esq. Colombres  11 5818-4428",
+    y,
+    7.5
+  );
+  y -= 11;
+  centrado("Suc. La Plata: Av 44 N° 3269  11 5659-4671", y, 7.5);
+  y -= 30;
 
-  texto("N° REMITO", 455, y - 1, 7.5, true);
+  centrado("SOLICITUD DE TRABAJO", y - 20, 24, true);
+  y -= 34;
+  regla(y, 2.2);
+  y -= 24;
+
+  // =========================
+  // DATOS
+  // =========================
+
   const numeroRemito = datos.numero || datos.id;
-  texto(String(numeroRemito).padStart(5, "0"), 458, y - 22, 17, true);
 
-  y -= 72;
-  linea(y);
+  campo("N° remito", String(numeroRemito), margen, y, 11.5);
+  y -= 26;
+
+  campo("Fecha", fechaVisita, margen, y);
+  campo("Cliente", clienteNombre, 175, y);
+  campo("Contacto", contacto, 430, y);
+  y -= 24;
+
+  campo("Dirección", direccion, margen, y);
+  campo("Localidad", String(localidad).toUpperCase(), 350, y);
+  y -= 24;
+
+  campo("Técnico", tecnico, margen, y);
+  campo("Ayudante", ayudante, 195, y);
+  campo("Solicitud", tipoSolicitud, 360, y);
   y -= 20;
 
-  // DATOS GENERALES
-  tituloSeccion("DATOS GENERALES");
-  const generalesTop = y;
-  caja(margen, generalesTop, anchoContenido, 92);
+  regla(y, 1.4);
+  y -= 28;
 
-  texto("Fecha de carga", margen + 12, generalesTop - 16, 7.5, true);
-  texto(fechaCarga, margen + 12, generalesTop - 30, 8.5);
+  // =========================
+  // SECCIONES
+  // =========================
 
-  texto("Fecha de visita", 210, generalesTop - 16, 7.5, true);
-  texto(fechaVisita, 210, generalesTop - 30, 8.5);
+  function seccion(titulo: string, contenido: string) {
+    pagina.drawText(titulo, {
+      x: margen,
+      y,
+      size: 15,
+      font: fuenteNegrita,
+      color: negro,
+    });
+    y -= 22;
+    y = envuelto(contenido, margen, y, anchoContenido, 10.5, 15);
+    y -= 4;
+    regla(y, 1);
+    y -= 30;
+  }
 
-  texto("Cliente", margen + 12, generalesTop - 51, 7.5, true);
-  texto(clienteNombre, margen + 12, generalesTop - 65, 8.5);
+  seccion("Detalle de la visita", detalleVisita);
+  seccion("Indicaciones del técnico", trabajoRealizado);
+  y -= 30;
+  seccion("Observaciones del técnico", observacionesTecnico);
 
-  texto("Teléfono", 210, generalesTop - 51, 7.5, true);
-  texto(clienteTelefono, 210, generalesTop - 65, 8.5);
+  // =========================
+  // FIRMA Y ACLARACIÓN
+  // =========================
 
-  texto("Localidad", 400, generalesTop - 51, 7.5, true);
-  texto(localidad, 400, generalesTop - 65, 8);
-
-  texto("Dirección", margen + 12, generalesTop - 82, 7.5, true);
-  texto(direccion, margen + 60, generalesTop - 82, 8.5);
-
-  y = generalesTop - 105;
-
-  // DATOS DE LA VISITA
-  tituloSeccion("DATOS DE LA VISITA");
-  const visitaTop = y;
-  caja(margen, visitaTop, anchoContenido, 55);
-
-  texto("Técnico", margen + 12, visitaTop - 16, 7.5, true);
-  texto(tecnico, margen + 12, visitaTop - 30, 8.5);
-
-  texto("Ayudante", 120, visitaTop - 16, 7.5, true);
-  texto(ayudante, 120, visitaTop - 30, 8.5);
-
-  texto("Solicitud", 210, visitaTop - 16, 7.5, true);
-  texto(tipoSolicitud, 210, visitaTop - 30, 8.5);
-
-  texto("Finalización", 390, visitaTop - 16, 7.5, true);
-  texto(fechaFinalizacion, 390, visitaTop - 30, 8);
-
-  y = visitaTop - 68;
-
-  // SECCIONES DE TEXTO EXTENSO
-  tituloSeccion("DETALLE DE LA VISITA");
-  const detalleTop = y;
-  caja(margen, detalleTop, anchoContenido, 65);
-  textoEnvuelto(detalleVisita, margen + 12, detalleTop - 21, 95, 8.5, 12);
-  y = detalleTop - 80;
-
-  tituloSeccion("TRABAJO REALIZADO");
-  const trabajoTop = y;
-  caja(margen, trabajoTop, anchoContenido, 75);
-  textoEnvuelto(trabajoRealizado, margen + 12, trabajoTop - 21, 95, 8.5, 12);
-  y = trabajoTop - 90;
-
-  tituloSeccion("OBSERVACIONES DEL TÉCNICO");
-  const observacionesTop = y;
-  caja(margen, observacionesTop, anchoContenido, 65);
-  textoEnvuelto(observacionesTecnico, margen + 12, observacionesTop - 21, 95, 8.5, 12);
-  y = observacionesTop - 80;
-
-  // FIRMA Y LEGAL
-  verificarEspacio(150);
-  tituloSeccion("CONFORMIDAD DEL CLIENTE");
-
-  texto("Aclaración:", margen, y, 8.5, true);
-  texto(aclaracionCliente, margen + 65, y, 8.5);
-  y -= 20;
-
-  texto("Firma del cliente", margen, y, 8.5, true);
-  y -= 10;
-
-  caja(margen, y, 250, 65);
+  const zonaFirmaY = Math.min(y - 30, 190);
 
   if (
     datos.firma_cliente &&
@@ -328,66 +316,68 @@ export async function GET(
       const bytes = Buffer.from(base64, "base64");
       const imagen = await pdf.embedPng(bytes);
 
-      const maxWidth = 220;
-      const maxHeight = 52;
-      const escala = Math.min(maxWidth / imagen.width, maxHeight / imagen.height);
+      const maxWidth = 150;
+      const maxHeight = 80;
+      const escala = Math.min(
+        maxWidth / imagen.width,
+        maxHeight / imagen.height
+      );
 
       pagina.drawImage(imagen, {
-        x: margen + 15,
-        y: y - 55 + (maxHeight - imagen.height * escala) / 2,
+        x: margen + 30,
+        y: zonaFirmaY - 55,
         width: imagen.width * escala,
         height: imagen.height * escala,
       });
     } catch (error) {
-      texto("Firma registrada", margen + 15, y - 35, 8, false, true);
+      console.error("No se pudo incrustar la firma:", error);
     }
-  } else {
-    texto(datos.firma_cliente || "Firma registrada", margen + 15, y - 35, 8, false, true);
   }
 
-  y -= 82;
-  linea(y);
-  y -= 16;
-
-  const textoLegal =
-    "La firma de este documento valida la terminación, verificación y aceptación del cliente por medio del firmante. El mismo certifica la finalización y conformidad de la realización de la tarea por parte de Croacia S.R.L.";
-
-  textoEnvuelto(textoLegal, margen, y, 100, 7, 9);
-
-  // PIE DE PÁGINA GLOBAL
-  const paginas = pdf.getPages();
-  paginas.forEach((paginaActual, indice) => {
-    paginaActual.drawLine({
-      start: { x: margen, y: 32 },
-      end: { x: ancho - margen, y: 32 },
-      thickness: 0.7,
-      color: rgb(0.8, 0.8, 0.8),
-    });
-
-    paginaActual.drawText("CROACIA S.R.L. - Solicitud de trabajo", {
-      x: margen,
-      y: 19,
-      size: 6.5,
-      font: fuente,
-      color: rgb(0.4, 0.4, 0.4),
-    });
-
-    paginaActual.drawText(`Remito Nº ${String(numeroRemito).padStart(5, "0")}`, {
-      x: 245,
-      y: 19,
-      size: 6.5,
-      font: fuente,
-      color: rgb(0.4, 0.4, 0.4),
-    });
-
-    paginaActual.drawText(`Página ${indice + 1} de ${paginas.length}`, {
-      x: 465,
-      y: 19,
-      size: 6.5,
-      font: fuente,
-      color: rgb(0.4, 0.4, 0.4),
-    });
+  // Aclaración (nombre del firmante), a la derecha
+  const anchoAclaracion = fuente.widthOfTextAtSize(aclaracionCliente, 11);
+  pagina.drawText(aclaracionCliente, {
+    x: Math.min(430 - anchoAclaracion / 2, ancho - margen - anchoAclaracion),
+    y: zonaFirmaY - 5,
+    size: 11,
+    font: fuente,
+    color: negro,
   });
+
+  centradoEnZona("Firma", margen, 220, zonaFirmaY - 60);
+  centradoEnZona("Aclaración", 320, ancho - margen, zonaFirmaY - 60);
+
+  function centradoEnZona(
+    contenido: string,
+    xDesde: number,
+    xHasta: number,
+    yPos: number
+  ) {
+    const w = fuenteNegrita.widthOfTextAtSize(contenido, 12);
+    const centro = (xDesde + xHasta) / 2;
+    pagina.drawText(contenido, {
+      x: centro - w / 2,
+      y: yPos,
+      size: 12,
+      font: fuenteNegrita,
+      color: negro,
+    });
+  }
+
+  // =========================
+  // TEXTO LEGAL
+  // =========================
+
+  centrado(
+    "La firma de este documento valida la terminación, verificación y aceptación del cliente por medio del firmante.",
+    52,
+    8
+  );
+  centrado(
+    "El mismo certifica la finalización y conformidad de la realización de la tarea por parte de Croacia S.R.L.",
+    40,
+    8
+  );
 
   const pdfBytes = await pdf.save();
 
@@ -395,7 +385,9 @@ export async function GET(
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="remito-${String(numeroRemito).padStart(5, "0")}.pdf"`,
+      "Content-Disposition": `attachment; filename="remito-${String(
+        numeroRemito
+      ).padStart(5, "0")}.pdf"`,
       "Cache-Control": "no-store",
     },
   });
