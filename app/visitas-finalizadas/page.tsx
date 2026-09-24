@@ -116,7 +116,7 @@ export default function VisitasFinalizadasPage() {
       />
 
       <main className="ml-0 md:ml-64 flex-1 p-6 pt-20 md:p-10">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
           Visitas Finalizadas
         </h1>
         <p className="text-xs text-slate-500 mb-6">
@@ -130,21 +130,21 @@ export default function VisitasFinalizadasPage() {
             placeholder="Buscar por cliente, dirección, fecha (YYYY-MM-DD) o número de remito..."
             value={busqueda}
             onChange={handleSearchChange}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pl-4 pr-10 text-sm outline-none shadow-xs focus:border-blue-500"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pl-4 pr-10 text-sm outline-none shadow-sm focus:border-blue-500"
           />
           <Search className="absolute right-3 top-3.5 text-slate-400" size={18} />
         </div>
 
         {/* CONTENIDO SEGÚN BÚSQUEDA */}
         {!busqueda.trim() ? (
-          <div className="bg-white p-12 rounded-2xl text-center max-w-md mx-auto shadow-xs border border-slate-100">
+          <div className="bg-white p-12 rounded-xl text-center max-w-md mx-auto shadow-sm border border-slate-100">
             <Search size={40} className="mx-auto text-slate-300 mb-3" />
             <p className="text-sm text-slate-500 font-medium">Realiza una búsqueda para ver el listado de visitas finalizadas.</p>
           </div>
         ) : cargando ? (
           <p className="text-center text-sm text-slate-400 py-10">Buscando visitas...</p>
         ) : visitas.length === 0 ? (
-          <div className="bg-white p-12 rounded-2xl text-center max-w-md mx-auto shadow-xs border border-slate-100">
+          <div className="bg-white p-12 rounded-xl text-center max-w-md mx-auto shadow-sm border border-slate-100">
             <CheckCircle2 size={40} className="mx-auto text-amber-400 mb-3" />
             <p className="text-sm text-slate-600 font-medium">No se encontraron visitas finalizadas con esos datos.</p>
           </div>
@@ -158,7 +158,7 @@ export default function VisitasFinalizadasPage() {
               <div
                 key={v.id}
                 onClick={() => setModalDetalle(v)}
-                className="cursor-pointer rounded-2xl bg-white p-4 px-6 shadow-xs border border-slate-200 transition hover:border-emerald-400 hover:shadow-md flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap"
+                className="cursor-pointer rounded-xl bg-white p-4 px-6 shadow-sm border border-slate-200 transition hover:border-emerald-400 hover:shadow-md flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap"
               >
                 <div className="flex items-center gap-4 min-w-0">
                   <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 shrink-0">
@@ -222,7 +222,7 @@ export default function VisitasFinalizadasPage() {
               {/* CONTENEDOR DE INFORMACIÓN COMPLETA */}
               <div className="mt-6 space-y-4 text-xs text-slate-700">
                 
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
                   <p className="text-slate-400 font-bold uppercase tracking-wider mb-2">Información general</p>
                   <p><strong>Cargado por:</strong> {modalDetalle.usuario_creador}</p>
                   <p><strong>Técnico responsable:</strong> {modalDetalle.tecnico_real}</p>
@@ -230,14 +230,14 @@ export default function VisitasFinalizadasPage() {
                   <p><strong>Tipo de visita:</strong> {modalDetalle.tipo_visita || "No especificado"}</p>
                 </div>
 
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
                   <p className="text-slate-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
                     <FileText size={14} /> Observaciones originales
                   </p>
                   <p className="text-slate-800">{modalDetalle.observaciones || "Sin observaciones."}</p>
                 </div>
 
-                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 space-y-1">
+                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 space-y-1">
                   <p className="text-emerald-900 font-bold uppercase tracking-wider mb-1">
                     Trabajo realizado por el técnico
                   </p>
@@ -247,7 +247,7 @@ export default function VisitasFinalizadasPage() {
                 </div>
 
                 {/* INFORMACIÓN ECONÓMICA Y DE PAGOS */}
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
                   <p className="text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <DollarSign size={14} /> Datos comerciales y pagos
                   </p>
