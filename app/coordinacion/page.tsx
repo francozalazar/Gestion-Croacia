@@ -41,7 +41,9 @@ export default async function CoordinacionPage() {
   // SOLICITUDES
   // =========================
   // Incluimos las nuevas que vuelven
-  // desde Oficina después de Fábrica
+  // desde Oficina después de Fábrica.
+  // Los ASIGNADO ya no se listan: una vez
+  // asignados desaparecen de Coordinación.
 
   const {
     data: solicitudes,
@@ -51,7 +53,6 @@ export default async function CoordinacionPage() {
     .select("*")
     .in("estado", [
       "PENDIENTE",
-      "ASIGNADO",
       "PENDIENTE_COORDINACION",
     ])
     .order("created_at", {

@@ -3,6 +3,7 @@ import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { ESTADO_FABRICA, ESTADO_SOLICITUD } from "@/lib/estados";
 import {
   Factory,
   ClipboardList,
@@ -69,17 +70,37 @@ export default async function FabricaPage() {
 
     const supabaseAction = await createClient();
 
-    if (nuevoEstado === "LISTO_INSTALACION") {
-      // Si está listo, lo marcamos como finalizado o listo para coordinación en fábrica
-      await supabaseAction
-        .from("solicitudes_fabrica")
-        .update({ estado: "LISTO_INSTALACION" })
-        .eq("id", id);
-    } else {
-      await supabaseAction
-        .from("solicitudes_fabrica")
-        .update({ estado: nuevoEstado })
-        .eq("id", id);
+    if (!id || !nuevoEstado) return;
+
+    const estadosPermitidos: string[] = [
+      ESTADO_FABRICA.EN_FABRICACION,
+      ESTADO_FABRICA.FALTANTES,
+      ESTADO_FABRICA.LISTO_PARA_COLOCAR,
+    ];
+
+    if (!estadosPermitidos.includes(String(nuevoEstado))) return;
+
+    const { error: errorFabrica } = await supabaseAction
+      .from("solicitudes_fabrica")
+      .update({ estado: nuevoEstado })
+      .eq("id", id);
+
+    if (errorFabrica) {
+      console.error("Error al actualizar el remito de fábrica:", errorFabrica);
+      return;
+    }
+
+    if (nuevoEstado === ESTADO_FABRICA.LISTO_PARA_COLOCAR) {
+      // Fábrica terminó: el trabajo vinculado en `solicitudes`
+      // pasa a "Listos para colocar" para que Oficina lo mande a Coordinación.
+      const { error: errorSolicitud } = await supabaseAction
+        .from("solicitudes")
+        .update({ estado: ESTADO_SOLICITUD.LISTO_PARA_COLOCAR })
+        .eq("solicitud_fabrica_id", id);
+
+      if (errorSolicitud) {
+        console.error("Error al pasar el trabajo a Listos para colocar:", errorSolicitud);
+      }
     }
 
     revalidatePath("/fabrica");
@@ -312,7 +333,7 @@ export default async function FabricaPage() {
 
                     <form action={actualizarEstado}>
                       <input type="hidden" name="id" value={solicitud.id} />
-                      <input type="hidden" name="nuevoEstado" value="LISTO_INSTALACION" />
+                      <input type="hidden" name="nuevoEstado" value={ESTADO_FABRICA.LISTO_PARA_COLOCAR} />
                       <button
                         type="submit"
                         className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"

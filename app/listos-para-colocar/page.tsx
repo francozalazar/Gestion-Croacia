@@ -3,6 +3,7 @@ import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import EnviarACoordinacion from "@/components/EnviarACoordinacion";
 import Link from "next/link";
+import { ESTADO_FABRICA } from "@/lib/estados";
 import {
   Factory,
   MapPin,
@@ -37,11 +38,12 @@ export default async function ListosParaColocarPage() {
   if (!["OFICINA", "ADMIN"].includes(profile.rol)) {
     redirect("/dashboard");
   }
-// Debe consultar a la tabla principal "solicitudes"
+  // Remitos de fábrica que fábrica ya marcó como listos.
+  // (Esta pantalla muestra datos del remito: número, total, saldo, medio de pago.)
   const { data: solicitudes, error } = await supabase
-    .from("solicitudes")
+    .from("solicitudes_fabrica")
     .select("*")
-    .eq("estado", "LISTO_PARA_COLOCAR")
+    .eq("estado", ESTADO_FABRICA.LISTO_PARA_COLOCAR)
     .order("created_at", {
       ascending: false,
     });
@@ -253,6 +255,11 @@ export default async function ListosParaColocarPage() {
                   <span className="font-medium text-slate-400">Pago: </span>
                   <span>{solicitud.medio_pago ?? "-"}</span>
                 </div>
+              </div>
+
+              {/* ENVIAR A COORDINACIÓN */}
+              <div className="mt-5 border-t border-slate-100 pt-5">
+                <EnviarACoordinacion solicitudFabricaId={solicitud.id} />
               </div>
 
             </div>

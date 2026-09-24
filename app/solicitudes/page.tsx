@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { COLOR_ESTADO, nombreEstado } from "@/lib/estados";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import Sidebar from "@/components/Sidebar";
@@ -206,18 +207,11 @@ export default async function SolicitudesPage() {
                         <td className="px-5 py-4">
                           <span
                             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                              solicitud.estado === "PENDIENTE"
-                                ? "bg-amber-100 text-amber-700"
-                                : solicitud.estado === "ASIGNADO"
-                                ? "bg-blue-100 text-blue-700"
-                                : solicitud.estado === "EN_PROCESO"
-                                ? "bg-purple-100 text-purple-700"
-                                : solicitud.estado === "FINALIZADO"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-slate-100 text-slate-600"
+                              COLOR_ESTADO[solicitud.estado] ||
+                              "bg-slate-100 text-slate-600"
                             }`}
                           >
-                            {solicitud.estado.replace("_", " ")}
+                            {nombreEstado(solicitud.estado)}
                           </span>
                         </td>
                       </tr>

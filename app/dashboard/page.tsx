@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Sidebar from "@/components/Sidebar";
+import { ESTADO_SOLICITUD, ESTADOS_EN_PROCESO } from "@/lib/estados";
 import {
   ClipboardList,
   Clock3,
@@ -42,17 +43,18 @@ export default async function DashboardPage() {
     supabase
       .from("solicitudes")
       .select("id", { count: "exact", head: true })
-      .eq("estado", "PENDIENTE"),
+      .eq("estado", ESTADO_SOLICITUD.PENDIENTE),
 
     supabase
       .from("solicitudes")
       .select("id", { count: "exact", head: true })
-      .eq("estado", "EN_PROCESO"),
+      // "En proceso" = todo lo que ya arrancó y no está finalizado
+      .in("estado", ESTADOS_EN_PROCESO),
 
     supabase
       .from("solicitudes")
       .select("id", { count: "exact", head: true })
-      .eq("estado", "FINALIZADO"),
+      .eq("estado", ESTADO_SOLICITUD.FINALIZADO),
   ]);
 
   const totalSolicitudes =
