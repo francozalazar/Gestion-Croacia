@@ -36,17 +36,33 @@ export default async function MisTrabajosPage() {
 
   let solicitudes: any[] = [];
 
+  // Guardamos el error de cualquiera de las dos
+  // consultas para mostrarlo. Antes el error de la
+  // segunda se perdía y la página quedaba vacía
+  // sin avisar qué pasó.
+  let errorCarga = error;
+
   if (asignaciones && asignaciones.length > 0) {
-    const solicitudIds = asignaciones.map(
-      (a) => a.solicitud_id
-    );
+    // Sacamos los nulos: hay asignaciones viejas
+    // sin solicitud_id y un null en el filtro "in"
+    // hace fallar toda la consulta.
+    const solicitudIds = asignaciones
+      .map((a) => a.solicitud_id)
+      .filter(Boolean);
 
     // FILTRO DIRECTO EN SUPABASE: Excluimos los finalizados de cuajo
-    const { data } = await supabase
-      .from("solicitudes")
-      .select("*")
-      .in("id", solicitudIds)
-      .not("estado", "ilike", "FINALIZADO"); // 'ilike' ignora mayúsculas/minúsculas
+    const { data, error: errorSolicitudes } =
+      solicitudIds.length > 0
+        ? await supabase
+            .from("solicitudes")
+            .select("*")
+            .in("id", solicitudIds)
+            .not("estado", "ilike", "FINALIZADO") // 'ilike' ignora mayúsculas/minúsculas
+        : { data: [], error: null };
+
+    if (errorSolicitudes) {
+      errorCarga = errorSolicitudes;
+    }
 
     if (data) {
       // Mapeamos para asociar la prioridad de la asignación a cada solicitud
@@ -111,14 +127,14 @@ export default async function MisTrabajosPage() {
           </p>
         </div>
 
-        {error && (
+        {errorCarga && (
           <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
             <p className="font-semibold text-red-800">
               Error al cargar los trabajos
             </p>
 
             <p className="mt-1 text-sm text-red-700">
-              {error.message}
+              {errorCarga.message}
             </p>
           </div>
         )}
