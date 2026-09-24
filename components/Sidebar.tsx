@@ -60,10 +60,12 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
           <Menu size={22} />
         </button>
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold">
-            S
-          </div>
-          <span className="text-sm font-bold">Gestión Cortinas</span>
+          <img
+            src="/logo.png"
+            alt="Croacia"
+            className="h-8 w-8 rounded-lg bg-white object-contain p-0.5"
+          />
+          <span className="text-sm font-bold">Croacia</span>
         </div>
       </div>
 
@@ -88,11 +90,15 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
         </button>
         {/* LOGO */}
         <div className="flex items-center gap-3 border-b border-slate-800 pb-5 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 font-bold text-white text-lg">
-            S
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white p-1">
+            <img
+              src="/logo.png"
+              alt="Croacia"
+              className="h-full w-full object-contain"
+            />
           </div>
           <div>
-            <h2 className="font-bold text-white text-sm">Gestión Cortinas</h2>
+            <h2 className="font-bold text-white text-sm">Croacia</h2>
             <p className="text-xs text-slate-400 uppercase">{rol}</p>
           </div>
         </div>
