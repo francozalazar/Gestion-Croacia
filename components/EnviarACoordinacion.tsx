@@ -45,13 +45,11 @@ export default function EnviarACoordinacion({ solicitud }: Props) {
       .update(datosNuevos)
       .eq("id", solicitud.id);
 
-    // 2. Actualizamos la tabla principal "solicitudes" por numero_remito
-    if (solicitud.numero_remito) {
-      await supabase
-        .from("solicitudes")
-        .update(datosNuevos)
-        .eq("numero_remito", solicitud.numero_remito);
-    }
+    // 2. Actualizamos la tabla principal "solicitudes" (vinculada por solicitud_fabrica_id)
+    await supabase
+      .from("solicitudes")
+      .update(datosNuevos)
+      .eq("solicitud_fabrica_id", solicitud.id);
 
     setGuardando(false);
     setAbierto(false);
