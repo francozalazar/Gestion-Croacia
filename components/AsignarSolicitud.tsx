@@ -37,6 +37,16 @@ export default function AsignarSolicitud({
     asignacion?.tipo || "TECNICO"
   );
 
+  // Fecha de la visita y prioridad
+  // (solo cuando se asigna un técnico)
+
+  const [fecha, setFecha] = useState(() =>
+    new Date().toISOString().slice(0, 10)
+  );
+
+  const [prioridad, setPrioridad] =
+    useState("3");
+
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
 
@@ -54,6 +64,13 @@ export default function AsignarSolicitud({
       return;
     }
 
+    if (tipo === "TECNICO" && !fecha) {
+      setMensaje(
+        "Seleccioná la fecha de la visita."
+      );
+      return;
+    }
+
     setGuardando(true);
     setMensaje("");
 
@@ -63,6 +80,12 @@ export default function AsignarSolicitud({
         p_solicitud_id: solicitudId,
         p_usuario_id: usuarioId,
         p_tipo: tipo,
+        p_fecha:
+          tipo === "TECNICO" ? fecha : null,
+        p_prioridad:
+          tipo === "TECNICO" && prioridad
+            ? Number(prioridad)
+            : null,
       }
     );
 
@@ -162,6 +185,53 @@ export default function AsignarSolicitud({
             </option>
           ))}
         </select>
+      )}
+
+      {/* FECHA Y PRIORIDAD (solo técnico) */}
+
+      {tipo === "TECNICO" && (
+        <>
+          <label className="mb-2 mt-4 block text-sm font-medium text-gray-700">
+            Fecha de la visita
+          </label>
+
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) =>
+              setFecha(e.target.value)
+            }
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-gray-900"
+          />
+
+          <label className="mb-2 mt-4 block text-sm font-medium text-gray-700">
+            Prioridad
+          </label>
+
+          <select
+            value={prioridad}
+            onChange={(e) =>
+              setPrioridad(e.target.value)
+            }
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-gray-900"
+          >
+            <option value="1">
+              1 - Urgente
+            </option>
+            <option value="2">
+              2 - Alta
+            </option>
+            <option value="3">
+              3 - Normal
+            </option>
+            <option value="4">
+              4 - Baja
+            </option>
+            <option value="5">
+              5 - Muy baja
+            </option>
+          </select>
+        </>
       )}
 
       {/* INFO DEL DESTINO */}
