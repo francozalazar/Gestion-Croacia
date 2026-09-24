@@ -49,7 +49,7 @@ export default async function ClientePage({
 
   const { data: ventas } = await supabase
     .from("ventas")
-    .select("id, direccion_id, descripcion, total, created_at, pagos(id, monto, fecha, medio, facturado, factura_url)")
+    .select("id, direccion_id, descripcion, total, created_at, solicitud_id, solicitud_fabrica_id, pagos(id, monto, fecha, medio, facturado, factura_url)")
     .eq("cliente_id", clienteId)
     .order("created_at", { ascending: false });
 
