@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { anularProduccionAction } from "./actions";
+import ProduccionLista from "./ProduccionLista";
 
 const estadosVisibles = [
   "ENVIADO_A_CORTAR",
@@ -10,29 +10,6 @@ const estadosVisibles = [
   "EN_FABRICA",
   "FALTANTES",
 ];
-
-function textoEstado(estado: string) {
-  const estados: Record<string, string> = {
-    PENDIENTE_APROBACION: "Pendiente de aprobación",
-    ENVIADO_A_CORTAR: "Pendiente de producción",
-    EN_CORTE: "En corte",
-    EN_FABRICACION: "En proceso",
-    EN_FABRICA: "En proceso",
-    FALTANTES: "Faltantes",
-    LISTO_PARA_COLOCAR: "Listo para colocar",
-    LISTO_INSTALACION: "Listo para colocar",
-    PENDIENTE_COORDINACION: "En coordinación",
-    ENVIADO_COORDINACION: "En coordinación",
-    COORDINACION: "En coordinación",
-    ASIGNADO: "Técnico asignado",
-    PENDIENTE_PRECIO: "Pendiente de precio",
-    PRESUPUESTADO: "En presupuestos",
-    FINALIZADO: "Finalizado",
-    ANULADO: "Anulado",
-  };
-
-  return estados[estado] || estado;
-}
 
 export default async function ProduccionPage() {
   const supabase = await createClient();
@@ -49,11 +26,7 @@ export default async function ProduccionPage() {
     .eq("id", user.id)
     .single();
 
-  const rol = perfil?.rol?.toUpperCase();
-
-  if (!["ADMIN", "OFICINA", "FABRICA", "TECNICO"].includes(rol || "")) {
-    redirect("/dashboard");
-  }
+  const rol = perfil?.rol || "OFICINA";
 
   const { data: trabajos, error } = await supabase
     .from("solicitudes_fabrica")
@@ -76,7 +49,7 @@ export default async function ProduccionPage() {
       <Sidebar
         nombre={perfil?.nombre || "Usuario"}
         apellido={perfil?.apellido || ""}
-        rol={perfil?.rol || "OFICINA"}
+        rol={rol}
       />
 
       <main className="ml-0 md:ml-64 min-h-screen bg-slate-50 p-6 md:p-8 pt-20 md:pt-8">
@@ -93,78 +66,7 @@ export default async function ProduccionPage() {
               No hay trabajos de fábrica.
             </div>
           ) : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {trabajos.map((trabajo) => {
-                const esAnulado = trabajo.estado === "ANULADO";
-
-                return (
-                  <article
-                    key={trabajo.id}
-                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h2 className="font-bold text-slate-900">
-                          {trabajo.cliente_nombre || trabajo.cliente || "Cliente sin nombre"}
-                        </h2>
-                        <p className="text-xs text-slate-500">
-                          Remito #{trabajo.numero_remito || trabajo.id}
-                        </p>
-                      </div>
-
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          esAnulado
-                            ? "bg-red-100 text-red-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {textoEstado(trabajo.estado)}
-                      </span>
-                    </div>
-
-                    <div className="mt-5 space-y-2 text-sm text-slate-600">
-                      <p>
-                        <strong>Solicitud creada:</strong>{" "}
-                        {trabajo.created_at
-                          ? new Date(trabajo.created_at).toLocaleDateString(
-                              "es-AR"
-                            )
-                          : "-"}
-                      </p>
-                      <p>
-                        <strong>Finalización estimada:</strong>{" "}
-                        {trabajo.fecha || "-"}
-                      </p>
-                      <p>
-                        <strong>Dirección:</strong>{" "}
-                        {trabajo.direccion || "-"}
-                      </p>
-                      <p>
-                        <strong>Localidad:</strong>{" "}
-                        {trabajo.localidad || "-"}
-                      </p>
-                    </div>
-
-                    {rol === "ADMIN" && !esAnulado && (
-                      <form action={anularProduccionAction} className="mt-5">
-                        <input
-                          type="hidden"
-                          name="id"
-                          value={trabajo.id}
-                        />
-                        <button
-                          type="submit"
-                          className="w-full rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100"
-                        >
-                          Anular
-                        </button>
-                      </form>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
+            <ProduccionLista trabajos={trabajos} rol={rol} />
           )}
         </div>
       </main>
