@@ -63,7 +63,7 @@ export default async function RemitoPage({
 
           <div className="mt-3 mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
                 Remito #{remito.numero_remito || remito.id}
               </h1>
               <p className="mt-1 text-sm text-slate-500">
@@ -79,7 +79,7 @@ export default async function RemitoPage({
             </a>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="grid gap-4 text-sm md:grid-cols-2">
               <p className="text-slate-600">
                 <strong className="text-slate-900">Estado:</strong>{" "}
