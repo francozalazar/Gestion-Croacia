@@ -5,13 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FileText,
-  DollarSign,
   Factory,
   ChevronDown,
   LogOut,
   LayoutDashboard,
-  Truck,
-  CheckCircle2,
+  TrendingUp,
+  List,
+  Hammer,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/cliente";
 
@@ -25,7 +25,7 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
   const pathname = usePathname();
   const supabase = createClient();
 
-  const [seccionAbierta, setSeccionAbierta] = useState<string | null>("solicitudes");
+  const [seccionAbierta, setSeccionAbierta] = useState<string | null>("visitas");
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -83,6 +83,17 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                 <Factory size={18} className="text-amber-400" />
                 <span>Trabajos a realizar</span>
               </Link>
+              <Link
+                href="/produccion"
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                  pathname === "/produccion"
+                    ? "bg-amber-600 text-white"
+                    : "hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                <Hammer size={18} className="text-amber-400" />
+                <span>Producción</span>
+              </Link>
             </div>
           ) : esTecnico ? (
             /* MENÚ EXCLUSIVO PARA TÉCNICOS */
@@ -122,25 +133,25 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
           ) : (
             /* MENÚ COMPLETO PARA ADMIN / OFICINA */
             <>
-              {/* 1. GRUPO: SOLICITUDES */}
+              {/* 1. GRUPO: VISITAS */}
               <div className="pt-2">
                 <button
-                  onClick={() => toggleSeccion("solicitudes")}
+                  onClick={() => toggleSeccion("visitas")}
                   className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
                 >
                   <div className="flex items-center gap-3">
-                    <FileText size={18} className="text-blue-400" />
-                    <span>Solicitudes</span>
+                    <TrendingUp size={18} className="text-blue-400" />
+                    <span>Visitas</span>
                   </div>
                   <ChevronDown
                     size={16}
                     className={`transition-transform duration-200 ${
-                      seccionAbierta === "solicitudes" ? "rotate-180" : ""
+                      seccionAbierta === "visitas" ? "rotate-180" : ""
                     }`}
                   />
                 </button>
 
-                {seccionAbierta === "solicitudes" && (
+                {seccionAbierta === "visitas" && (
                   <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
                     <Link
                       href="/solicitudes/nueva"
@@ -196,7 +207,7 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                   className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
                 >
                   <div className="flex items-center gap-3">
-                    <DollarSign size={18} className="text-emerald-400" />
+                    <List size={18} className="text-emerald-400" />
                     <span>Presupuestos</span>
                   </div>
                   <ChevronDown
@@ -217,7 +228,7 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                           : "text-slate-400 hover:text-white"
                       }`}
                     >
-                      • Inbox de presupuesto
+                      • Presupuesto
                     </Link>
 
                     {rol === "ADMIN" && (
@@ -229,7 +240,7 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                             : "text-slate-400 hover:text-white"
                         }`}
                       >
-                        • Precios 🔒
+                        • Precio 🔒
                       </Link>
                     )}
                   </div>
@@ -243,7 +254,7 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                   className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
                 >
                   <div className="flex items-center gap-3">
-                    <Factory size={18} className="text-amber-400" />
+                    <Hammer size={18} className="text-amber-400" />
                     <span>Fábrica</span>
                   </div>
                   <ChevronDown
@@ -264,31 +275,8 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                           : "text-slate-400 hover:text-white"
                       }`}
                     >
-                      • Solicitud para fábrica
+                      • Solicitudes para fábrica
                     </Link>
-                    <Link
-                      href="/listos-para-colocar"
-                      className={`block py-2 text-xs font-medium transition ${
-                        pathname === "/listos-para-colocar"
-                          ? "text-amber-400 font-bold"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      • Listos para colocar
-                    </Link>
-
-                    {esAdminOficina && (
-                      <Link
-                        href="/produccion"
-                        className={`block py-2 text-xs font-medium transition ${
-                          pathname === "/produccion"
-                            ? "text-amber-400 font-bold"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        • Producción
-                      </Link>
-                    )}
 
                     {rol === "ADMIN" && (
                       <Link
@@ -299,9 +287,31 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                             : "text-slate-400 hover:text-white"
                         }`}
                       >
-                        • Aprobación fábrica 🔒
+                        • Aprobación 🔒
                       </Link>
                     )}
+
+                    <Link
+                      href="/produccion"
+                      className={`block py-2 text-xs font-medium transition ${
+                        pathname === "/produccion"
+                          ? "text-amber-400 font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      • Producción
+                    </Link>
+
+                    <Link
+                      href="/listos-para-colocar"
+                      className={`block py-2 text-xs font-medium transition ${
+                        pathname === "/listos-para-colocar"
+                          ? "text-amber-400 font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      • Listos para colocar
+                    </Link>
                   </div>
                 )}
               </div>
