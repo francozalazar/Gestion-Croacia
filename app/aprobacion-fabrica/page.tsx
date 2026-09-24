@@ -64,10 +64,85 @@ export default function AprobacionFabricaPage() {
 
     if (error) {
       alert("Error al actualizar: " + error.message);
-    } else {
-      setModalRemito(null);
-      await cargarDatos();
+      setProcesando(false);
+      return;
     }
+
+    // Creamos la solicitud principal vinculada (visibilidad de oficina),
+    // igual que desde la pantalla de detalle del remito.
+    const remito =
+      modalRemito?.id === id
+        ? modalRemito
+        : solicitudes.find((s) => s.id === id);
+
+    if (remito) {
+      const { data: existente } = await supabase
+        .from("solicitudes")
+        .select("id")
+        .eq("solicitud_fabrica_id", id)
+        .maybeSingle();
+
+      if (!existente) {
+        let clienteId = null;
+
+        const { data: clienteExistente } = await supabase
+          .from("clientes")
+          .select("id")
+          .eq("nombre", remito.cliente_nombre)
+          .maybeSingle();
+
+        if (clienteExistente) {
+          clienteId = clienteExistente.id;
+        } else {
+          const { data: nuevoCliente } = await supabase
+            .from("clientes")
+            .insert({
+              nombre: remito.cliente_nombre,
+              direccion: remito.direccion,
+              localidad: remito.localidad,
+              telefono: remito.cliente_telefono,
+            })
+            .select("id")
+            .single();
+
+          if (nuevoCliente) {
+            clienteId = nuevoCliente.id;
+          }
+        }
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        const { error: errorSolicitud } = await supabase
+          .from("solicitudes")
+          .insert({
+            cliente_id: clienteId,
+            cliente_nombre: remito.cliente_nombre,
+            cliente_telefono: remito.cliente_telefono,
+            direccion: remito.direccion,
+            localidad: remito.localidad,
+            fecha: remito.fecha,
+            horario_desde: remito.horario_desde,
+            horario_hasta: remito.horario_hasta,
+            tipo_visita: remito.tipo_visita || "Instalación",
+            observaciones: remito.observaciones,
+            estado: "ASIGNADO_FABRICA",
+            creado_por: user?.id,
+            solicitud_fabrica_id: id,
+          });
+
+        if (errorSolicitud) {
+          alert(
+            "El remito se envió a cortar pero hubo un error al crear la solicitud de oficina: " +
+              errorSolicitud.message
+          );
+        }
+      }
+    }
+
+    setModalRemito(null);
+    await cargarDatos();
     setProcesando(false);
   }
 
