@@ -6,10 +6,13 @@ import Link from "next/link";
 
 export default async function TrabajoPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ origen?: string }>;
 }) {
   const { id } = await params;
+  const { origen } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -40,44 +43,137 @@ export default async function TrabajoPage({
     notFound();
   }
 
-  // =========================
-  // VERIFICAR ASIGNACIÓN
-  // =========================
+  const esFabrica = origen === "fabrica";
 
-  const { data: asignacion } = await supabase
-    .from("asignaciones")
-    .select("*")
-    .eq("solicitud_id", solicitudId)
-    .eq("usuario_id", user.id)
-    .single();
+  // Vista normalizada para renderizar igual ambos origenes
+  let vista: {
+    id: number;
+    numero: string | number;
+    estado: string;
+    cliente_nombre: string | null;
+    cliente_telefono: string | null;
+    direccion: string | null;
+    localidad: string | null;
+    fecha: string | null;
+    horario_desde: string | null;
+    horario_hasta: string | null;
+    tipo_visita: string | null;
+    observaciones: string | null;
+    trabajo_realizado: string | null;
+    observaciones_tecnico: string | null;
+    firma_cliente: string | null;
+    aclaracion_cliente: string | null;
+  };
 
-  if (!asignacion) {
-    notFound();
+  if (esFabrica) {
+    // =========================
+    // TRABAJO DE FABRICA (REMITO)
+    // =========================
+
+    const { data: asignacion } = await supabase
+      .from("asignaciones")
+      .select("*")
+      .eq("solicitud_fabrica_id", solicitudId)
+      .eq("usuario_id", user.id)
+      .maybeSingle();
+
+    if (!asignacion) {
+      notFound();
+    }
+
+    const { data: remito, error } = await supabase
+      .from("solicitudes_fabrica")
+      .select("*")
+      .eq("id", solicitudId)
+      .single();
+
+    if (error || !remito) {
+      notFound();
+    }
+
+    // Los datos del trabajo completado se guardan en la solicitud principal
+    const { data: padre } = await supabase
+      .from("solicitudes")
+      .select("*")
+      .eq("solicitud_fabrica_id", solicitudId)
+      .maybeSingle();
+
+    vista = {
+      id: remito.id,
+      numero: remito.numero_remito || remito.id,
+      estado: remito.estado,
+      cliente_nombre: remito.cliente_nombre || null,
+      cliente_telefono: remito.cliente_telefono || null,
+      direccion: remito.direccion || null,
+      localidad: remito.localidad || null,
+      fecha: remito.fecha || padre?.fecha || null,
+      horario_desde: remito.horario_desde || padre?.horario_desde || null,
+      horario_hasta: remito.horario_hasta || padre?.horario_hasta || null,
+      tipo_visita: remito.tipo_visita || padre?.tipo_visita || null,
+      observaciones: remito.observaciones || null,
+      trabajo_realizado: padre?.trabajo_realizado || null,
+      observaciones_tecnico: padre?.observaciones_tecnico || null,
+      firma_cliente: padre?.firma_cliente || null,
+      aclaracion_cliente: padre?.aclaracion_cliente || null,
+    };
+  } else {
+    // =========================
+    // SOLICITUD NORMAL
+    // =========================
+
+    const { data: asignacion } = await supabase
+      .from("asignaciones")
+      .select("*")
+      .eq("solicitud_id", solicitudId)
+      .eq("usuario_id", user.id)
+      .maybeSingle();
+
+    if (!asignacion) {
+      notFound();
+    }
+
+    const { data: solicitud, error } = await supabase
+      .from("solicitudes")
+      .select("*")
+      .eq("id", solicitudId)
+      .single();
+
+    if (error || !solicitud) {
+      notFound();
+    }
+
+    let cliente = null;
+
+    if (solicitud.cliente_id) {
+      const { data } = await supabase
+        .from("clientes")
+        .select("*")
+        .eq("id", solicitud.cliente_id)
+        .maybeSingle();
+
+      cliente = data;
+    }
+
+    vista = {
+      id: solicitud.id,
+      numero: solicitud.numero || solicitud.id,
+      estado: solicitud.estado,
+      cliente_nombre: cliente?.nombre || solicitud.cliente_nombre || null,
+      cliente_telefono:
+        cliente?.telefono || solicitud.cliente_telefono || null,
+      direccion: solicitud.direccion || null,
+      localidad: solicitud.localidad || null,
+      fecha: solicitud.fecha || null,
+      horario_desde: solicitud.horario_desde || null,
+      horario_hasta: solicitud.horario_hasta || null,
+      tipo_visita: solicitud.tipo_visita || null,
+      observaciones: solicitud.observaciones || null,
+      trabajo_realizado: solicitud.trabajo_realizado || null,
+      observaciones_tecnico: solicitud.observaciones_tecnico || null,
+      firma_cliente: solicitud.firma_cliente || null,
+      aclaracion_cliente: solicitud.aclaracion_cliente || null,
+    };
   }
-
-  // =========================
-  // SOLICITUD
-  // =========================
-
-  const { data: solicitud, error } = await supabase
-    .from("solicitudes")
-    .select("*")
-    .eq("id", solicitudId)
-    .single();
-
-  if (error || !solicitud) {
-    notFound();
-  }
-
-  // =========================
-  // CLIENTE
-  // =========================
-
-  const { data: cliente } = await supabase
-    .from("clientes")
-    .select("*")
-    .eq("id", solicitud.cliente_id)
-    .single();
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -95,7 +191,7 @@ export default async function TrabajoPage({
         <div className="mb-6">
 
           <Link
-            href="/mis-trabajos"
+            href="/trabajos"
             className="mb-4 inline-block text-sm font-medium text-slate-500 hover:text-slate-900"
           >
             ← Volver a mis trabajos
@@ -108,11 +204,11 @@ export default async function TrabajoPage({
               <div className="flex items-center gap-3">
 
                 <span className="rounded-full bg-slate-900 px-3 py-1 text-sm font-bold text-white">
-                  #{solicitud.numero || solicitud.id}
+                  #{vista.numero}
                 </span>
 
                 <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
-                  {solicitud.estado}
+                  {vista.estado}
                 </span>
 
               </div>
@@ -143,7 +239,7 @@ export default async function TrabajoPage({
               </p>
 
               <p className="mt-1 text-base font-medium text-slate-900">
-                {cliente?.nombre || "-"}
+                {vista.cliente_nombre || "-"}
               </p>
             </div>
 
@@ -153,7 +249,7 @@ export default async function TrabajoPage({
               </p>
 
               <p className="mt-1 text-base text-slate-700">
-                {cliente?.telefono || "-"}
+                {vista.cliente_telefono || "-"}
               </p>
             </div>
 
@@ -163,7 +259,7 @@ export default async function TrabajoPage({
               </p>
 
               <p className="mt-1 text-base text-slate-700">
-                {solicitud.direccion || "-"}
+                {vista.direccion || "-"}
               </p>
             </div>
 
@@ -173,7 +269,7 @@ export default async function TrabajoPage({
               </p>
 
               <p className="mt-1 text-base text-slate-700">
-                {solicitud.localidad || "-"}
+                {vista.localidad || "-"}
               </p>
             </div>
 
@@ -183,7 +279,7 @@ export default async function TrabajoPage({
               </p>
 
               <p className="mt-1 text-base text-slate-700">
-                {solicitud.fecha || "-"}
+                {vista.fecha || "-"}
               </p>
             </div>
 
@@ -193,10 +289,10 @@ export default async function TrabajoPage({
               </p>
 
               <p className="mt-1 text-base text-slate-700">
-                {solicitud.horario_desde || "-"}
+                {vista.horario_desde || "-"}
                 {" "}
-                {solicitud.horario_hasta
-                  ? `- ${solicitud.horario_hasta}`
+                {vista.horario_hasta
+                  ? `- ${vista.horario_hasta}`
                   : ""}
               </p>
             </div>
@@ -220,10 +316,10 @@ export default async function TrabajoPage({
             </p>
 
             <p className="mt-1 text-lg font-semibold text-slate-900">
-              {solicitud.tipo_visita || "No especificado"}
+              {vista.tipo_visita || "No especificado"}
             </p>
 
-            {solicitud.observaciones && (
+            {vista.observaciones && (
               <div className="mt-5">
 
                 <p className="text-sm font-semibold text-slate-500">
@@ -231,7 +327,7 @@ export default async function TrabajoPage({
                 </p>
 
                 <p className="mt-1 whitespace-pre-wrap text-slate-700">
-                  {solicitud.observaciones}
+                  {vista.observaciones}
                 </p>
 
               </div>
@@ -244,17 +340,14 @@ export default async function TrabajoPage({
         {/* COMPLETAR */}
 
         <CompletarTrabajo
-          solicitudId={solicitud.id}
-          estado={solicitud.estado}
-          trabajoRealizado={solicitud.trabajo_realizado}
-          observacionesTecnico={
-            solicitud.observaciones_tecnico
-          }
-          firmaCliente={solicitud.firma_cliente}
-          aclaracionCliente={
-            solicitud.aclaracion_cliente
-          }
-          tipoVisita={solicitud.tipo_visita}
+          solicitudId={vista.id}
+          estado={vista.estado}
+          trabajoRealizado={vista.trabajo_realizado}
+          observacionesTecnico={vista.observaciones_tecnico}
+          firmaCliente={vista.firma_cliente}
+          aclaracionCliente={vista.aclaracion_cliente}
+          tipoVisita={vista.tipo_visita}
+          esFabrica={esFabrica}
         />
 
       </main>
