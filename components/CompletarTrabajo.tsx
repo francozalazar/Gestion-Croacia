@@ -137,8 +137,7 @@ export default function CompletarTrabajo({
     // Regla al finalizar: PENDIENTE_PRECIO solo para Presupuesto y Urgencia.
     // Todo lo demas va a PRESUPUESTADO (bandeja /presupuestos, remito descargable).
     const requierePrecio =
-      tipoLimpio.includes("presupuesto") ||
-      tipoLimpio.includes("urgencia");
+      tipoLimpio === "presupuesto" || tipoLimpio === "urgencia";
 
     const nuevoEstado = requierePrecio
       ? "PENDIENTE_PRECIO"
