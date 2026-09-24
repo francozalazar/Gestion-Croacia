@@ -217,12 +217,9 @@ export default function CompletarTrabajo({
       return;
     }
 
-    setMensaje(
-      "Trabajo finalizado correctamente."
-    );
-
-    setGuardando(false);
-
+    // Volvemos a la lista: el trabajo finalizado
+    // ya no aparece más en "Mis trabajos".
+    router.push("/mis-trabajos");
     router.refresh();
   }
 
