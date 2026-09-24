@@ -253,40 +253,40 @@ export default function DashboardPage() {
         {/* ENCABEZADO */}
         <div className="mb-6">
           <p className="text-xs font-semibold text-slate-400">Bienvenido nuevamente</p>
-          <h1 className="text-3xl font-bold text-slate-900">Panel principal</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Panel principal</h1>
         </div>
 
         {/* MÉTRICAS */}
         {esTecnico ? (
           <div className="grid gap-4 sm:grid-cols-3 mb-8">
-            <div className="rounded-2xl bg-white p-5 shadow-xs border border-slate-100">
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
               <p className="text-xs font-medium text-slate-400">Total Asignados</p>
               <p className="text-3xl font-bold text-slate-900 mt-1">{metricasTecnico.asignadas}</p>
             </div>
-            <div className="rounded-2xl bg-white p-5 shadow-xs border border-slate-100">
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
               <p className="text-xs font-medium text-slate-400">Pendientes de Realizar</p>
               <p className="text-3xl font-bold text-slate-900 mt-1">{metricasTecnico.pendientes}</p>
             </div>
-            <div className="rounded-2xl bg-white p-5 shadow-xs border border-slate-100">
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
               <p className="text-xs font-medium text-slate-400">Trabajos Finalizados</p>
               <p className="text-3xl font-bold text-slate-900 mt-1">{metricasTecnico.finalizados}</p>
             </div>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-            <div className="rounded-2xl bg-white p-5 shadow-xs border border-slate-100">
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
               <p className="text-xs font-medium text-slate-400">Solicitudes</p>
               <p className="text-3xl font-bold text-slate-900 mt-1">{metricasAdmin.solicitudes}</p>
             </div>
-            <div className="rounded-2xl bg-white p-5 shadow-xs border border-slate-100">
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
               <p className="text-xs font-medium text-slate-400">Pendientes</p>
               <p className="text-3xl font-bold text-slate-900 mt-1">{metricasAdmin.pendientes}</p>
             </div>
-            <div className="rounded-2xl bg-white p-5 shadow-xs border border-slate-100">
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
               <p className="text-xs font-medium text-slate-400">En proceso</p>
               <p className="text-3xl font-bold text-slate-900 mt-1">{metricasAdmin.enProceso}</p>
             </div>
-            <div className="rounded-2xl bg-white p-5 shadow-xs border border-slate-100">
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
               <p className="text-xs font-medium text-slate-400">Finalizados</p>
               <p className="text-3xl font-bold text-slate-900 mt-1">{metricasAdmin.finalizados}</p>
             </div>
@@ -294,7 +294,7 @@ export default function DashboardPage() {
         )}
 
         {esAdminOficina && (
-          <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+          <div className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -337,14 +337,14 @@ export default function DashboardPage() {
           
           {/* COLUMNA IZQUIERDA: BIENVENIDA & ACCESOS */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="rounded-2xl bg-white p-6 shadow-xs border border-slate-100">
-              <h2 className="text-xl font-bold text-slate-900">Hola, {perfil?.nombre || "Técnico"} 👋</h2>
+            <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100">
+              <h2 className="text-xl font-bold text-slate-900">Hola, {perfil?.nombre || "Técnico"}</h2>
               <p className="text-xs text-slate-500 mt-1">
                 Panel de trabajo para el rol de <strong className="text-slate-800">{perfil?.rol || "TECNICO"}</strong>.
               </p>
             </div>
 
-            <div className="rounded-2xl bg-white p-6 shadow-xs border border-slate-100">
+            <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
                 Accesos Directos
               </h3>
@@ -418,7 +418,7 @@ export default function DashboardPage() {
           </div>
 
           {/* COLUMNA DERECHA: NOTIFICACIONES / ALERTAS */}
-          <div className="lg:col-span-2 rounded-2xl bg-white p-6 shadow-xs border border-slate-100">
+          <div className="lg:col-span-2 rounded-xl bg-white p-6 shadow-sm border border-slate-100">
             <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
