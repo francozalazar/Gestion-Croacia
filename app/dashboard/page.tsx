@@ -46,6 +46,7 @@ export default function DashboardPage() {
     anulados: 0,
   });
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
+  const [paraHoy, setParaHoy] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -68,6 +69,9 @@ export default function DashboardPage() {
       .single();
 
     setPerfil(profile);
+
+    const ahora = new Date();
+    const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-${String(ahora.getDate()).padStart(2, "0")}`;
 
     const esTecnico = profile?.rol?.toUpperCase() === "TECNICO";
 
@@ -95,6 +99,20 @@ export default function DashboardPage() {
         ).length,
         faltantes: trabajos.filter((t) => t.estado === "FALTANTES").length,
       });
+
+      setParaHoy(
+        trabajos
+          .filter((t) =>
+            ["FALTANTES", "ENVIADO_A_CORTAR", "EN_CORTE"].includes(t.estado)
+          )
+          .slice(0, 6)
+          .map((t) => ({
+            id: `hoy-fab-${t.id}`,
+            titulo: `Remito #${t.numero_remito || t.id} - ${t.cliente_nombre || "Cliente"}`,
+            detalle: (t.estado || "").replaceAll("_", " "),
+            link: "/fabrica",
+          }))
+      );
 
       setNotificaciones(
         trabajos.slice(0, 8).map((trabajo) => ({
@@ -143,6 +161,24 @@ export default function DashboardPage() {
         ...(solFab || []),
       ];
 
+      const deHoy = listaAsignaciones.filter((a: any) => a.fecha === hoy);
+      setParaHoy(
+        solicitudesTecnico
+          .filter((s: any) =>
+            deHoy.some(
+              (a: any) =>
+                a.solicitud_id === s.id || a.solicitud_fabrica_id === s.id
+            )
+          )
+          .slice(0, 6)
+          .map((s: any) => ({
+            id: `hoy-tec-${s.id}-${s.numero_remito ? "f" : "v"}`,
+            titulo: `${s.numero_remito ? "Remito" : "Visita"} #${s.numero_remito || s.numero || s.id} - ${s.cliente_nombre || "Cliente"}`,
+            detalle: s.direccion || "Sin dirección",
+            link: "/trabajos",
+          }))
+      );
+
       setMetricasTecnico({
         asignadas: solicitudesTecnico.length,
         pendientes: solicitudesTecnico.filter((s: any) => s.estado !== "FINALIZADO").length,
@@ -167,10 +203,19 @@ export default function DashboardPage() {
 
     } else {
       // DATOS PARA ADMIN / OFICINA
-      const { data: solicitudes } = await supabase
+      // Oficina ve solo lo que cargó; admin y coordinación ven todo.
+      const esOficina = profile?.rol?.toUpperCase() === "OFICINA";
+
+      let consultaSolicitudes = supabase
         .from("solicitudes")
         .select("*")
         .order("created_at", { ascending: false });
+
+      if (esOficina) {
+        consultaSolicitudes = consultaSolicitudes.eq("creado_por", user.id);
+      }
+
+      const { data: solicitudes } = await consultaSolicitudes;
 
       const { data: trabajosFabrica } = await supabase
         .from("solicitudes_fabrica")
@@ -188,6 +233,29 @@ export default function DashboardPage() {
 
       const lista = solicitudes || [];
       const trabajos = trabajosFabrica || [];
+
+      const { data: asignacionesHoy } = await supabase
+        .from("asignaciones")
+        .select("solicitud_id, solicitud_fabrica_id")
+        .eq("fecha", hoy);
+
+      const idsHoy = new Set(
+        (asignacionesHoy || [])
+          .map((a: any) => a.solicitud_id)
+          .filter(Boolean)
+      );
+
+      setParaHoy(
+        lista
+          .filter((s) => idsHoy.has(s.id))
+          .slice(0, 6)
+          .map((s) => ({
+            id: `hoy-adm-${s.id}`,
+            titulo: `Visita #${s.numero || s.id} - ${s.cliente_nombre || "Cliente"}`,
+            detalle: s.direccion || "Sin dirección",
+            link: "/coordinacion",
+          }))
+      );
 
       setMetricasAdmin({
         solicitudes: lista.length,
@@ -254,6 +322,46 @@ export default function DashboardPage() {
         <div className="mb-6">
           <p className="text-xs font-semibold text-slate-400">Bienvenido nuevamente</p>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Panel principal</h1>
+        </div>
+
+        {/* LO URGENTE DE HOY */}
+        <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <div className="rounded-lg bg-red-50 p-2 text-red-600">
+              <Calendar size={16} />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Para hoy</h2>
+              <p className="text-xs text-slate-400">
+                Lo urgente del día, arriba de todo
+              </p>
+            </div>
+          </div>
+          {cargando ? (
+            <p className="py-3 text-center text-xs text-slate-400">Cargando...</p>
+          ) : paraHoy.length === 0 ? (
+            <p className="py-3 text-center text-xs text-slate-400">
+              Nada urgente para hoy.
+            </p>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {paraHoy.map((t) => (
+                <Link
+                  key={t.id}
+                  href={t.link}
+                  className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0 hover:bg-slate-50/60 rounded-lg px-2 -mx-2"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-800">
+                      {t.titulo}
+                    </p>
+                    <p className="truncate text-xs text-slate-500">{t.detalle}</p>
+                  </div>
+                  <ArrowRight size={14} className="shrink-0 text-slate-300" />
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* MÉTRICAS */}
