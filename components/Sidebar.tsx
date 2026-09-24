@@ -12,6 +12,7 @@ import {
   TrendingUp,
   List,
   Hammer,
+  Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/cliente";
 
@@ -195,6 +196,40 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                       }`}
                     >
                       • Visitas finalizadas
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* GRUPO: CLIENTES */}
+              <div className="pt-2">
+                <button
+                  onClick={() => toggleSeccion("clientes")}
+                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <Users size={18} className="text-violet-400" />
+                    <span>Clientes</span>
+                  </div>
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform duration-200 ${
+                      seccionAbierta === "clientes" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {seccionAbierta === "clientes" && (
+                  <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
+                    <Link
+                      href="/clientes"
+                      className={`block py-2 text-xs font-medium transition ${
+                        pathname === "/clientes"
+                          ? "text-violet-400 font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      • Mis clientes
                     </Link>
                   </div>
                 )}
