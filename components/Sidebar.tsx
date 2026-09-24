@@ -108,7 +108,7 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                   <Link
                     href="/trabajos"
                     className={`block py-2 text-xs font-medium transition ${
-                      pathname === "/tecnico/trabajos"
+                      pathname === "/trabajos"
                         ? "text-blue-400 font-bold"
                         : "text-slate-400 hover:text-white"
                     }`}
