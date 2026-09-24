@@ -80,7 +80,7 @@ export default async function ListosParaColocarPage() {
                 Producción terminada
               </p>
 
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
                 Listos para colocar
               </h1>
             </div>
@@ -95,7 +95,7 @@ export default async function ListosParaColocarPage() {
 
         {!error &&
           (!solicitudes || solicitudes.length === 0) && (
-            <div className="rounded-2xl bg-white p-12 text-center shadow-sm">
+            <div className="rounded-xl bg-white p-12 text-center shadow-sm">
               <Factory
                 size={48}
                 className="mx-auto text-slate-300"
@@ -115,7 +115,7 @@ export default async function ListosParaColocarPage() {
           {solicitudes?.map((solicitud) => (
             <div
               key={solicitud.id}
-              className="rounded-2xl bg-white p-6 shadow-sm"
+              className="rounded-xl bg-white p-6 shadow-sm"
             >
               {/* CABECERA */}
               <div className="flex flex-col justify-between gap-4 border-b border-slate-100 pb-5 md:flex-row">
