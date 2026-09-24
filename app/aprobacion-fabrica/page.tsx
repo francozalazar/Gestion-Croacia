@@ -191,7 +191,7 @@ export default function AprobacionFabricaPage() {
       />
 
       <main className="ml-0 md:ml-64 flex-1 p-6 pt-20 md:p-10">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
           Aprobación de Fábrica
         </h1>
         <p className="text-xs text-slate-500 mb-8">
@@ -201,7 +201,7 @@ export default function AprobacionFabricaPage() {
         {cargando ? (
           <p className="text-center text-sm text-slate-400 py-10">Cargando remitos de fábrica...</p>
         ) : solicitudes.length === 0 ? (
-          <div className="bg-white p-12 rounded-2xl text-center max-w-md mx-auto shadow-xs border border-slate-100">
+          <div className="bg-white p-12 rounded-xl text-center max-w-md mx-auto shadow-sm border border-slate-100">
             <CheckCircle2 size={40} className="mx-auto text-emerald-500 mb-3" />
             <p className="text-sm text-slate-600 font-medium">No hay remitos pendientes en este momento.</p>
           </div>
@@ -214,7 +214,7 @@ export default function AprobacionFabricaPage() {
                 <div
                   key={s.id}
                   onClick={() => setModalRemito(s)}
-                  className={`cursor-pointer rounded-2xl bg-white p-6 shadow-xs border transition hover:shadow-md flex flex-col justify-between ${
+                  className={`cursor-pointer rounded-xl bg-white p-6 shadow-sm border transition hover:shadow-md flex flex-col justify-between ${
                     enviadoACortar
                       ? "border-blue-400 bg-blue-50/20"
                       : "border-amber-300 hover:border-amber-400"
@@ -319,7 +319,7 @@ export default function AprobacionFabricaPage() {
               <div className="mt-6 space-y-6">
                 
                 {/* 1. Datos Generales y Creador */}
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs space-y-2 text-slate-700">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs space-y-2 text-slate-700">
                   <p className="text-slate-400 font-bold uppercase tracking-wider mb-2">Información general</p>
                   <p><strong>Cargado por:</strong> {modalRemito.usuario_creador}</p>
                   <p><strong>Tipo de visita:</strong> {modalRemito.tipo_visita || "No especificado"}</p>
@@ -327,7 +327,7 @@ export default function AprobacionFabricaPage() {
                 </div>
 
                 {/* 2. Observaciones / Datos de la cortina */}
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs space-y-1 text-slate-700">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs space-y-1 text-slate-700">
                   <p className="text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <FileText size={14} /> Observaciones y especificaciones de la cortina
                   </p>
@@ -337,7 +337,7 @@ export default function AprobacionFabricaPage() {
                 </div>
 
                 {/* 3. Datos Comerciales */}
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs space-y-2 text-slate-700">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs space-y-2 text-slate-700">
                   <p className="text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <DollarSign size={14} /> Datos comerciales y pagos
                   </p>
