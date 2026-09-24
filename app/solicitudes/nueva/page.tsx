@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import ClienteAutocomplete from "@/components/ClienteAutocomplete";
+import { resolverClienteYDireccion } from "@/lib/clientes";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/cliente";
@@ -112,25 +114,58 @@ export default function NuevaSolicitudPage() {
         ? `[Aviso: ${preferencia.trim()}]\n${observaciones.trim()}`
         : observaciones.trim() || null;
 
-      const { data: clienteCreado, error: clienteError } = await supabase
-        .from("clientes")
-        .insert({
-          nombre: cliente.trim(),
-          telefono: null, // Se envía null ya que quitamos el campo
-          direccion: direccion.trim(),
-          localidad: localidad.trim() || null,
-        })
-        .select("id")
-        .single();
+      const { clienteId, direccionId } = await resolverClienteYDireccion(
+        supabase,
+        {
+          nombre: cliente,
+          direccion,
+          localidad,
+          userId: user.id,
+        }
+      );
 
-      if (clienteError || !clienteCreado) {
-        throw new Error(clienteError?.message || "No se pudo crear el cliente.");
+      let clienteIdFinal = clienteId;
+
+      if (!clienteIdFinal) {
+        // Respaldo por si falla la búsqueda/creación automática
+        let { data: clienteCreado, error: clienteError } = await supabase
+          .from("clientes")
+          .insert({
+            nombre: cliente.trim(),
+            telefono: null,
+            direccion: direccion.trim(),
+            localidad: localidad.trim() || null,
+            creado_por: user.id,
+          })
+          .select("id")
+          .single();
+
+        if (clienteError) {
+          // Reintento sin creado_por por si falta correr el SQL nuevo
+          const reintento = await supabase
+            .from("clientes")
+            .insert({
+              nombre: cliente.trim(),
+              telefono: null,
+              direccion: direccion.trim(),
+              localidad: localidad.trim() || null,
+            })
+            .select("id")
+            .single();
+          clienteCreado = reintento.data;
+          clienteError = reintento.error;
+        }
+
+        if (clienteError || !clienteCreado) {
+          throw new Error(clienteError?.message || "No se pudo crear el cliente.");
+        }
+        clienteIdFinal = clienteCreado.id;
       }
 
       const { data: solicitud, error: solicitudError } = await supabase
         .from("solicitudes")
         .insert({
-          cliente_id: clienteCreado.id,
+          cliente_id: clienteIdFinal,
           cliente_nombre: cliente.trim(),
           cliente_telefono: null, // Se envía null
           direccion: direccion.trim(),
@@ -143,11 +178,26 @@ export default function NuevaSolicitudPage() {
           estado: "PENDIENTE_COORDINACION",
           creado_por: user.id,
         })
-        .select("numero")
+        .select("id, numero")
         .single();
 
       if (solicitudError || !solicitud) {
         throw new Error(solicitudError?.message || "No se pudo crear la solicitud.");
+      }
+
+      if (tipoVisita === "Presupuesto aceptado" && clienteIdFinal) {
+        try {
+          await supabase.from("ventas").insert({
+            cliente_id: clienteIdFinal,
+            direccion_id: direccionId,
+            descripcion: `Solicitud #${solicitud.numero} (Presupuesto aceptado)`,
+            total: 0,
+            solicitud_id: solicitud.id,
+            creado_por: user.id,
+          });
+        } catch {
+          // Si todavía no existe la tabla ventas, no pasa nada
+        }
       }
 
       router.push("/dashboard");
@@ -208,41 +258,15 @@ export default function NuevaSolicitudPage() {
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Nombre / Razón social *
-                </label>
-                <input
-                  value={cliente}
-                  onChange={(e) => setCliente(e.target.value)}
-                  placeholder="Ej: Juan Pérez"
-                  className={inputClassName}
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Dirección *
-                </label>
-                <input
-                  value={direccion}
-                  onChange={(e) => setDireccion(e.target.value)}
-                  placeholder="Ej: Av. Mitre 1234"
-                  className={inputClassName}
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Localidad
-                </label>
-                <input
-                  value={localidad}
-                  onChange={(e) => setLocalidad(e.target.value)}
-                  placeholder="Ej: Quilmes"
-                  className={inputClassName}
-                />
-              </div>
+              <ClienteAutocomplete
+                cliente={cliente}
+                setCliente={setCliente}
+                direccion={direccion}
+                setDireccion={setDireccion}
+                localidad={localidad}
+                setLocalidad={setLocalidad}
+                inputClassName={inputClassName}
+              />
             </div>
           </section>
 
