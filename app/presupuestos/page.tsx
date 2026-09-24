@@ -105,7 +105,7 @@ export default function InboxPresupuestoOficinaPage() {
     <div className="flex min-h-screen bg-slate-50 text-slate-800">
       <Sidebar nombre={perfil?.nombre || "Usuario"} apellido={perfil?.apellido || ""} rol={perfil?.rol || "OFICINA"} />
 
-      <main className="ml-0 md:ml-64 flex-1 p-6 md:p-10">
+      <main className="ml-0 md:ml-64 flex-1 p-6 pt-20 md:p-10">
         <h1 className="text-3xl font-bold text-center text-slate-900 mb-2">Inbox de presupuesto</h1>
 
         <div className="mx-auto max-w-4xl mb-8 flex items-center gap-2 bg-slate-100 p-3.5 rounded-xl text-xs text-slate-500 border border-slate-200">
