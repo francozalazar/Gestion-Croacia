@@ -216,17 +216,27 @@ export default function RecorridoCamionesPage() {
       return;
     }
 
+    // La fecha y el técnico pactados viven en la asignación (ya borrada arriba).
+    // solicitudes.fecha es la fecha del trabajo y no admite null: se conserva.
+    const datosReset = { estado: "PENDIENTE_COORDINACION" };
+
     const { error: errorSolicitud } = await supabase
       .from(tablaRelacion)
-      .update({
-        estado: "PENDIENTE_COORDINACION",
-        fecha: null,
-      })
+      .update(datosReset)
       .eq("id", trabajoModal.id);
 
     if (errorSolicitud) {
       alert("Error actualizando trabajo: " + errorSolicitud.message);
       return;
+    }
+
+    // Si es un trabajo de fábrica, sincronizamos la solicitud principal
+    // para que oficina vea el estado real.
+    if (trabajoModal._esFabrica) {
+      await supabase
+        .from("solicitudes")
+        .update(datosReset)
+        .eq("solicitud_fabrica_id", trabajoModal.id);
     }
 
     setTrabajoModal(null);
