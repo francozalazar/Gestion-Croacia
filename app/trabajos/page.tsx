@@ -171,7 +171,7 @@ export default async function MisTrabajosPage() {
         </div>
 
         <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
             Mis trabajos pendientes
           </h1>
           <p className="mt-1 text-xs md:text-sm text-slate-500">
@@ -180,14 +180,14 @@ export default async function MisTrabajosPage() {
         </div>
 
         {error && (
-          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4">
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
             <p className="font-semibold text-red-800 text-xs">Error al cargar los trabajos</p>
             <p className="mt-1 text-xs text-red-700">{error.message}</p>
           </div>
         )}
 
         {solicitudes.length === 0 ? (
-          <div className="rounded-2xl bg-white p-12 text-center shadow-xs border border-slate-100 max-w-md mx-auto">
+          <div className="rounded-xl bg-white p-12 text-center shadow-sm border border-slate-100 max-w-md mx-auto">
             <div className="text-4xl mb-2">🎉</div>
             <h2 className="text-base font-bold text-slate-800">
               No tenés trabajos pendientes
@@ -206,7 +206,7 @@ export default async function MisTrabajosPage() {
               return (
                 <div
                   key={solicitud.id_unico}
-                  className="rounded-2xl bg-white p-5 shadow-xs border border-slate-200 flex flex-col justify-between transition hover:shadow-md hover:border-blue-400"
+                  className="rounded-xl bg-white p-5 shadow-sm border border-slate-200 flex flex-col justify-between transition hover:shadow-md hover:border-blue-400"
                 >
                   <div>
                     {/* ENCABEZADO DE LA TARJETA */}
