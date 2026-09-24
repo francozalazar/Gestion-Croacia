@@ -15,10 +15,59 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+/* Foco visible y consistente en todo lo interactivo */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Transiciones suaves y uniformes */
+:where(a, button) {
+  transition-property: color, background-color, border-color, box-shadow,
+    transform;
+  transition-duration: 150ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* Inputs: borde y foco consistentes */
+:where(input, select, textarea) {
+  font: inherit;
+}
+
+/* Scrollbar discreta */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Tablas legibles por defecto */
+table {
+  border-collapse: collapse;
+  width: 100%;
 }
