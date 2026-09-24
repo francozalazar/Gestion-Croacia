@@ -37,7 +37,7 @@ export default function ClientesLista({
       />
 
       {filtrados.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
           No hay clientes para mostrar.
         </div>
       ) : (
@@ -48,7 +48,7 @@ export default function ClientesLista({
               <Link
                 key={c.id}
                 href={`/clientes/${c.id}`}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-slate-300 hover:shadow"
+                className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-slate-300 hover:shadow"
               >
                 <div>
                   <p className="font-semibold text-slate-900">{c.nombre}</p>
