@@ -307,7 +307,8 @@ export default function DashboardPage() {
   }
 
   const esTecnico = perfil?.rol?.toUpperCase() === "TECNICO";
-  const esAdminOficina = ["ADMIN", "OFICINA"].includes(perfil?.rol?.toUpperCase() || "");
+  const esFabrica = perfil?.rol?.toUpperCase() === "FABRICA";
+  const esAdminOficina = ["ADMIN", "OFICINA", "COORDINACION"].includes(perfil?.rol?.toUpperCase() || "");
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-800">
@@ -365,7 +366,22 @@ export default function DashboardPage() {
         </div>
 
         {/* MÉTRICAS */}
-        {esTecnico ? (
+        {esFabrica ? (
+          <div className="grid gap-4 sm:grid-cols-3 mb-8">
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
+              <p className="text-xs font-medium text-slate-400">Pendientes de corte</p>
+              <p className="text-3xl font-bold text-slate-900 mt-1">{metricasFabrica.pendientes}</p>
+            </div>
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
+              <p className="text-xs font-medium text-slate-400">En producción</p>
+              <p className="text-3xl font-bold text-slate-900 mt-1">{metricasFabrica.enProceso}</p>
+            </div>
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
+              <p className="text-xs font-medium text-slate-400">Faltantes</p>
+              <p className="text-3xl font-bold text-amber-600 mt-1">{metricasFabrica.faltantes}</p>
+            </div>
+          </div>
+        ) : esTecnico ? (
           <div className="grid gap-4 sm:grid-cols-3 mb-8">
             <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
               <p className="text-xs font-medium text-slate-400">Total Asignados</p>
@@ -446,7 +462,7 @@ export default function DashboardPage() {
           {/* COLUMNA IZQUIERDA: BIENVENIDA & ACCESOS */}
           <div className="lg:col-span-1 space-y-6">
             <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100">
-              <h2 className="text-xl font-bold text-slate-900">Hola, {perfil?.nombre || "Técnico"}</h2>
+              <h2 className="text-xl font-bold text-slate-900">Hola, {perfil?.nombre || "Usuario"}</h2>
               <p className="text-xs text-slate-500 mt-1">
                 Panel de trabajo para el rol de <strong className="text-slate-800">{perfil?.rol || "TECNICO"}</strong>.
               </p>
