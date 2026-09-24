@@ -346,7 +346,7 @@ export default function DashboardPage() {
                 ) : esTecnico ? (
                   <>
                     <Link
-                      href="/tecnico/trabajos"
+                      href="/trabajos"
                       className="flex items-center justify-between rounded-xl bg-blue-600 px-4 py-3 text-xs font-semibold text-white hover:bg-blue-700 transition"
                     >
                       <span className="flex items-center gap-2"><ClipboardList size={16} /> Ver Mis Trabajos Pendientes</span>
