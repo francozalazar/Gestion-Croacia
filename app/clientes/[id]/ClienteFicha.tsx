@@ -170,7 +170,7 @@ export default function ClienteFicha({
 
       <div className="mt-3 mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{cliente.nombre}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">{cliente.nombre}</h1>
           <p className="mt-1 text-sm text-slate-500">
             {cliente.direccion || "Sin dirección principal"}
             {cliente.localidad ? ` - ${cliente.localidad}` : ""}
@@ -212,7 +212,7 @@ export default function ClienteFicha({
               setNuevaDireccion("");
               setNuevaLocalidad("");
             }}
-            className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
           >
             <input type="hidden" name="clienteId" value={cliente.id} />
             <div className="grid gap-4 md:grid-cols-2">
@@ -304,7 +304,7 @@ export default function ClienteFicha({
         )}
 
         {ventas.length === 0 && !mostrarNuevaVenta && (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
             Todavía no hay ventas cargadas.
           </div>
         )}
@@ -325,7 +325,7 @@ export default function ClienteFicha({
                 return (
                   <div
                     key={v.id}
-                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
@@ -555,7 +555,7 @@ export default function ClienteFicha({
       <section>
         <h2 className="mb-4 text-lg font-bold text-slate-900">Historial</h2>
         {Object.keys(historial).length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
             No hay visitas ni remitos todavía.
           </div>
         ) : (
