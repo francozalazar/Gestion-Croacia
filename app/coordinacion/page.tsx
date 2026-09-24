@@ -144,6 +144,9 @@ export default function CoordinacionPage() {
       ...item,
       es_fabrica: true,
       solicitud_fabrica_id: item.id,
+      usuario_creador: item.creador
+        ? `${item.creador.nombre} ${item.creador.apellido || ""}`.trim()
+        : "Sin usuario",
     }));
 
     // =========================================================
