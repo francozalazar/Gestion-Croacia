@@ -62,7 +62,7 @@ export default async function ProduccionPage() {
 
   const rol = perfil?.rol?.toUpperCase();
 
-  if (!["ADMIN", "OFICINA"].includes(rol || "")) {
+  if (!["ADMIN", "OFICINA", "FABRICA", "TECNICO"].includes(rol || "")) {
     redirect("/dashboard");
   }
 
