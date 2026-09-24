@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import FinalizadosLista from "@/components/finalizadosLista";
 
@@ -88,41 +89,49 @@ export default async function FinalizadosPage() {
   });
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen bg-slate-100">
+      <Sidebar
+        nombre={profile.nombre}
+        apellido={profile.apellido || ""}
+        rol={profile.rol}
+      />
 
-        {/* VOLVER */}
-        <Link
-          href="/dashboard"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
-        >
-          ← Volver al inicio
-        </Link>
+      <main className="ml-0 md:ml-64 min-h-screen bg-slate-50 p-6 pt-20 md:pt-8">
+        <div className="mx-auto max-w-7xl">
 
-        {/* ENCABEZADO */}
-        <div className="mb-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">
-                Trabajos finalizados
-              </h1>
+          {/* VOLVER */}
+          <Link
+            href="/dashboard"
+            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
+          >
+            ← Volver al inicio
+          </Link>
 
-              <p className="mt-2 text-slate-500">
-                Trabajos realizados y enviados por los técnicos.
-              </p>
-            </div>
+          {/* ENCABEZADO */}
+          <div className="mb-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900">
+                  Trabajos finalizados
+                </h1>
 
-            {profile.rol === "OFICINA" && (
-              <div className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">
-                Mostrando los trabajos cargados por vos.
+                <p className="mt-2 text-slate-500">
+                  Trabajos realizados y enviados por los técnicos.
+                </p>
               </div>
-            )}
+
+              {profile.rol === "OFICINA" && (
+                <div className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                  Mostrando los trabajos cargados por vos.
+                </div>
+              )}
+            </div>
           </div>
+
+          <FinalizadosLista trabajos={trabajos} />
+
         </div>
-
-        <FinalizadosLista trabajos={trabajos} />
-
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

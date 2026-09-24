@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ComprobantePage({
@@ -55,148 +56,146 @@ export default async function ComprobantePage({
     .single();
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-4xl">
+    <div className="min-h-screen bg-slate-100">
+      <Sidebar
+        nombre={profile.nombre}
+        apellido={profile.apellido || ""}
+        rol={profile.rol}
+      />
 
-        <div className="mb-6 flex flex-wrap gap-3">
+      <main className="ml-0 md:ml-64 min-h-screen bg-slate-50 p-6 pt-20 md:pt-8">
+        <div className="mx-auto max-w-4xl">
 
-  <Link
-    href="/finalizados"
-    className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-  >
-    ← Volver
-  </Link>
+          <div className="mb-6 flex flex-wrap gap-3">
 
-  <Link
-    href={`/finalizados/${solicitud.id}/pdf`}
-    className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-  >
-    ↓ Descargar PDF
-  </Link>
+            <Link
+              href="/finalizados"
+              className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              ← Volver
+            </Link>
 
-</div>
+            <Link
+              href={`/finalizados/${solicitud.id}/pdf`}
+              className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+            >
+              ↓ Descargar PDF
+            </Link>
 
-        <div className="rounded-2xl bg-white p-8 shadow-sm">
-
-          <div className="border-b border-slate-200 pb-6">
-            <h1 className="text-3xl font-bold text-slate-900">
-              Comprobante de trabajo
-            </h1>
-
-            <p className="mt-2 text-slate-500">
-              Cortinas Gestión
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Trabajo #{solicitud.id}
-            </p>
           </div>
 
-          {/* CLIENTE */}
+          <div className="rounded-2xl bg-white p-8 shadow-sm">
 
-          <section className="border-b border-slate-200 py-6">
-            <h2 className="mb-4 text-lg font-bold text-slate-900">
-              Datos del cliente
-            </h2>
+            <div className="border-b border-slate-200 pb-6">
+              <h1 className="text-3xl font-bold text-slate-900">
+                Comprobante de trabajo
+              </h1>
 
-            <div className="grid gap-4 md:grid-cols-2">
+              <p className="mt-2 text-slate-500">
+                Cortinas Gestión
+              </p>
 
-              <div>
-                <p className="text-sm text-slate-500">
-                  Nombre
-                </p>
-
-                <p className="font-semibold">
-                  {cliente?.nombre || "-"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-slate-500">
-                  Dirección
-                </p>
-
-                <p className="font-semibold">
-                  {cliente?.direccion || "-"}
-                </p>
-              </div>
-
+              <p className="mt-1 text-sm text-slate-500">
+                Trabajo #{solicitud.id}
+              </p>
             </div>
-          </section>
 
-          {/* TRABAJO */}
+            <section className="border-b border-slate-200 py-6">
+              <h2 className="mb-4 text-lg font-bold text-slate-900">
+                Datos del cliente
+              </h2>
 
-          <section className="border-b border-slate-200 py-6">
-            <h2 className="mb-4 text-lg font-bold text-slate-900">
-              Trabajo realizado
-            </h2>
+              <div className="grid gap-4 md:grid-cols-2">
 
-            <p className="whitespace-pre-wrap text-slate-700">
-              {solicitud.trabajo_realizado || "-"}
-            </p>
-          </section>
+                <div>
+                  <p className="text-sm text-slate-500">
+                    Nombre
+                  </p>
 
-          {/* OBSERVACIONES */}
+                  <p className="font-semibold">
+                    {cliente?.nombre || "-"}
+                  </p>
+                </div>
 
-          <section className="border-b border-slate-200 py-6">
-            <h2 className="mb-4 text-lg font-bold text-slate-900">
-              Observaciones
-            </h2>
+                <div>
+                  <p className="text-sm text-slate-500">
+                    Dirección
+                  </p>
 
-            <p className="whitespace-pre-wrap text-slate-700">
-              {solicitud.observaciones_tecnico || "-"}
-            </p>
-          </section>
+                  <p className="font-semibold">
+                    {cliente?.direccion || "-"}
+                  </p>
+                </div>
 
-          {/* CONFORMIDAD */}
+              </div>
+            </section>
 
-          <section className="py-6">
-            <h2 className="mb-4 text-lg font-bold text-slate-900">
-              Conformidad del cliente
-            </h2>
+            <section className="border-b border-slate-200 py-6">
+              <h2 className="mb-4 text-lg font-bold text-slate-900">
+                Trabajo realizado
+              </h2>
 
-            {solicitud.firma_cliente && (
-              <div className="mb-5">
-                <p className="mb-2 text-sm text-slate-500">
-                  Firma
+              <p className="whitespace-pre-wrap text-slate-700">
+                {solicitud.trabajo_realizado || "-"}
+              </p>
+            </section>
+
+            <section className="border-b border-slate-200 py-6">
+              <h2 className="mb-4 text-lg font-bold text-slate-900">
+                Observaciones
+              </h2>
+
+              <p className="whitespace-pre-wrap text-slate-700">
+                {solicitud.observaciones_tecnico || "-"}
+              </p>
+            </section>
+
+            <section className="py-6">
+              <h2 className="mb-4 text-lg font-bold text-slate-900">
+                Conformidad del cliente
+              </h2>
+
+              {solicitud.firma_cliente && (
+                <div className="mb-5">
+                  <p className="mb-2 text-sm text-slate-500">
+                    Firma
+                  </p>
+
+                  <div className="inline-block rounded-xl border border-slate-200 bg-white p-3">
+                    <img
+                      src={solicitud.firma_cliente}
+                      alt="Firma del cliente"
+                      className="h-32 w-auto"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm text-slate-500">
+                  Aclaración
                 </p>
 
-                <div className="inline-block rounded-xl border border-slate-200 bg-white p-3">
-                  <img
-                    src={solicitud.firma_cliente}
-                    alt="Firma del cliente"
-                    className="h-32 w-auto"
-                  />
-                </div>
+                <p className="font-semibold">
+                  {solicitud.aclaracion_cliente || "-"}
+                </p>
+              </div>
+
+            </section>
+
+            {solicitud.fecha_finalizacion && (
+              <div className="border-t border-slate-200 pt-5 text-sm text-slate-500">
+                Fecha de finalización:{" "}
+                {new Date(
+                  solicitud.fecha_finalizacion
+                ).toLocaleString("es-AR")}
               </div>
             )}
 
-            <div>
-              <p className="text-sm text-slate-500">
-                Aclaración
-              </p>
-
-              <p className="font-semibold">
-                {solicitud.aclaracion_cliente || "-"}
-              </p>
-            </div>
-
-          </section>
-
-          {/* FECHA */}
-
-          {solicitud.fecha_finalizacion && (
-            <div className="border-t border-slate-200 pt-5 text-sm text-slate-500">
-              Fecha de finalización:{" "}
-              {new Date(
-                solicitud.fecha_finalizacion
-              ).toLocaleString("es-AR")}
-            </div>
-          )}
+          </div>
 
         </div>
-
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

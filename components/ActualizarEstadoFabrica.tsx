@@ -10,12 +10,14 @@ import {
 } from "lucide-react";
 
 interface Props {
-  solicitudId: number;
+  solicitudFabricaId: number; // ID de la tabla solicitudes_fabrica
+  solicitudPadreId?: number;  // ID de la tabla principal solicitudes (opcional si viene en la relación)
   estadoActual: string;
 }
 
 export default function ActualizarEstadoFabrica({
-  solicitudId,
+  solicitudFabricaId,
+  solicitudPadreId,
   estadoActual,
 }: Props) {
   const router = useRouter();
@@ -32,21 +34,40 @@ export default function ActualizarEstadoFabrica({
     setGuardando(true);
     setMensaje("");
 
-    // Actualizamos el estado directamente en solicitudes_fabrica
-    const { data, error } = await supabase
+    // 1. Actualizamos el estado en la orden de fábrica (solicitudes_fabrica)
+    const { data: ordenFabrica, error: errorFabrica } = await supabase
       .from("solicitudes_fabrica")
       .update({ estado: nuevoEstado })
-      .eq("id", solicitudId)
-      .select();
+      .eq("id", solicitudFabricaId)
+      .select("solicitud_id") // Traemos el ID principal por si no vino por props
+      .single();
 
-    if (error) {
-      console.error("Error al actualizar estado:", error);
-      setMensaje(`Error: ${error.message}`);
+    if (errorFabrica) {
+      console.error("Error al actualizar estado en fábrica:", errorFabrica);
+      setMensaje(`Error: ${errorFabrica.message}`);
       setGuardando(false);
       return;
     }
 
-    console.log("Actualizado con éxito:", data);
+    // 2. Si el nuevo estado es LISTO_PARA_COLOCAR, actualizamos también la tabla principal
+    if (nuevoEstado === "LISTO_PARA_COLOCAR") {
+      const idPrincipal = solicitudPadreId || ordenFabrica?.solicitud_id;
+
+      if (idPrincipal) {
+        const { error: errorPrincipal } = await supabase
+          .from("solicitudes")
+          .update({ estado: "LISTO_PARA_COLOCAR" })
+          .eq("id", idPrincipal);
+
+        if (errorPrincipal) {
+          console.error("Error al actualizar solicitud principal:", errorPrincipal);
+          setMensaje(`Error en solicitud principal: ${errorPrincipal.message}`);
+          setGuardando(false);
+          return;
+        }
+      }
+    }
+
     setMensaje("¡Estado actualizado correctamente!");
     setGuardando(false);
 

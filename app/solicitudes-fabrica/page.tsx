@@ -6,9 +6,7 @@ import { createClient } from "@/lib/supabase/cliente";
 import { useRouter } from "next/navigation";
 import { Clock, BellRing, ArrowLeft, CheckCircle2 } from "lucide-react";
 
-const tiposVisita = [
-  "Cortar e instalar",
-];
+const tiposVisita = ["Cortar e instalar"];
 
 export default function SolicitudFabricaPage() {
   const supabase = createClient();
@@ -32,8 +30,6 @@ export default function SolicitudFabricaPage() {
   const [senaPesos, setSenaPesos] = useState("");
 
   const [medioPago, setMedioPago] = useState("");
-  
-  // NUEVO: Estado para la aclaración de pagos o facturación
   const [aclaracionPago, setAclaracionPago] = useState("");
 
   const [guardando, setGuardando] = useState(false);
@@ -119,17 +115,10 @@ export default function SolicitudFabricaPage() {
         total_pesos: total ? Number(total) : null,
         saldo_restante: saldo ? Number(saldo) : null,
 
-        sena_porcentaje: senaPorcentaje
-          ? Number(senaPorcentaje)
-          : null,
-
-        sena_pesos: senaPesos
-          ? Number(senaPesos)
-          : null,
+        sena_porcentaje: senaPorcentaje ? Number(senaPorcentaje) : null,
+        sena_pesos: senaPesos ? Number(senaPesos) : null,
 
         medio_pago: medioPago || null,
-        
-        // Guardamos la aclaración de pagos (asegurate de tener esta columna en tu tabla 'solicitudes_fabrica', o podés concatenarla a observaciones si preferís)
         aclaracion_pago: aclaracionPago.trim() || null,
 
         estado: "PENDIENTE_APROBACION",
@@ -158,13 +147,12 @@ export default function SolicitudFabricaPage() {
     }, 2000);
   }
 
-  const inputClassName = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
+  const inputClassName =
+    "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-4xl">
-
-        {/* Botón para volver atrás */}
         <div className="mb-6">
           <Link
             href="/dashboard"
@@ -186,17 +174,24 @@ export default function SolicitudFabricaPage() {
         </div>
 
         {mensaje && (
-          <div className={`mb-6 flex items-center gap-3 rounded-xl border p-4 text-sm font-medium shadow-sm ${
-            exito ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-700"
-          }`}>
-            {exito && <CheckCircle2 size={20} className="text-emerald-600 flex-shrink-0" />}
+          <div
+            className={`mb-6 flex items-center gap-3 rounded-xl border p-4 text-sm font-medium shadow-sm ${
+              exito
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-red-200 bg-red-50 text-red-700"
+            }`}
+          >
+            {exito && (
+              <CheckCircle2
+                size={20}
+                className="text-emerald-600 flex-shrink-0"
+              />
+            )}
             {mensaje}
           </div>
         )}
 
         <div className="space-y-6">
-
-          {/* DATOS DEL CLIENTE */}
           <section className="rounded-xl bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-900">
               Datos del cliente
@@ -247,7 +242,6 @@ export default function SolicitudFabricaPage() {
             </div>
           </section>
 
-          {/* DATOS DE LA SOLICITUD */}
           <section className="rounded-xl bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-900">
               Datos de la solicitud
@@ -266,7 +260,9 @@ export default function SolicitudFabricaPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium">Tipo de visita</label>
+                <label className="mb-1 block text-sm font-medium">
+                  Tipo de visita
+                </label>
                 <select
                   value={tipoVisita}
                   onChange={(e) => setTipoVisita(e.target.value)}
@@ -275,7 +271,9 @@ export default function SolicitudFabricaPage() {
                 >
                   <option value="">Seleccionar...</option>
                   {tiposVisita.map((tipo) => (
-                    <option key={tipo} value={tipo}>{tipo}</option>
+                    <option key={tipo} value={tipo}>
+                      {tipo}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -327,17 +325,16 @@ export default function SolicitudFabricaPage() {
             </div>
           </section>
 
-          {/* DATOS COMERCIALES */}
           <section className="rounded-xl bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-900">
               Datos comerciales
             </h2>
 
-           
-
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium">Total en pesos</label>
+                <label className="mb-1 block text-sm font-medium">
+                  Total en pesos
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -351,7 +348,9 @@ export default function SolicitudFabricaPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium">Saldo restante (Automático)</label>
+                <label className="mb-1 block text-sm font-medium">
+                  Saldo restante (Automático)
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -366,7 +365,9 @@ export default function SolicitudFabricaPage() {
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium">Seña (%)</label>
+                <label className="mb-1 block text-sm font-medium">
+                  Seña (%)
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -381,7 +382,9 @@ export default function SolicitudFabricaPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium">Seña ($)</label>
+                <label className="mb-1 block text-sm font-medium">
+                  Seña ($)
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -396,7 +399,9 @@ export default function SolicitudFabricaPage() {
             </div>
 
             <div className="mt-4">
-              <label className="mb-1 block text-sm font-medium">Medio de pago</label>
+              <label className="mb-1 block text-sm font-medium">
+                Medio de pago
+              </label>
               <select
                 value={medioPago}
                 onChange={(e) => setMedioPago(e.target.value)}
@@ -411,7 +416,6 @@ export default function SolicitudFabricaPage() {
               </select>
             </div>
 
-            {/* NUEVO: Espacio para aclaración del pago o facturación */}
             <div className="mt-4">
               <label className="mb-1 block text-sm font-medium">
                 Aclaración de pago / Facturación
@@ -427,16 +431,18 @@ export default function SolicitudFabricaPage() {
             </div>
           </section>
 
-          {/* BOTON */}
           <button
             type="button"
             onClick={guardarSolicitud}
             disabled={guardando || exito}
             className="w-full rounded-xl bg-slate-900 px-5 py-4 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {guardando ? "Guardando remito..." : exito ? "¡Remito guardado con éxito!" : "Crear remito y enviar a aprobación"}
+            {guardando
+              ? "Guardando remito..."
+              : exito
+              ? "¡Remito guardado con éxito!"
+              : "Crear remito y enviar a aprobación"}
           </button>
-
         </div>
       </div>
     </main>

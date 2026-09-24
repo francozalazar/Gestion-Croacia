@@ -1,209 +1,331 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  ClipboardList,
-  Wrench,
+  FileText,
+  DollarSign,
   Factory,
+  ChevronDown,
+  LogOut,
+  LayoutDashboard,
   Truck,
   CheckCircle2,
-  LogOut,
-  Plus,
-  Menu,
-  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/cliente";
-import { useRouter } from "next/navigation";
 
 interface SidebarProps {
   nombre: string;
-  apellido?: string;
+  apellido: string;
   rol: string;
 }
 
-export default function Sidebar({
-  nombre,
-  apellido,
-  rol,
-}: SidebarProps) {
-  const router = useRouter();
+export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
+  const pathname = usePathname();
   const supabase = createClient();
-  const [isOpen, setIsOpen] = useState(false);
 
-  async function cerrarSesion() {
+  const [seccionAbierta, setSeccionAbierta] = useState<string | null>("solicitudes");
+
+  async function handleLogout() {
     await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
+    window.location.href = "/";
   }
 
-  const menu = [
-    {
-      nombre: "Inicio",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-      roles: ["ADMIN", "OFICINA", "COORDINACION", "TECNICO", "FABRICA"],
-    },
-    {
-      nombre: "Solicitudes",
-      href: "/solicitudes",
-      icon: ClipboardList,
-      roles: ["ADMIN", "OFICINA", "COORDINACION"],
-    },
-    {
-  nombre: "Solicitudes para fábrica",
-  href: "/solicitudes-fabrica",
-  icon: Factory,
-  roles: ["ADMIN", "OFICINA"],
-},
-{
-  nombre: "Aprobación fábrica",
-  href: "/aprobacion-fabrica",
-  icon: Factory,
-  roles: ["ADMIN"],
-},
-    {
-      nombre: "Listos para colocar",
-      href: "/listos-para-colocar",
-      icon: Truck,
-      roles: ["ADMIN", "OFICINA"],
-    },
-    {
-      nombre: "Coordinación",
-      href: "/coordinacion",
-      icon: Wrench,
-      roles: ["ADMIN", "COORDINACION"],
-    },
-    {
-      nombre: "Mis trabajos",
-      href: "/trabajos",
-      icon: Wrench,
-      roles: ["TECNICO"],
-    },
-    {
-      nombre: "Trabajos de fábrica",
-      href: "/fabrica",
-      icon: Factory,
-      roles: ["FABRICA"],
-    },
-    {
-      nombre: "Trabajos finalizados",
-      href: "/finalizados",
-      icon: CheckCircle2,
-      roles: ["ADMIN", "OFICINA", "COORDINACION"],
-    },
-  ];
+  const toggleSeccion = (nombreSeccion: string) => {
+    setSeccionAbierta(seccionAbierta === nombreSeccion ? null : nombreSeccion);
+  };
 
-  const menuVisible = menu.filter((item) =>
-    item.roles.includes(rol)
-  );
-
-  const puedeCrearSolicitud = ["ADMIN", "OFICINA"].includes(rol);
+  const esTecnico = rol?.toUpperCase() === "TECNICO";
+  const esFabrica = rol?.toUpperCase() === "FABRICA";
+  const esAdminOficina = ["ADMIN", "OFICINA"].includes(rol?.toUpperCase() || "");
 
   return (
-    <>
-      {/* BARRA SUPERIOR MOBILE: Siempre visible arriba en celulares */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 md:hidden shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-lg">
-            🏠
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col justify-between border-r border-slate-800">
+      <div className="p-5">
+        {/* LOGO */}
+        <div className="flex items-center gap-3 border-b border-slate-800 pb-5 mb-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 font-bold text-white text-lg">
+            S
           </div>
-          <span className="font-bold text-slate-900 text-sm">Cortinas Gestión</span>
+          <div>
+            <h2 className="font-bold text-white text-sm">Gestión Cortinas</h2>
+            <p className="text-xs text-slate-400 uppercase">{rol}</p>
+          </div>
         </div>
 
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="rounded-xl p-2 text-slate-700 hover:bg-slate-100 focus:outline-none"
-          aria-label="Abrir menú"
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {/* NAVEGACIÓN */}
+        <nav className="space-y-2">
+          {/* Dashboard General */}
+          <Link
+            href="/dashboard"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+              pathname === "/dashboard"
+                ? "bg-blue-600 text-white"
+                : "hover:bg-slate-800 hover:text-white"
+            }`}
+          >
+            <LayoutDashboard size={18} />
+            <span>Inicio</span>
+          </Link>
+
+          {/* MENÚ CONDICIONAL SEGÚN EL ROL */}
+          {esFabrica ? (
+            <div className="pt-2">
+              <Link
+                href="/fabrica"
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                  pathname === "/fabrica"
+                    ? "bg-amber-600 text-white"
+                    : "hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                <Factory size={18} className="text-amber-400" />
+                <span>Trabajos a realizar</span>
+              </Link>
+            </div>
+          ) : esTecnico ? (
+            /* MENÚ EXCLUSIVO PARA TÉCNICOS */
+            <div className="pt-2">
+              <button
+                onClick={() => toggleSeccion("trabajos")}
+                className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
+              >
+                <div className="flex items-center gap-3">
+                  <FileText size={18} className="text-blue-400" />
+                  <span>Mis Trabajos</span>
+                </div>
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform duration-200 ${
+                    seccionAbierta === "trabajos" ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {seccionAbierta === "trabajos" && (
+                <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
+                  <Link
+                    href="/trabajos"
+                    className={`block py-2 text-xs font-medium transition ${
+                      pathname === "/tecnico/trabajos"
+                        ? "text-blue-400 font-bold"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    • Trabajos asignados
+                  </Link>
+                 
+                </div>
+              )}
+            </div>
+          ) : (
+            /* MENÚ COMPLETO PARA ADMIN / OFICINA */
+            <>
+              {/* 1. GRUPO: SOLICITUDES */}
+              <div className="pt-2">
+                <button
+                  onClick={() => toggleSeccion("solicitudes")}
+                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText size={18} className="text-blue-400" />
+                    <span>Solicitudes</span>
+                  </div>
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform duration-200 ${
+                      seccionAbierta === "solicitudes" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {seccionAbierta === "solicitudes" && (
+                  <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
+                    <Link
+                      href="/solicitudes/nueva"
+                      className={`block py-2 text-xs font-medium transition ${
+                        pathname === "/solicitudes/nueva"
+                          ? "text-blue-400 font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      • Nueva solicitud
+                    </Link>
+                    
+                    <Link
+                      href="/coordinacion"
+                      className={`block py-2 text-xs font-medium transition ${
+                        pathname === "/coordinacion"
+                          ? "text-blue-400 font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      • Coordinación
+                    </Link>
+                    
+                    <Link
+                      href="/recorrido-camiones"
+                      className={`block py-2 text-xs font-medium transition ${
+                        pathname === "/recorrido-camiones"
+                          ? "text-blue-400 font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      • Recorrido de camión
+                    </Link>
+                    
+                    <Link
+                      href="/visitas-finalizadas"
+                      className={`block py-2 text-xs font-medium transition ${
+                        pathname === "/visitas-finalizadas"
+                          ? "text-blue-400 font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      • Visitas finalizadas
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. GRUPO: PRESUPUESTOS */}
+              <div className="pt-2">
+                <button
+                  onClick={() => toggleSeccion("presupuestos")}
+                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <DollarSign size={18} className="text-emerald-400" />
+                    <span>Presupuestos</span>
+                  </div>
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform duration-200 ${
+                      seccionAbierta === "presupuestos" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {seccionAbierta === "presupuestos" && (
+                  <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
+                    <Link
+                      href="/presupuestos"
+                      className={`block py-2 text-xs font-medium transition ${
+                        pathname === "/presupuestos"
+                          ? "text-emerald-400 font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      • Inbox de presupuesto
+                    </Link>
+
+                    {rol === "ADMIN" && (
+                      <Link
+                        href="/presupuestos/precios"
+                        className={`block py-2 text-xs font-medium transition ${
+                          pathname === "/presupuestos/precios"
+                            ? "text-emerald-400 font-bold"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        • Precios 🔒
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 3. GRUPO: FÁBRICA */}
+              <div className="pt-2">
+                <button
+                  onClick={() => toggleSeccion("fabrica")}
+                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <Factory size={18} className="text-amber-400" />
+                    <span>Fábrica</span>
+                  </div>
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform duration-200 ${
+                      seccionAbierta === "fabrica" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {seccionAbierta === "fabrica" && (
+                  <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
+                    <Link
+                      href="/solicitudes-fabrica"
+                      className={`block py-2 text-xs font-medium transition ${
+                        pathname === "/solicitudes-fabrica"
+                          ? "text-amber-400 font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      • Solicitud para fábrica
+                    </Link>
+                    <Link
+                      href="/listos-para-colocar"
+                      className={`block py-2 text-xs font-medium transition ${
+                        pathname === "/listos-para-colocar"
+                          ? "text-amber-400 font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      • Listos para colocar
+                    </Link>
+
+                    {esAdminOficina && (
+                      <Link
+                        href="/produccion"
+                        className={`block py-2 text-xs font-medium transition ${
+                          pathname === "/produccion"
+                            ? "text-amber-400 font-bold"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        • Producción
+                      </Link>
+                    )}
+
+                    {rol === "ADMIN" && (
+                      <Link
+                        href="/aprobacion-fabrica"
+                        className={`block py-2 text-xs font-medium transition ${
+                          pathname === "/aprobacion-fabrica"
+                            ? "text-amber-400 font-bold"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        • Aprobación fábrica 🔒
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </nav>
       </div>
 
-      {/* FONDO OSCURO (OVERLAY): Solo aparece en mobile cuando el menú está abierto */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
-      {/* ASIDE (SIDEBAR): Oculto por defecto en mobile (-translate-x-full), fijo a la izquierda en PC (md:translate-x-0) */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-300 ease-in-out md:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        {/* LOGO (Solo en PC, en mobile ya está en la barra superior) */}
-        <div className="hidden border-b border-slate-200 p-6 md:block">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-xl">
-              🏠
-            </div>
-            <div>
-              <h1 className="font-bold text-slate-900">Cortinas Gestión</h1>
-              <p className="text-xs text-slate-500">Sistema de trabajos</p>
-            </div>
+      {/* FOOTER PERFIL Y LOGOUT */}
+      <div className="p-4 border-t border-slate-800 bg-slate-950/50">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-white">{nombre} {apellido}</p>
+            <p className="text-xs text-slate-500">{rol}</p>
           </div>
-        </div>
-
-        {/* Espaciador superior para que en mobile el contenido no quede debajo de la barra fija */}
-        <div className="h-16 md:hidden" />
-
-        {/* NUEVA SOLICITUD */}
-        {puedeCrearSolicitud && (
-          <div className="p-4 pb-2">
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                router.push("/solicitudes/nueva");
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              <Plus size={18} />
-              Nueva solicitud
-            </button>
-          </div>
-        )}
-
-        {/* MENÚ DE NAVEGACIÓN */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-4 pt-2">
-          {menuVisible.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.href}
-                onClick={() => {
-                  setIsOpen(false);
-                  router.push(item.href);
-                }}
-                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
-              >
-                <Icon size={19} />
-                {item.nombre}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* USUARIO Y CERRAR SESIÓN */}
-        <div className="border-t border-slate-200 p-4">
-          <div className="mb-3 rounded-xl bg-slate-50 p-3">
-            <p className="truncate text-sm font-semibold text-slate-900">
-              {nombre} {apellido}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">{rol}</p>
-          </div>
-
           <button
-            onClick={cerrarSesion}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-red-50 hover:text-red-600"
+            onClick={handleLogout}
+            title="Cerrar sesión"
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
           >
-            <LogOut size={19} />
-            Cerrar sesión
+            <LogOut size={18} />
           </button>
         </div>
-      </aside>
-    </>
+      </div>
+    </aside>
   );
 }

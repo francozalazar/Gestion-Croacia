@@ -24,7 +24,7 @@ export default async function MisTrabajosPage() {
     redirect("/dashboard");
   }
 
-  // Traemos las asignaciones del técnico ordenadas por la prioridad
+  // 1. Traemos las asignaciones del técnico ordenadas por prioridad
   const { data: asignaciones, error } = await supabase
     .from("asignaciones")
     .select("*")
@@ -37,32 +37,78 @@ export default async function MisTrabajosPage() {
   let solicitudes: any[] = [];
 
   if (asignaciones && asignaciones.length > 0) {
-    const solicitudIds = asignaciones.map(
-      (a) => a.solicitud_id
-    );
+    const solicitudIds = asignaciones
+      .map((a) => a.solicitud_id)
+      .filter(Boolean);
 
-    // FILTRO DIRECTO EN SUPABASE: Excluimos los finalizados de cuajo
-    const { data } = await supabase
-      .from("solicitudes")
-      .select("*")
-      .in("id", solicitudIds)
-      .not("estado", "ilike", "FINALIZADO"); // 'ilike' ignora mayúsculas/minúsculas
+    const solicitudFabricaIds = asignaciones
+      .map((a) => a.solicitud_fabrica_id)
+      .filter(Boolean);
 
-    if (data) {
-      // Mapeamos para asociar la prioridad de la asignación a cada solicitud
-      const solicitudesConPrioridad = data.map((solicitud) => {
-        const asig = asignaciones.find((a) => a.solicitud_id === solicitud.id);
+    const [{ data: dataBase }, { data: dataFabrica }] =
+      await Promise.all([
+        solicitudIds.length
+          ? supabase
+              .from("solicitudes")
+              .select("*")
+              .in("id", solicitudIds)
+          : Promise.resolve({ data: [] }),
+
+        solicitudFabricaIds.length
+          ? supabase
+              .from("solicitudes_fabrica")
+              .select("*")
+              .in("id", solicitudFabricaIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+    const estadosOcultos = [
+      "FINALIZADO",
+      "PRESUPUESTADO",
+      "LISTO_INSTALACION",
+      "ANULADO",
+    ];
+
+    const listaBase = (dataBase || [])
+      .filter((sol) => !estadosOcultos.includes(sol.estado))
+      .map((sol) => {
+        const asig = asignaciones.find(
+          (a) => String(a.solicitud_id) === String(sol.id)
+        );
+
         return {
-          ...solicitud,
+          ...sol,
+          origen: "solicitud",
+          id_unico: `sol_${sol.id}`,
+          numero_visible: sol.numero || sol.id,
           prioridad: asig?.prioridad ?? 99,
+          fecha_asignada: asig?.fecha || sol.fecha,
         };
       });
 
-      // Ordenamos por prioridad (menor número = más arriba)
-      solicitudesConPrioridad.sort((a, b) => a.prioridad - b.prioridad);
+    const listaFabrica = (dataFabrica || [])
+      .filter((sol) => !estadosOcultos.includes(sol.estado))
+      .map((sol) => {
+        const asig = asignaciones.find(
+          (a) =>
+            String(a.solicitud_fabrica_id) === String(sol.id)
+        );
 
-      solicitudes = solicitudesConPrioridad;
-    }
+        return {
+          ...sol,
+          origen: "fabrica",
+          id_unico: `fab_${sol.id}`,
+          numero_visible: sol.numero_remito || sol.numero || sol.id,
+          prioridad: asig?.prioridad ?? 99,
+          fecha_asignada: asig?.fecha || sol.fecha,
+        };
+      });
+
+    const listaCombinada = [...listaBase, ...listaFabrica].sort(
+      (a, b) => a.prioridad - b.prioridad
+    );
+
+    solicitudes = listaCombinada;
   }
 
   const clienteIds = solicitudes
@@ -80,150 +126,139 @@ export default async function MisTrabajosPage() {
     clientes = data || [];
   }
 
-  return (
-    <div className="flex min-h-screen bg-gray-100">
+  // Helper para franja horaria compacta
+  function obtenerEtiquetaFranja(desde?: string | null, hasta?: string | null) {
+    if (!desde && !hasta) return "📅 Día completo (8:30 - 17:00 hs)";
+    
+    const hDesde = desde?.slice(0, 5) || "";
+    const hHasta = hasta?.slice(0, 5) || "";
 
+    if (
+      ["08:00", "08:30", "09:00"].includes(hDesde) &&
+      ["12:00", "12:30", "13:00"].includes(hHasta)
+    ) {
+      return "🌅 Mañana (8:30 - 12:30 hs)";
+    }
+
+    if (
+      ["13:00", "13:30", "14:00"].includes(hDesde) &&
+      ["17:00", "17:30", "18:00"].includes(hHasta)
+    ) {
+      return "☀️ Tarde (13:00 - 17:00 hs)";
+    }
+
+    return `🕐 ${desde || "08:30"} a ${hasta || "17:00"} hs`;
+  }
+
+  return (
+    <div className="flex min-h-screen bg-slate-50 text-slate-800">
       <Sidebar
         nombre={perfil.nombre}
         apellido={perfil.apellido}
         rol={perfil.rol}
       />
 
-      <main className="ml-0 md:ml-64 flex-1 p-4 md:p-8 pt-20 md:pt-8">
-
-        {/* Botón para volver atrás */}
+      <main className="ml-0 md:ml-64 flex-1 p-6 md:p-10 pt-20 md:pt-10">
         <div className="mb-6">
           <Link
             href="/dashboard"
-            className="inline-flex items-center text-sm font-medium text-slate-600 transition hover:text-slate-900"
+            className="inline-flex items-center text-xs font-semibold text-slate-500 transition hover:text-slate-900"
           >
             ← Volver al panel
           </Link>
         </div>
 
         <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-            Mis trabajos
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+            Mis trabajos pendientes
           </h1>
-
-          <p className="mt-2 text-sm md:text-base text-gray-600">
-            Acá vas a encontrar los trabajos activos asignados ordenados por prioridad.
+          <p className="mt-1 text-xs md:text-sm text-slate-500">
+            Trabajos activos ordenados según la prioridad asignada. Los finalizados ya no aparecen aquí.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
-            <p className="font-semibold text-red-800">
-              Error al cargar los trabajos
-            </p>
-
-            <p className="mt-1 text-sm text-red-700">
-              {error.message}
-            </p>
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4">
+            <p className="font-semibold text-red-800 text-xs">Error al cargar los trabajos</p>
+            <p className="mt-1 text-xs text-red-700">{error.message}</p>
           </div>
         )}
 
         {solicitudes.length === 0 ? (
-          <div className="rounded-xl bg-white p-12 text-center shadow">
-
-            <div className="text-5xl">
-              🔧
-            </div>
-
-            <h2 className="mt-4 text-xl font-bold text-gray-800">
+          <div className="rounded-2xl bg-white p-12 text-center shadow-xs border border-slate-100 max-w-md mx-auto">
+            <div className="text-4xl mb-2">🎉</div>
+            <h2 className="text-base font-bold text-slate-800">
               No tenés trabajos pendientes
             </h2>
-
-            <p className="mt-2 text-gray-500">
-              Todos tus trabajos asignados ya fueron finalizados o no tenés nuevos encargos.
+            <p className="mt-1 text-xs text-slate-500">
+              Has completado todas tus tareas asignadas o no hay nuevos encargos activos.
             </p>
-
           </div>
         ) : (
-
-          <div className="space-y-5">
-
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl">
             {solicitudes.map((solicitud) => {
-
               const cliente = clientes.find(
                 (c) => c.id === solicitud.cliente_id
               );
 
               return (
                 <div
-                  key={solicitud.id}
-                  className="rounded-xl bg-white p-6 shadow"
+                  key={solicitud.id_unico}
+                  className="rounded-2xl bg-white p-5 shadow-xs border border-slate-200 flex flex-col justify-between transition hover:shadow-md hover:border-blue-400"
                 >
+                  <div>
+                    {/* ENCABEZADO DE LA TARJETA */}
+                    <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+                        #{solicitud.numero_visible}
+                      </span>
 
-                  <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-
-                    <div>
-
-                      <div className="mb-3 flex items-center gap-3 flex-wrap">
-
-                        <span className="rounded-full bg-gray-900 px-3 py-1 text-sm font-bold text-white">
-                          #{solicitud.numero}
+                      {solicitud.prioridad !== 99 && (
+                        <span className="text-xs px-2.5 py-1 rounded-md font-bold bg-amber-100 text-amber-800">
+                          Prioridad {solicitud.prioridad}
                         </span>
-
-                        <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
-                          {solicitud.estado}
-                        </span>
-
-                        {solicitud.prioridad !== 99 && (
-                          <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-800">
-                            Prioridad #{solicitud.prioridad}
-                          </span>
-                        )}
-
-                      </div>
-
-                      <h2 className="text-xl font-bold text-gray-900">
-                        {cliente?.nombre || "Cliente"}
-                      </h2>
-
-                      <div className="mt-3 space-y-1 text-sm text-gray-600">
-
-                        <p>
-                          📍 {solicitud.direccion}
-                        </p>
-
-                        <p>
-                          📅 {solicitud.fecha}
-                        </p>
-
-                        <p>
-                          🕐{" "}
-                          {solicitud.horario_desde || "-"}
-                          {" "}
-                          {solicitud.horario_hasta
-                            ? `- ${solicitud.horario_hasta}`
-                            : ""}
-                        </p>
-
-                        <p>
-                          🔧 {solicitud.tipo_visita}
-                        </p>
-
-                      </div>
-
+                      )}
                     </div>
 
-                    <a
-                      href={`/mis-trabajos/${solicitud.id}`}
-                      className="rounded-lg bg-gray-900 px-6 py-3 text-center font-semibold text-white transition hover:bg-gray-700"
-                    >
-                      Ver trabajo
-                    </a>
+                    {/* NOMBRE Y DIRECCIÓN */}
+                    <h3 className="text-base font-bold text-slate-900 truncate">
+                      {cliente?.nombre || solicitud.cliente_nombre || "Cliente sin nombre"}
+                    </h3>
+                    <p className="text-xs font-semibold text-slate-500 mt-1 uppercase truncate">
+                      {solicitud.direccion || "-"} {solicitud.localidad ? `- ${solicitud.localidad}` : ""}
+                    </p>
 
+                    {/* DATOS DE FECHA Y HORARIO */}
+                    <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">
+                      <p>
+                        📅 <strong>Fecha:</strong>{" "}
+                        {solicitud.fecha_asignada
+                          ? new Date(`${solicitud.fecha_asignada}T12:00:00`).toLocaleDateString("es-AR")
+                          : "A coordinar"}
+                      </p>
+                      <p className="text-slate-700 font-medium bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 inline-block">
+                        {obtenerEtiquetaFranja(solicitud.horario_desde, solicitud.horario_hasta)}
+                      </p>
+                      <p>
+                        🔧 <strong>Tipo:</strong> {solicitud.tipo_visita || "Instalación / Medición"}
+                      </p>
+                    </div>
                   </div>
 
+                  {/* BOTÓN DE ACCIÓN */}
+                  <div className="mt-5 pt-3 border-t border-slate-100 flex justify-end">
+                    <Link
+                      href={`/trabajos/${solicitud.id}?origen=${solicitud.origen}`}
+                      className="w-full rounded-xl bg-slate-900 py-2.5 text-center text-xs font-semibold text-white hover:bg-slate-800 transition"
+                    >
+                      Ver trabajo y completar →
+                    </Link>
+                  </div>
                 </div>
               );
             })}
-
           </div>
         )}
-
       </main>
     </div>
   );

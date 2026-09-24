@@ -1,458 +1,789 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
-import AsignarSolicitud from "@/components/AsignarSolicitud";
+import {
+  Search,
+  X,
+  MapPin,
+  Phone,
+  Calendar,
+  Clock,
+  FileText,
+  User,
+  ShieldAlert,
+} from "lucide-react";
 
-export default async function CoordinacionPage() {
-  const supabase = await createClient();
+export default function CoordinacionPage() {
+  const supabase = createClient();
 
-  // =========================
-  // USUARIO
-  // =========================
+  const [perfil, setPerfil] = useState<any>(null);
+  const [solicitudes, setSolicitudes] = useState<any[]>([]);
+  const [tecnicos, setTecnicos] = useState<any[]>([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [cargando, setCargando] = useState(true);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Modales
+  const [solicitudModal, setSolicitudModal] = useState<any | null>(null);
+  const [verDetallesModal, setVerDetallesModal] = useState<any | null>(null);
 
-  if (!user) {
-    redirect("/");
-  }
+  // Campos de formulario para asignación
+  const [fechaPactada, setFechaPactada] = useState("");
+  const [franjaSeleccionada, setFranjaSeleccionada] =
+    useState("DIA_COMPLETO");
+  const [tecnicoId, setTecnicoId] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [prioridad, setPrioridad] = useState<string>("");
 
-  // =========================
-  // PERFIL
-  // =========================
+  useEffect(() => {
+    cargarDatos();
+  }, []);
 
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("nombre, apellido, rol")
-    .eq("id", user.id)
-    .single();
+  async function cargarDatos() {
+    setCargando(true);
 
-  if (
-    !perfil ||
-    !["ADMIN", "COORDINACION"].includes(
-      perfil.rol
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = "/";
+      return;
+    }
+
+    // =========================================================
+    // 1. OBTENER PERFIL DEL USUARIO ACTUAL
+    // =========================================================
+
+    const { data: profile, error: errorProfile } = await supabase
+      .from("profiles")
+      .select("id, nombre, apellido, rol")
+      .eq("id", user.id)
+      .single();
+
+    if (errorProfile) {
+      console.error("Error obteniendo perfil:", errorProfile);
+    }
+
+    setPerfil(profile);
+
+    // =========================================================
+    // 2. CARGAR TÉCNICOS
+    // =========================================================
+
+    const { data: tecs, error: errorTecnicos } = await supabase
+      .from("profiles")
+      .select("id, nombre, apellido")
+      .eq("rol", "TECNICO")
+      .eq("activo", true)
+      .order("nombre");
+
+    if (errorTecnicos) {
+      console.error("Error obteniendo técnicos:", errorTecnicos);
+    }
+
+    setTecnicos(tecs || []);
+
+    // =========================================================
+    // 3. SOLICITUDES NORMALES
+    // =========================================================
+
+   const { data: solBase, error: errorSolBase } = await supabase
+  .from("solicitudes")
+  .select(`
+    *,
+    creador:profiles!creado_por(
+      id,
+      nombre,
+      apellido
     )
-  ) {
-    redirect("/dashboard");
+  `)
+  .in("estado", [
+    "PENDIENTE",
+    "PENDIENTE_COORDINACION",
+    "COORDINACION",
+  ]);
+
+    if (errorSolBase) {
+      console.error("Error obteniendo solicitudes:", errorSolBase);
+    }
+
+    // =========================================================
+    // 4. SOLICITUDES DE FÁBRICA
+    // =========================================================
+
+    const { data: solFabrica, error: errorSolFabrica } = await supabase
+      .from("solicitudes_fabrica")
+      .select(`
+        *,
+        creador:profiles!creado_por(
+          id,
+          nombre,
+          apellido
+        )
+      `)
+      .in("estado", [
+        "PENDIENTE",
+        "PENDIENTE_COORDINACION",
+        "COORDINACION",
+      ]);
+
+    if (errorSolFabrica) {
+      console.error(
+        "Error obteniendo solicitudes de fábrica:",
+        errorSolFabrica
+      );
+    }
+
+    // =========================================================
+    // 5. MAPEAR SOLICITUDES DE FÁBRICA
+    // =========================================================
+
+    const mapeadasFab = (solFabrica || []).map((item) => ({
+      ...item,
+      es_fabrica: true,
+      solicitud_fabrica_id: item.id,
+    }));
+
+    // =========================================================
+    // 6. EVITAR DUPLICADOS ENTRE FÁBRICA Y SOLICITUDES NORMALES
+    // =========================================================
+
+    const idsFab = new Set(
+      mapeadasFab.map((f) => String(f.numero_remito))
+    );
+
+    const baseFiltradas = (solBase || [])
+      .filter(
+        (s) =>
+          !idsFab.has(
+            String(s.numero || s.numero_remito)
+          )
+      )
+      .map((s) => ({
+        ...s,
+        es_fabrica: false,
+        tipo_origen:
+          s.tipo_visita || "Medición / Visita Técnica",
+        usuario_creador: s.creador
+          ? `${s.creador.nombre} ${s.creador.apellido || ""}`.trim()
+          : "Sin usuario",
+      }));
+
+    // =========================================================
+    // 7. UNIR TODO
+    // =========================================================
+
+    setSolicitudes([
+      ...mapeadasFab,
+      ...baseFiltradas,
+    ]);
+
+    setCargando(false);
   }
 
-  // =========================
-  // SOLICITUDES
-  // =========================
-  // Incluimos las nuevas que vuelven
-  // desde Oficina después de Fábrica
+  // =========================================================
+  // BUSCADOR
+  // =========================================================
 
-  const {
-    data: solicitudes,
-    error: solicitudesError,
-  } = await supabase
-    .from("solicitudes")
-    .select("*")
-    .in("estado", [
-      "PENDIENTE",
-      "ASIGNADO",
-      "PENDIENTE_COORDINACION",
-    ])
-    .order("created_at", {
-      ascending: false,
-    });
+  const solicitudesFiltradas = solicitudes.filter((s) => {
+    const termino = busqueda.toLowerCase().trim();
 
-  // =========================
-  // CLIENTES
-  // =========================
+    return (
+      (s.cliente_nombre &&
+        s.cliente_nombre
+          .toLowerCase()
+          .includes(termino)) ||
 
-  const clienteIds =
-    solicitudes
-      ?.map((s) => s.cliente_id)
-      .filter(Boolean) || [];
+      (s.direccion &&
+        s.direccion
+          .toLowerCase()
+          .includes(termino)) ||
 
-  let clientes: any[] = [];
+      (s.localidad &&
+        s.localidad
+          .toLowerCase()
+          .includes(termino)) ||
 
-  if (clienteIds.length > 0) {
-    const { data } = await supabase
-      .from("clientes")
-      .select("*")
-      .in("id", clienteIds);
+      (s.usuario_creador &&
+        s.usuario_creador
+          .toLowerCase()
+          .includes(termino))
+    );
+  });
 
-    clientes = data || [];
+  // =========================================================
+  // CONFIRMAR COORDINACIÓN (USANDO UPSERT Y FECHA)
+  // =========================================================
+
+  async function handleConfirmarCoordinacion() {
+    if (!solicitudModal || !fechaPactada || !tecnicoId) return;
+
+    setGuardando(true);
+
+    const prioridadNumerica = prioridad
+      ? Number(prioridad)
+      : null;
+
+    if (
+      prioridadNumerica !== null &&
+      (!Number.isInteger(prioridadNumerica) ||
+        prioridadNumerica < 1 ||
+        prioridadNumerica > 5)
+    ) {
+      alert("La prioridad debe estar entre 1 y 5.");
+      setGuardando(false);
+      return;
+    }
+
+    let hDesde = "08:30";
+    let hHasta = "17:00";
+
+    if (franjaSeleccionada === "MANANA") {
+      hDesde = "08:30";
+      hHasta = "12:30";
+    } else if (franjaSeleccionada === "TARDE") {
+      hDesde = "13:00";
+      hHasta = "17:00";
+    }
+
+    // =========================================================
+    // 1. GUARDAR / ACTUALIZAR ASIGNACIÓN CON UPSERT
+    // =========================================================
+
+    let solicitudIdAsignacion = solicitudModal.id;
+
+    let errorAsignacion: any = null;
+
+    if (solicitudModal.es_fabrica) {
+      const { data: asignacionExistente } = await supabase
+        .from("asignaciones")
+        .select("id")
+        .eq("solicitud_fabrica_id", solicitudModal.id)
+        .maybeSingle();
+
+      if (asignacionExistente) {
+        const resultado = await supabase
+          .from("asignaciones")
+          .update({
+            usuario_id: tecnicoId,
+            fecha: fechaPactada,
+            tipo: "TECNICO",
+            prioridad: prioridadNumerica,
+          })
+          .eq("id", asignacionExistente.id);
+
+        errorAsignacion = resultado.error;
+      } else {
+        const resultado = await supabase
+          .from("asignaciones")
+          .insert({
+            solicitud_id: null,
+            solicitud_fabrica_id: solicitudModal.id,
+            usuario_id: tecnicoId,
+            fecha: fechaPactada,
+            tipo: "TECNICO",
+            prioridad: prioridadNumerica,
+          });
+
+        errorAsignacion = resultado.error;
+      }
+    } else {
+      const resultado = await supabase
+        .from("asignaciones")
+        .upsert(
+          {
+            solicitud_id: solicitudModal.id,
+            solicitud_fabrica_id: null,
+            usuario_id: tecnicoId,
+            fecha: fechaPactada,
+            tipo: "TECNICO",
+            prioridad: prioridadNumerica,
+          },
+          { onConflict: "solicitud_id" }
+        );
+
+      errorAsignacion = resultado.error;
+    }
+
+    if (errorAsignacion) {
+      if (errorAsignacion.code === "23505") {
+        alert(
+          `El técnico ya tiene otro trabajo con prioridad ${prioridadNumerica} para ese día.`
+        );
+      } else {
+        alert("Error al asignar el trabajo: " + errorAsignacion.message);
+      }
+
+      setGuardando(false);
+      return;
+    }
+
+    // =========================================================
+    // 2. ACTUALIZAR SOLICITUD
+    // =========================================================
+
+    const datosActualizacion = {
+      estado: "ASIGNADO",
+      fecha: fechaPactada,
+      horario_desde: hDesde,
+      horario_hasta: hHasta,
+    };
+
+    const tablaDestino = solicitudModal.es_fabrica
+      ? "solicitudes_fabrica"
+      : "solicitudes";
+
+    const { error: errEstado } = await supabase
+      .from(tablaDestino)
+      .update(datosActualizacion)
+      .eq("id", solicitudModal.id);
+
+    if (errEstado) {
+      alert(
+        "Error al actualizar estado: " +
+          errEstado.message
+      );
+    } else {
+      cerrarModal();
+      await cargarDatos();
+    }
+
+    setGuardando(false);
   }
 
-  // =========================
-  // ASIGNACIONES
-  // =========================
+  // =========================================================
+  // ABRIR MODAL
+  // =========================================================
 
-  const solicitudIds =
-    solicitudes?.map((s) => s.id) || [];
+  function abrirModal(s: any) {
+    setVerDetallesModal(null);
+    setSolicitudModal(s);
 
-  let asignaciones: any[] = [];
+    setFechaPactada(
+      s.fecha ||
+        new Date().toISOString().split("T")[0]
+    );
 
-  if (solicitudIds.length > 0) {
-    const { data } = await supabase
-      .from("asignaciones")
-      .select("*")
-      .in("solicitud_id", solicitudIds);
-
-    asignaciones = data || [];
+    setFranjaSeleccionada("DIA_COMPLETO");
+    setTecnicoId("");
   }
 
-  // =========================
-  // USUARIOS
-  // =========================
+  // =========================================================
+  // CERRAR MODAL
+  // =========================================================
 
-  const {
-    data: usuarios,
-    error: usuariosError,
-  } = await supabase
-    .from("profiles")
-    .select("id, nombre, apellido, rol")
-    .in("rol", [
-      "TECNICO",
-      "FABRICA",
-    ])
-    .eq("activo", true)
-    .order("nombre");
+  function cerrarModal() {
+    setSolicitudModal(null);
+  }
+
+  // =========================================================
+  // RENDER
+  // =========================================================
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-slate-50 text-slate-800">
+
       <Sidebar
-        nombre={perfil.nombre}
-        apellido={perfil.apellido || ""}
-        rol={perfil.rol}
+        nombre={perfil?.nombre || "Usuario"}
+        apellido={perfil?.apellido || ""}
+        rol={perfil?.rol || "OFICINA"}
       />
 
-      <main className="ml-64 flex-1 p-8">
-        {/* ENCABEZADO */}
+      <main className="ml-0 flex-1 p-6 md:ml-64 md:p-10">
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Coordinación
-          </h1>
+        <h1 className="mb-2 text-3xl font-bold text-slate-900">
+          Coordinación de Trabajos
+        </h1>
 
-          <p className="mt-2 text-gray-600">
-            Administrá y asigná las solicitudes
-            de trabajo.
-          </p>
+        <p className="mb-6 text-xs text-slate-500">
+          {perfil?.rol === "ADMIN"
+            ? "Asigna fecha y técnico responsable para derivar las órdenes a la hoja de ruta de los camiones."
+            : "Consulta de órdenes pendientes de coordinación por parte de administración."}
+        </p>
+
+        {/* =====================================================
+            BUSCADOR
+        ====================================================== */}
+
+        <div className="relative mb-8 max-w-4xl">
+
+          <input
+            type="text"
+            placeholder="Buscar por cliente, dirección o por quién cargó el trabajo..."
+            value={busqueda}
+            onChange={(e) =>
+              setBusqueda(e.target.value)
+            }
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-10 text-sm outline-none shadow-xs focus:border-blue-500"
+          />
+
+          <Search
+            className="absolute right-3 top-3.5 text-slate-400"
+            size={18}
+          />
+
         </div>
 
-        {/* ERROR SOLICITUDES */}
+        {/* =====================================================
+            LISTA
+        ====================================================== */}
 
-        {solicitudesError && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
-            <p className="font-semibold text-red-800">
-              Error al cargar las solicitudes
+        {cargando ? (
+
+          <p className="text-sm text-slate-400">
+            Cargando coordinaciones...
+          </p>
+
+        ) : solicitudesFiltradas.length === 0 ? (
+
+          <div className="rounded-2xl bg-white p-12 text-center shadow-xs">
+
+            <p className="text-sm text-slate-500">
+              No hay coordinaciones pendientes.
             </p>
 
-            <p className="mt-1 text-sm text-red-700">
-              {solicitudesError.message}
-            </p>
           </div>
-        )}
 
-        {/* ERROR USUARIOS */}
-
-        {usuariosError && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
-            <p className="font-semibold text-red-800">
-              Error al cargar técnicos/fábrica
-            </p>
-
-            <p className="mt-1 text-sm text-red-700">
-              {usuariosError.message}
-            </p>
-          </div>
-        )}
-
-        {/* SIN SOLICITUDES */}
-
-        {!solicitudes ||
-        solicitudes.length === 0 ? (
-          <div className="rounded-xl bg-white p-10 text-center shadow">
-            <p className="text-lg font-medium text-gray-700">
-              No hay solicitudes pendientes de
-              asignación.
-            </p>
-
-            <p className="mt-2 text-gray-500">
-              Cuando Oficina cree una nueva solicitud
-              o envíe un trabajo terminado de Fábrica,
-              aparecerá acá.
-            </p>
-          </div>
         ) : (
-          <div className="space-y-6">
-            {solicitudes.map(
-              (solicitud) => {
-                // =========================
-                // CLIENTE
-                // =========================
 
-                const cliente =
-                  clientes.find(
-                    (c) =>
-                      c.id ===
-                      solicitud.cliente_id
-                  );
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
-                // =========================
-                // ASIGNACIÓN
-                // =========================
+            {solicitudesFiltradas.map((s) => (
 
-                const asignacion =
-                  asignaciones.find(
-                    (a) =>
-                      a.solicitud_id ===
-                      solicitud.id
-                  );
+              <div
+                key={`${s.es_fabrica ? "fabrica" : "solicitud"}-${s.id}`}
+                onClick={() => abrirModal(s)}
+                className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-6 shadow-xs transition hover:border-blue-400 hover:shadow-md"
+              >
 
-                const usuarioAsignado =
-                  asignacion
-                    ? usuarios?.find(
-                        (u) =>
-                          u.id ===
-                          asignacion.usuario_id
-                      )
-                    : null;
+                {/* CABECERA */}
 
-                const vuelveDeFabrica =
-                  solicitud.estado ===
-                  "PENDIENTE_COORDINACION";
+                <div className="mb-2 flex items-center justify-between">
 
-                return (
-                  <div
-                    key={solicitud.id}
-                    className="rounded-xl bg-white p-6 shadow"
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                    #{s.numero || s.numero_remito || s.id}
+                  </span>
+
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
+                      s.es_fabrica
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
                   >
-                    <div className="flex flex-col gap-6 lg:flex-row lg:justify-between">
-                      {/* ========================= */}
-                      {/* INFORMACIÓN */}
-                      {/* ========================= */}
+                    {s.tipo_origen}
+                  </span>
 
-                      <div className="flex-1">
-                        <div className="mb-4 flex flex-wrap items-center gap-3">
-                          <span className="rounded-full bg-gray-900 px-3 py-1 text-sm font-bold text-white">
-                            #
-                            {String(
-                              solicitud.numero
-                            ).padStart(
-                              5,
-                              "0"
-                            )}
-                          </span>
+                </div>
 
-                          <EstadoBadge
-                            estado={
-                              solicitud.estado
-                            }
-                          />
+                {/* CLIENTE */}
 
-                          {vuelveDeFabrica && (
-                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
-                              🏭 Viene de fábrica
-                            </span>
-                          )}
-                        </div>
+                <h3 className="line-clamp-1 text-lg font-bold text-slate-900">
+                  {s.cliente_nombre ||
+                    "Cliente sin nombre"}
+                </h3>
 
-                        {/* CLIENTE */}
+                {/* DIRECCIÓN */}
 
-                        <h2 className="text-xl font-bold text-gray-900">
-                          {cliente?.nombre ||
-                            solicitud.cliente_nombre ||
-                            "Cliente sin nombre"}
-                        </h2>
+                <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                  {s.direccion}
 
-                        {/* DATOS */}
+                  {s.localidad
+                    ? ` - ${s.localidad}`
+                    : ""}
+                </p>
 
-                        <div className="mt-4 grid gap-3 text-sm text-gray-600 md:grid-cols-2">
-                          <p>
-                            <strong>
-                              Dirección:
-                            </strong>{" "}
-                            {solicitud.direccion ||
-                              "-"}
-                          </p>
+                {/* =================================================
+                    QUIÉN CARGÓ
+                ================================================== */}
 
-                          <p>
-                            <strong>
-                              Localidad:
-                            </strong>{" "}
-                            {solicitud.localidad ||
-                              "-"}
-                          </p>
+                <div className="mt-3 flex items-center gap-1.5 border-t border-slate-100 pt-2 text-xs text-slate-500">
 
-                          <p>
-                            <strong>
-                              Teléfono:
-                            </strong>{" "}
-                            {cliente?.telefono ||
-                              solicitud.cliente_telefono ||
-                              "-"}
-                          </p>
+                  <User
+                    size={13}
+                    className="text-slate-400"
+                  />
 
-                          <p>
-                            <strong>
-                              Fecha:
-                            </strong>{" "}
-                            {solicitud.fecha
-                              ? new Date(
-                                  `${solicitud.fecha}T12:00:00`
-                                ).toLocaleDateString(
-                                  "es-AR"
-                                )
-                              : "-"}
-                          </p>
+                  <span>
+                    Cargado por:
+                  </span>
 
-                          <p>
-                            <strong>
-                              Horario:
-                            </strong>{" "}
-                            {solicitud.horario_desde ||
-                              "-"}
+                  <span className="font-semibold text-slate-800">
+                    {s.usuario_creador ||
+                      "Sin usuario"}
+                  </span>
 
-                            {solicitud.horario_hasta
-                              ? ` - ${solicitud.horario_hasta}`
-                              : ""}
-                          </p>
+                </div>
 
-                          <p>
-                            <strong>
-                              Tipo:
-                            </strong>{" "}
-                            {solicitud.tipo_visita ||
-                              "-"}
-                          </p>
-                        </div>
+              </div>
 
-                        {/* OBSERVACIONES */}
+            ))}
 
-                        {solicitud.observaciones && (
-                          <div className="mt-4 rounded-lg bg-gray-50 p-4">
-                            <p className="text-sm font-semibold text-gray-700">
-                              Detalle de la solicitud
-                            </p>
-
-                            <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600">
-                              {
-                                solicitud.observaciones
-                              }
-                            </p>
-                          </div>
-                        )}
-
-                        {/* INFO FÁBRICA */}
-
-                        {vuelveDeFabrica && (
-                          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                            <p className="font-semibold text-emerald-900">
-                              Trabajo listo para instalación
-                            </p>
-
-                            <p className="mt-1 text-sm text-emerald-700">
-                              Fábrica terminó el trabajo.
-                              Ahora asigná un técnico
-                              para realizar la colocación.
-                            </p>
-                          </div>
-                        )}
-
-                        {/* ASIGNADO ACTUALMENTE */}
-
-                        {usuarioAsignado &&
-                          !vuelveDeFabrica && (
-                            <div className="mt-4 rounded-lg bg-blue-50 p-4">
-                              <p className="text-sm font-semibold text-blue-900">
-                                Asignado a
-                              </p>
-
-                              <p className="mt-1 text-sm text-blue-700">
-                                {
-                                  usuarioAsignado.nombre
-                                }{" "}
-                                {usuarioAsignado.apellido ||
-                                  ""}
-                                {" — "}
-                                {
-                                  asignacion.tipo
-                                }
-                              </p>
-                            </div>
-                          )}
-                      </div>
-
-                      {/* ========================= */}
-                      {/* ASIGNACIÓN */}
-                      {/* ========================= */}
-
-                      <AsignarSolicitud
-                        solicitudId={
-                          solicitud.id
-                        }
-                        usuarios={
-                          usuarios || []
-                        }
-                        asignacion={
-                          vuelveDeFabrica
-                            ? null
-                            : asignacion
-                        }
-                      />
-                    </div>
-                  </div>
-                );
-              }
-            )}
           </div>
+
         )}
+
+        {/* =====================================================
+            MODAL
+        ====================================================== */}
+
+        {solicitudModal && (
+
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+
+            <div className="relative w-full max-w-2xl rounded-3xl bg-white p-8 shadow-2xl">
+
+              {/* CERRAR */}
+
+              <button
+                onClick={cerrarModal}
+                className="absolute right-6 top-6 text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
+              </button>
+
+              {/* USUARIO QUE CARGÓ */}
+
+              <div className="mb-4 flex gap-2">
+
+                <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+
+                  Cargado por:{" "}
+
+                  {solicitudModal.usuario_creador ||
+                    "Sin usuario"}
+
+                </span>
+
+              </div>
+
+              {/* CLIENTE */}
+
+              <h1 className="text-2xl font-bold text-slate-900">
+                {solicitudModal.cliente_nombre ||
+                  "Cliente sin nombre"}
+              </h1>
+
+              {/* DIRECCIÓN */}
+
+              <p className="mt-1 text-lg font-medium text-slate-700">
+
+                {solicitudModal.direccion}{" "}
+
+                {solicitudModal.localidad
+                  ? `- ${solicitudModal.localidad}`
+                  : ""}
+
+              </p>
+
+              {/* DETALLE */}
+
+              <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-xs text-slate-600">
+
+                <p>
+
+                  <strong>
+                    Detalle:
+                  </strong>{" "}
+
+                  {solicitudModal.observaciones ||
+                    "Sin especificaciones"}
+
+                </p>
+
+              </div>
+
+              {/* =================================================
+                  SOLO ADMIN
+              ================================================== */}
+
+              {perfil?.rol === "ADMIN" ? (
+
+                <div className="mt-6 space-y-4 border-t border-slate-100 pt-4">
+
+                  <div className="grid grid-cols-2 gap-4">
+
+                    {/* FECHA */}
+
+                    <div>
+
+                      <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">
+                        Fecha pactada
+                      </label>
+
+                      <input
+                        type="date"
+                        value={fechaPactada}
+                        onChange={(e) =>
+                          setFechaPactada(
+                            e.target.value
+                          )
+                        }
+                        className="w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-blue-500"
+                      />
+
+                    </div>
+
+                    {/* TÉCNICO */}
+
+                    <div>
+
+                      <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">
+                        Técnico / Chofer
+                      </label>
+
+                      <select
+                        value={tecnicoId}
+                        onChange={(e) =>
+                          setTecnicoId(
+                            e.target.value
+                          )
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500"
+                      >
+
+                        <option value="">
+                          Seleccionar técnico...
+                        </option>
+
+                        {tecnicos.map((t) => (
+
+                          <option
+                            key={t.id}
+                            value={t.id}
+                          >
+                            👷 {t.nombre}{" "}
+                            {t.apellido || ""}
+                          </option>
+
+                        ))}
+
+                      </select>
+
+                    </div>
+
+                  </div>
+
+                  {/* FRANJA */}
+
+                  <div>
+
+                    <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">
+                      Franja Horaria
+                    </label>
+
+                    <select
+                      value={franjaSeleccionada}
+                      onChange={(e) =>
+                        setFranjaSeleccionada(
+                          e.target.value
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500"
+                    >
+
+                      <option value="MANANA">
+                        🌅 Mañana (08:30 - 12:30 hs)
+                      </option>
+
+                      <option value="TARDE">
+                        ☀️ Tarde (13:00 - 17:00 hs)
+                      </option>
+
+                      <option value="DIA_COMPLETO">
+                        📅 Día completo (08:30 - 17:00 hs)
+                      </option>
+
+                    </select>
+
+                  </div>
+
+                  {/* PRIORIDAD */}
+
+                  <div>
+
+                    <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">
+                      Prioridad del recorrido
+                    </label>
+
+                    <select
+                      value={prioridad}
+                      onChange={(e) => setPrioridad(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500"
+                    >
+                      <option value="">Sin prioridad</option>
+                      <option value="1">Prioridad 1</option>
+                      <option value="2">Prioridad 2</option>
+                      <option value="3">Prioridad 3</option>
+                      <option value="4">Prioridad 4</option>
+                      <option value="5">Prioridad 5</option>
+                    </select>
+
+                  </div>
+
+                </div>
+
+              ) : (
+
+                <div className="mt-6 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800">
+
+                  <ShieldAlert size={16} />
+
+                  <span>
+                    Pendiente de asignación por Admin.
+                  </span>
+
+                </div>
+
+              )}
+
+              {/* =================================================
+                  BOTONES
+              ================================================== */}
+
+              <div className="mt-8 flex items-center justify-between">
+
+                <button
+                  onClick={cerrarModal}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                >
+                  Cerrar
+                </button>
+
+                {perfil?.rol === "ADMIN" && (
+
+                  <button
+                    onClick={
+                      handleConfirmarCoordinacion
+                    }
+                    disabled={
+                      guardando ||
+                      !tecnicoId ||
+                      !fechaPactada
+                    }
+                    className="rounded-xl bg-blue-600 px-6 py-2.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                  >
+
+                    {guardando
+                      ? "Guardando..."
+                      : "Confirmar Coordinación"}
+
+                  </button>
+
+                )}
+
+              </div>
+
+            </div>
+
+          </div>
+
+        )}
+
       </main>
+
     </div>
-  );
-}
-
-// ==========================================
-// BADGE DE ESTADO
-// ==========================================
-
-function EstadoBadge({
-  estado,
-}: {
-  estado: string;
-}) {
-  const estilos: Record<
-    string,
-    string
-  > = {
-    PENDIENTE:
-      "bg-amber-100 text-amber-800",
-
-    ASIGNADO:
-      "bg-blue-100 text-blue-800",
-
-    PENDIENTE_COORDINACION:
-      "bg-emerald-100 text-emerald-800",
-  };
-
-  const nombres: Record<
-    string,
-    string
-  > = {
-    PENDIENTE:
-      "Pendiente",
-
-    ASIGNADO:
-      "Asignado",
-
-    PENDIENTE_COORDINACION:
-      "Pendiente de coordinación",
-  };
-
-  return (
-    <span
-      className={`rounded-full px-3 py-1 text-sm font-medium ${
-        estilos[estado] ||
-        "bg-gray-100 text-gray-700"
-      }`}
-    >
-      {nombres[estado] || estado}
-    </span>
   );
 }

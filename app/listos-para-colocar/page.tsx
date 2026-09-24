@@ -37,14 +37,16 @@ export default async function ListosParaColocarPage() {
   if (!["OFICINA", "ADMIN"].includes(profile.rol)) {
     redirect("/dashboard");
   }
-// Debe consultar a la tabla principal "solicitudes"
+
+  // Consulta directa a la tabla de fábrica donde se guardan los cortes terminados
   const { data: solicitudes, error } = await supabase
-    .from("solicitudes")
+    .from("solicitudes_fabrica")
     .select("*")
-    .eq("estado", "LISTO_PARA_COLOCAR")
+    .in("estado", ["LISTO_INSTALACION", "LISTO_PARA_COLOCAR"])
     .order("created_at", {
       ascending: false,
     });
+
   return (
     <div className="min-h-screen bg-slate-100">
       <Sidebar
@@ -239,19 +241,26 @@ export default async function ListosParaColocarPage() {
                 </div>
               </div>
 
-              {/* DATOS ECONÓMICOS */}
-              <div className="mt-5 border-t border-slate-100 pt-4 flex flex-wrap gap-6 text-sm text-slate-700">
-                <div>
-                  <span className="font-medium text-slate-400">Total: </span>
-                  <span className="font-bold">${solicitud.total_pesos ?? "-"}</span>
+              {/* DATOS ECONÓMICOS Y BOTÓN DE ACCIÓN */}
+              <div className="mt-5 border-t border-slate-100 pt-4 flex flex-wrap items-center justify-between gap-4 text-sm text-slate-700">
+                <div className="flex flex-wrap gap-6">
+                  <div>
+                    <span className="font-medium text-slate-400">Total: </span>
+                    <span className="font-bold">${solicitud.total_pesos ?? "-"}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-400">Saldo: </span>
+                    <span className="font-bold">${solicitud.saldo_restante ?? "-"}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-400">Pago: </span>
+                    <span>{solicitud.medio_pago ?? "-"}</span>
+                  </div>
                 </div>
+
+                {/* BOTÓN / MODAL ENVIAR A COORDINACIÓN */}
                 <div>
-                  <span className="font-medium text-slate-400">Saldo: </span>
-                  <span className="font-bold">${solicitud.saldo_restante ?? "-"}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-slate-400">Pago: </span>
-                  <span>{solicitud.medio_pago ?? "-"}</span>
+                  <EnviarACoordinacion solicitud={solicitud} />
                 </div>
               </div>
 

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import CompletarTrabajo from "@/components/CompletarTrabajo";
+import Link from "next/link";
 
 export default async function TrabajoPage({
   params,
@@ -9,7 +10,6 @@ export default async function TrabajoPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-
   const supabase = await createClient();
 
   const {
@@ -51,8 +51,6 @@ export default async function TrabajoPage({
     .eq("usuario_id", user.id)
     .single();
 
-  // Si no está asignado a este usuario,
-  // no puede ver el trabajo.
   if (!asignacion) {
     notFound();
   }
@@ -90,18 +88,18 @@ export default async function TrabajoPage({
         rol={perfil.rol}
       />
 
-      <main className="ml-64 flex-1 p-8">
+      <main className="ml-0 md:ml-64 flex-1 p-6 md:p-8 pt-20 md:pt-8">
 
         {/* ENCABEZADO */}
 
         <div className="mb-6">
 
-          <button
-            onClick={() => {}}
-            className="mb-4 text-sm font-medium text-slate-500 hover:text-slate-900"
+          <Link
+            href="/mis-trabajos"
+            className="mb-4 inline-block text-sm font-medium text-slate-500 hover:text-slate-900"
           >
             ← Volver a mis trabajos
-          </button>
+          </Link>
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 
@@ -110,7 +108,7 @@ export default async function TrabajoPage({
               <div className="flex items-center gap-3">
 
                 <span className="rounded-full bg-slate-900 px-3 py-1 text-sm font-bold text-white">
-                  #{solicitud.numero}
+                  #{solicitud.numero || solicitud.id}
                 </span>
 
                 <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
@@ -119,7 +117,7 @@ export default async function TrabajoPage({
 
               </div>
 
-              <h1 className="mt-3 text-3xl font-bold text-slate-900">
+              <h1 className="mt-3 text-2xl md:text-3xl font-bold text-slate-900">
                 Detalle del trabajo
               </h1>
 
@@ -222,7 +220,7 @@ export default async function TrabajoPage({
             </p>
 
             <p className="mt-1 text-lg font-semibold text-slate-900">
-              {solicitud.tipo_visita}
+              {solicitud.tipo_visita || "No especificado"}
             </p>
 
             {solicitud.observaciones && (
@@ -256,6 +254,7 @@ export default async function TrabajoPage({
           aclaracionCliente={
             solicitud.aclaracion_cliente
           }
+          tipoVisita={solicitud.tipo_visita}
         />
 
       </main>

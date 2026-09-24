@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
+import { actualizarEstadoAction } from "./actions";
 import {
   Factory,
   ClipboardList,
@@ -10,9 +10,6 @@ import {
   User,
   Calendar,
   ArrowLeft,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
 } from "lucide-react";
 
 export default async function FabricaPage() {
@@ -36,54 +33,28 @@ export default async function FabricaPage() {
     redirect("/");
   }
 
-  if (
-    !["FABRICA", "ADMIN"].includes(
-      profile.rol
-    )
-  ) {
+  if (!["FABRICA", "ADMIN"].includes(profile.rol)) {
     redirect("/dashboard");
   }
 
   // Consultamos los remitos en solicitudes_fabrica que estén activos en producción
-  const { data: solicitudes, error } =
-    await supabase
-      .from("solicitudes_fabrica")
-      .select("*")
-      .in("estado", ["EN_CORTE", "EN_FABRICACION", "FALTANTES"])
-      .order("created_at", {
-        ascending: false,
-      });
+  const { data: remitos, error } = await supabase
+    .from("solicitudes_fabrica")
+    .select("*")
+    .in("estado", [
+      "ENVIADO_A_CORTAR",
+      "EN_CORTE",
+      "EN_FABRICACION",
+      "FALTANTES",
+    ])
+    .order("id", { ascending: false });
 
-  const trabajos = solicitudes || [];
+  const trabajos = remitos || [];
 
   // Contadores para las tarjetas de arriba
   const enCorte = trabajos.filter((s) => s.estado === "EN_CORTE").length;
   const enFabricacion = trabajos.filter((s) => s.estado === "EN_FABRICACION").length;
   const faltantes = trabajos.filter((s) => s.estado === "FALTANTES").length;
-
-  // Server Action para cambiar estados o enviar a coordinación
-  async function actualizarEstado(formData: FormData) {
-    "use server";
-    const id = formData.get("id");
-    const nuevoEstado = formData.get("nuevoEstado");
-
-    const supabaseAction = await createClient();
-
-    if (nuevoEstado === "LISTO_INSTALACION") {
-      // Si está listo, lo marcamos como finalizado o listo para coordinación en fábrica
-      await supabaseAction
-        .from("solicitudes_fabrica")
-        .update({ estado: "LISTO_INSTALACION" })
-        .eq("id", id);
-    } else {
-      await supabaseAction
-        .from("solicitudes_fabrica")
-        .update({ estado: nuevoEstado })
-        .eq("id", id);
-    }
-
-    revalidatePath("/fabrica");
-  }
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -94,7 +65,6 @@ export default async function FabricaPage() {
       />
 
       <main className="ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
-        
         {/* BOTÓN PARA VOLVER ATRÁS */}
         <div className="mb-6">
           <Link
@@ -114,9 +84,7 @@ export default async function FabricaPage() {
             </div>
 
             <div>
-              <p className="text-sm text-slate-500">
-                Gestión de producción
-              </p>
+              <p className="text-sm text-slate-500">Gestión de producción</p>
 
               <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
                 Trabajos de fábrica
@@ -134,7 +102,9 @@ export default async function FabricaPage() {
 
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">En fabricación</p>
-            <p className="mt-2 text-3xl font-bold text-blue-600">{enFabricacion}</p>
+            <p className="mt-2 text-3xl font-bold text-blue-600">
+              {enFabricacion}
+            </p>
           </div>
 
           <div className="rounded-2xl bg-white p-5 shadow-sm">
@@ -166,6 +136,15 @@ export default async function FabricaPage() {
           {trabajos.map((solicitud) => {
             const estadoActual = solicitud.estado;
 
+            const textoEstado =
+              estadoActual === "ENVIADO_A_CORTAR" || estadoActual === "EN_CORTE"
+                ? "Pendiente"
+                : estadoActual === "EN_FABRICACION"
+                  ? "En proceso"
+                  : estadoActual === "FALTANTES"
+                    ? "Faltantes"
+                    : estadoActual;
+
             return (
               <div
                 key={solicitud.id}
@@ -178,13 +157,16 @@ export default async function FabricaPage() {
                         Remito Nº {solicitud.numero_remito}
                       </span>
 
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        estadoActual === "EN_CORTE" ? "bg-slate-100 text-slate-700" :
-                        estadoActual === "EN_FABRICACION" ? "bg-blue-100 text-blue-700" :
-                        "bg-amber-100 text-amber-700"
-                      }`}>
-                        {estadoActual === "EN_CORTE" ? "En corte" :
-                         estadoActual === "EN_FABRICACION" ? "En fabricación" : "Faltantes"}
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          estadoActual === "EN_CORTE"
+                            ? "bg-slate-100 text-slate-700"
+                            : estadoActual === "EN_FABRICACION"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {textoEstado}
                       </span>
                     </div>
 
@@ -197,45 +179,67 @@ export default async function FabricaPage() {
                 <div className="mt-5 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                   {/* CLIENTE */}
                   <div className="flex gap-3">
-                    <User size={18} className="mt-0.5 text-slate-400 flex-shrink-0" />
+                    <User
+                      size={18}
+                      className="mt-0.5 text-slate-400 flex-shrink-0"
+                    />
                     <div>
-                      <p className="text-xs font-medium uppercase text-slate-400">Cliente</p>
+                      <p className="text-xs font-medium uppercase text-slate-400">
+                        Cliente
+                      </p>
                       <p className="mt-1 text-sm font-semibold text-slate-800">
                         {solicitud.cliente_nombre || "-"}
                       </p>
                       {solicitud.cliente_telefono && (
-                        <p className="text-sm text-slate-500">{solicitud.cliente_telefono}</p>
+                        <p className="text-sm text-slate-500">
+                          {solicitud.cliente_telefono}
+                        </p>
                       )}
                     </div>
                   </div>
 
                   {/* DIRECCIÓN */}
                   <div className="flex gap-3">
-                    <MapPin size={18} className="mt-0.5 text-slate-400 flex-shrink-0" />
+                    <MapPin
+                      size={18}
+                      className="mt-0.5 text-slate-400 flex-shrink-0"
+                    />
                     <div>
-                      <p className="text-xs font-medium uppercase text-slate-400">Dirección</p>
+                      <p className="text-xs font-medium uppercase text-slate-400">
+                        Dirección
+                      </p>
                       <p className="mt-1 text-sm font-semibold text-slate-800">
                         {solicitud.direccion || "-"}
                       </p>
                       {solicitud.localidad && (
-                        <p className="text-sm text-slate-500">{solicitud.localidad}</p>
+                        <p className="text-sm text-slate-500">
+                          {solicitud.localidad}
+                        </p>
                       )}
                     </div>
                   </div>
 
                   {/* FECHA */}
                   <div className="flex gap-3">
-                    <Calendar size={18} className="mt-0.5 text-slate-400 flex-shrink-0" />
+                    <Calendar
+                      size={18}
+                      className="mt-0.5 text-slate-400 flex-shrink-0"
+                    />
                     <div>
-                      <p className="text-xs font-medium uppercase text-slate-400">Fecha solicitada</p>
+                      <p className="text-xs font-medium uppercase text-slate-400">
+                        Fecha solicitada
+                      </p>
                       <p className="mt-1 text-sm font-semibold text-slate-800">
                         {solicitud.fecha
-                          ? new Date(`${solicitud.fecha}T12:00:00`).toLocaleDateString("es-AR")
+                          ? new Date(
+                              `${solicitud.fecha}T12:00:00`
+                            ).toLocaleDateString("es-AR")
                           : "-"}
                       </p>
                       {(solicitud.horario_desde || solicitud.horario_hasta) && (
                         <p className="text-sm text-slate-500">
-                          {solicitud.horario_desde || "--:--"} - {solicitud.horario_hasta || "--:--"}
+                          {solicitud.horario_desde || "--:--"} -{" "}
+                          {solicitud.horario_hasta || "--:--"}
                         </p>
                       )}
                     </div>
@@ -245,59 +249,57 @@ export default async function FabricaPage() {
                 {/* DETALLE / OBSERVACIONES */}
                 <div className="mt-6 rounded-xl bg-slate-50 p-5">
                   <div className="flex items-start gap-3">
-                    <ClipboardList size={19} className="mt-0.5 text-slate-500 flex-shrink-0" />
+                    <ClipboardList
+                      size={19}
+                      className="mt-0.5 text-slate-500 flex-shrink-0"
+                    />
                     <div>
                       <p className="text-sm font-semibold text-slate-800">
                         Detalle de las cortinas / Observaciones
                       </p>
                       <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                        {solicitud.observaciones || "No se agregaron observaciones."}
+                        {solicitud.observaciones ||
+                          "No se agregaron observaciones."}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* DATOS ECONÓMICOS Y PAGOS */}
-                <div className="mt-5 border-t border-slate-100 pt-4 flex flex-wrap gap-6 text-sm text-slate-700">
-                  <div>
-                    <span className="font-medium text-slate-400">Total: </span>
-                    <span className="font-bold">${solicitud.total_pesos ?? "-"}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-400">Saldo: </span>
-                    <span className="font-bold">${solicitud.saldo_restante ?? "-"}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-400">Pago: </span>
-                    <span>{solicitud.medio_pago ?? "-"}</span>
-                  </div>
-                </div>
-
-                {/* BOTONES DE CAMBIO DE ESTADO (Acciones de Fábrica) */}
+                {/* BOTONES DE CAMBIO DE ESTADO */}
                 <div className="mt-6 border-t border-slate-100 pt-5 flex flex-wrap gap-3 items-center justify-between">
                   <span className="text-xs font-semibold uppercase text-slate-400">
                     Cambiar estado de producción:
                   </span>
 
                   <div className="flex flex-wrap gap-2">
-                    <form action={actualizarEstado}>
+                    
+
+                    <form action={actualizarEstadoAction}>
                       <input type="hidden" name="id" value={solicitud.id} />
-                      <input type="hidden" name="nuevoEstado" value="EN_FABRICACION" />
+                      <input
+                        type="hidden"
+                        name="nuevoEstado"
+                        value="EN_FABRICACION"
+                      />
                       <button
                         type="submit"
                         className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
                           estadoActual === "EN_FABRICACION"
                             ? "bg-blue-600 text-white"
-                            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                            : "bg-blue-50 text-blue-700 hover:bg-blue-100"
                         }`}
                       >
-                        En fabricación
+                        En proceso
                       </button>
                     </form>
 
-                    <form action={actualizarEstado}>
+                    <form action={actualizarEstadoAction}>
                       <input type="hidden" name="id" value={solicitud.id} />
-                      <input type="hidden" name="nuevoEstado" value="FALTANTES" />
+                      <input
+                        type="hidden"
+                        name="nuevoEstado"
+                        value="FALTANTES"
+                      />
                       <button
                         type="submit"
                         className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
@@ -306,26 +308,68 @@ export default async function FabricaPage() {
                             : "bg-amber-50 text-amber-700 hover:bg-amber-100"
                         }`}
                       >
-                        Con faltantes
+                        Faltantes
                       </button>
                     </form>
 
-                    <form action={actualizarEstado}>
+                    <form action={actualizarEstadoAction}>
                       <input type="hidden" name="id" value={solicitud.id} />
-                      <input type="hidden" name="nuevoEstado" value="LISTO_INSTALACION" />
+                      <input
+                        type="hidden"
+                        name="nuevoEstado"
+                        value="LISTO_INSTALACION"
+                      />
                       <button
                         type="submit"
                         className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
                       >
-                        ✓ Listo para coordinar / instalar
+                        Terminado
                       </button>
                     </form>
                   </div>
                 </div>
-
               </div>
             );
           })}
+        </div>
+
+        {/* LISTA DE TRABAJOS */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {trabajos.map((trabajo) => (
+            <Link
+              key={trabajo.id}
+              href={`/fabrica/${trabajo.id}`}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-amber-400 hover:shadow-md"
+            >
+              <h2 className="truncate text-lg font-bold text-slate-900">
+                {trabajo.cliente || trabajo.cliente_nombre || "Cliente sin nombre"}
+              </h2>
+
+              <div className="mt-4 space-y-2 text-sm text-slate-600">
+                <p>
+                  <strong>Solicitud creada:</strong>{" "}
+                  {trabajo.created_at
+                    ? new Date(trabajo.created_at).toLocaleDateString("es-AR")
+                    : "-"}
+                </p>
+
+                <p>
+                  <strong>Finalización estimada:</strong>{" "}
+                  {trabajo.fecha
+                    ? new Date(`${trabajo.fecha}T12:00:00`).toLocaleDateString("es-AR")
+                    : "-"}
+                </p>
+
+                <p>
+                  <strong>Dirección:</strong> {trabajo.direccion || "-"}
+                </p>
+
+                <p>
+                  <strong>Localidad:</strong> {trabajo.localidad || "-"}
+                </p>
+              </div>
+            </Link>
+          ))}
         </div>
       </main>
     </div>

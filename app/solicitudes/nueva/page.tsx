@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/cliente";
 import {
   ArrowLeft,
@@ -33,6 +34,7 @@ export default function NuevaSolicitudPage() {
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [perfil, setPerfil] = useState<any>(null);
 
   const [cliente, setCliente] = useState("");
   const [direccion, setDireccion] = useState("");
@@ -59,7 +61,7 @@ export default function NuevaSolicitudPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("rol")
+        .select("nombre, apellido, rol")
         .eq("id", user.id)
         .single();
 
@@ -68,6 +70,7 @@ export default function NuevaSolicitudPage() {
         return;
       }
 
+      setPerfil(profile);
       setLoading(false);
     }
 
@@ -139,7 +142,7 @@ export default function NuevaSolicitudPage() {
           horario_hasta: hHasta,
           tipo_visita: tipoVisita,
           observaciones: observacionesFinales,
-          estado: "PENDIENTE",
+          estado: "PENDIENTE_COORDINACION",
           creado_por: user.id,
         })
         .select("numero")
@@ -149,7 +152,7 @@ export default function NuevaSolicitudPage() {
         throw new Error(solicitudError?.message || "No se pudo crear la solicitud.");
       }
 
-      router.push("/solicitudes");
+      router.push("/dashboard");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ocurrió un error inesperado.");
@@ -169,24 +172,31 @@ export default function NuevaSolicitudPage() {
   const inputClassName = "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
 
   return (
-    <main className="min-h-screen bg-slate-100 p-6 md:p-8">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-8">
-          <button
-            onClick={() => router.push("/solicitudes")}
-            className="mb-5 flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
-          >
-            <ArrowLeft size={18} />
-            Volver a solicitudes
-          </button>
+    <div className="min-h-screen bg-slate-100">
+      <Sidebar
+        nombre={perfil?.nombre || "Usuario"}
+        apellido={perfil?.apellido || ""}
+        rol={perfil?.rol || "OFICINA"}
+      />
 
-          <h1 className="text-3xl font-bold text-slate-900">Nueva solicitud</h1>
-          <p className="mt-1 text-slate-500">
-            Cargá los datos necesarios para solicitar un trabajo.
-          </p>
-        </div>
+      <main className="ml-0 md:ml-64 min-h-screen bg-slate-100 p-6 md:p-8 pt-20 md:pt-8">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-8">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="mb-5 flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
+            >
+              <ArrowLeft size={18} />
+              Volver al Inicio
+            </button>
 
-        <form onSubmit={crearSolicitud} className="space-y-6">
+            <h1 className="text-3xl font-bold text-slate-900">Nueva solicitud</h1>
+            <p className="mt-1 text-slate-500">
+              Cargá los datos necesarios para solicitar un trabajo.
+            </p>
+          </div>
+
+          <form onSubmit={crearSolicitud} className="space-y-6">
           {/* Cliente y Ubicación */}
           <section className="rounded-2xl bg-white p-6 shadow-sm">
             <div className="mb-6 flex items-center gap-3">
@@ -348,7 +358,7 @@ export default function NuevaSolicitudPage() {
           <div className="flex justify-end gap-3 pb-8">
             <button
               type="button"
-              onClick={() => router.push("/solicitudes")}
+              onClick={() => router.push("/dashboard")}
               className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               Cancelar
@@ -363,8 +373,9 @@ export default function NuevaSolicitudPage() {
               {guardando ? "Guardando..." : "Crear solicitud"}
             </button>
           </div>
-        </form>
-      </div>
-    </main>
+          </form>
+        </div>
+      </main>
+    </div>
   );
 }
