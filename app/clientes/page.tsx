@@ -58,7 +58,7 @@ export default async function ClientesPage() {
       <main className="ml-0 md:ml-64 min-h-screen bg-slate-50 p-6 md:p-8 pt-20 md:pt-8">
         <div className="mx-auto max-w-5xl">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
               {esAdmin ? "Clientes" : "Mis clientes"}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
