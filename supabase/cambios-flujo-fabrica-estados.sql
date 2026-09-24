@@ -63,6 +63,7 @@ alter table solicitudes_fabrica
     'ENVIADO_A_CORTAR',
     'EN_CORTE',
     'EN_FABRICACION',
+    'EN_FABRICA',
     'FALTANTES',
     'LISTO_PARA_COLOCAR',
     'PENDIENTE_COORDINACION',
