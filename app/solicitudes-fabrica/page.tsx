@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/cliente";
 import { useRouter } from "next/navigation";
 import { Clock, BellRing, ArrowLeft, CheckCircle2 } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
 
 const tiposVisita = ["Cortar e instalar"];
 
@@ -35,6 +36,27 @@ export default function SolicitudFabricaPage() {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [exito, setExito] = useState(false);
+  const [perfil, setPerfil] = useState<any>(null);
+
+  useEffect(() => {
+    async function cargarPerfil() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("nombre, apellido, rol")
+        .eq("id", user.id)
+        .single();
+
+      setPerfil(data);
+    }
+
+    cargarPerfil();
+  }, []);
 
   useEffect(() => {
     const totalNum = parseFloat(total) || 0;
@@ -151,7 +173,16 @@ export default function SolicitudFabricaPage() {
     "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      {perfil && (
+        <Sidebar
+          nombre={perfil.nombre || "Usuario"}
+          apellido={perfil.apellido || ""}
+          rol={perfil.rol || "OFICINA"}
+        />
+      )}
+
+      <main className="ml-0 min-h-screen bg-slate-50 p-6 md:ml-64 md:p-8 pt-20 md:pt-8">
       <div className="mx-auto max-w-4xl">
         <div className="mb-6">
           <Link
@@ -446,5 +477,6 @@ export default function SolicitudFabricaPage() {
         </div>
       </div>
     </main>
+    </div>
   );
 }
