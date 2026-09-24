@@ -107,7 +107,10 @@ export default function DetalleAprobacionFabricaPage() {
   async function enviarACortar() {
     if (!solicitud) return;
 
-    if (solicitud.estado === "EN_CORTE") {
+    if (
+      solicitud.estado === "ENVIADO_A_CORTAR" ||
+      solicitud.estado === "EN_CORTE"
+    ) {
       setMensaje("Esta solicitud ya fue enviada a cortar.");
       return;
     }
@@ -129,11 +132,13 @@ export default function DetalleAprobacionFabricaPage() {
 
     const fechaActual = new Date().toISOString();
 
-    // 1. Actualizamos el estado en solicitudes_fabrica
+    // 1. Actualizamos el estado en solicitudes_fabrica.
+    // Queda como ENVIADO_A_CORTAR para que siga visible en la bandeja de
+    // aprobacion hasta que se finalice el pago del remito.
     const { error: errorUpdate } = await supabase
       .from("solicitudes_fabrica")
       .update({
-        estado: "EN_CORTE",
+        estado: "ENVIADO_A_CORTAR",
         fecha_enviada_cortar: fechaActual,
       })
       .eq("id", solicitud.id);
@@ -145,7 +150,25 @@ export default function DetalleAprobacionFabricaPage() {
       return;
     }
 
-    // 2. CREAMOS EL REGISTRO EN LA TABLA PRINCIPAL `solicitudes` PARA QUE APAREZCA EN FÁBRICA
+    // 2. CREAMOS EL REGISTRO EN LA TABLA PRINCIPAL `solicitudes` (visibilidad de oficina),
+    // vinculado al remito por solicitud_fabrica_id. Si ya existe, no lo duplicamos.
+    const { data: solicitudExistente } = await supabase
+      .from("solicitudes")
+      .select("id")
+      .eq("solicitud_fabrica_id", solicitud.id)
+      .maybeSingle();
+
+    if (solicitudExistente) {
+      setMensaje("La solicitud fue enviada a cortar y ya figura en los trabajos de fábrica.");
+      setSolicitud({
+        ...solicitud,
+        estado: "ENVIADO_A_CORTAR",
+        fecha_enviada_cortar: fechaActual,
+      });
+      setProcesando(false);
+      return;
+    }
+
     // Buscamos o creamos el cliente primero si es necesario, o usamos los datos directamente en la solicitud
     let clienteId = null;
     
@@ -195,6 +218,7 @@ export default function DetalleAprobacionFabricaPage() {
         observaciones: solicitud.observaciones,
         estado: "ASIGNADO_FABRICA", // Estado que lee la pantalla de fábrica
         creado_por: user?.id,
+        solicitud_fabrica_id: solicitud.id,
       });
 
     if (errorSolicitudPrincipal) {
@@ -208,7 +232,7 @@ export default function DetalleAprobacionFabricaPage() {
 
     setSolicitud({
       ...solicitud,
-      estado: "EN_CORTE",
+      estado: "ENVIADO_A_CORTAR",
       fecha_enviada_cortar: fechaActual,
     });
 
@@ -350,7 +374,8 @@ export default function DetalleAprobacionFabricaPage() {
               className={`inline-flex w-fit rounded-full px-4 py-2 text-sm font-semibold ${
                 solicitud.estado === "FINALIZADO"
                   ? "bg-green-100 text-green-800"
-                  : solicitud.estado === "EN_CORTE"
+                  : solicitud.estado === "EN_CORTE" ||
+                    solicitud.estado === "ENVIADO_A_CORTAR"
                   ? "bg-blue-100 text-blue-800"
                   : "bg-yellow-100 text-yellow-800"
               }`}
@@ -540,6 +565,7 @@ export default function DetalleAprobacionFabricaPage() {
               disabled={
                 procesando ||
                 solicitud.estado === "EN_CORTE" ||
+                solicitud.estado === "ENVIADO_A_CORTAR" ||
                 solicitud.estado === "FINALIZADO"
               }
               className="rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
