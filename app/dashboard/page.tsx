@@ -79,6 +79,7 @@ export default function DashboardPage() {
           "ENVIADO_A_CORTAR",
           "EN_CORTE",
           "EN_FABRICACION",
+          "EN_FABRICA",
           "FALTANTES",
         ])
         .order("created_at", { ascending: false });
@@ -89,7 +90,9 @@ export default function DashboardPage() {
         pendientes: trabajos.filter((t) =>
           ["ENVIADO_A_CORTAR", "EN_CORTE"].includes(t.estado)
         ).length,
-        enProceso: trabajos.filter((t) => t.estado === "EN_FABRICACION").length,
+        enProceso: trabajos.filter((t) =>
+          t.estado === "EN_FABRICACION" || t.estado === "EN_FABRICA"
+        ).length,
         faltantes: trabajos.filter((t) => t.estado === "FALTANTES").length,
       });
 
@@ -159,6 +162,7 @@ export default function DashboardPage() {
           "ENVIADO_A_CORTAR",
           "EN_CORTE",
           "EN_FABRICACION",
+          "EN_FABRICA",
           "FALTANTES",
           "LISTO_PARA_COLOCAR",
           "ANULADO",
@@ -177,7 +181,7 @@ export default function DashboardPage() {
 
       setMetricasProduccion({
         pendientes: trabajos.filter((t) => ["ENVIADO_A_CORTAR", "EN_CORTE"].includes(t.estado)).length,
-        enProceso: trabajos.filter((t) => ["EN_FABRICACION", "LISTO_PARA_COLOCAR"].includes(t.estado)).length,
+        enProceso: trabajos.filter((t) => ["EN_FABRICACION", "EN_FABRICA", "LISTO_PARA_COLOCAR"].includes(t.estado)).length,
         faltantes: trabajos.filter((t) => t.estado === "FALTANTES").length,
         anulados: trabajos.filter((t) => t.estado === "ANULADO").length,
       });
