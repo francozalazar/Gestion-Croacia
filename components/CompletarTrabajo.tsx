@@ -12,6 +12,7 @@ interface Props {
   firmaCliente: string | null;
   aclaracionCliente: string | null;
   tipoVisita?: string | null;
+  esFabrica?: boolean;
 }
 
 export default function CompletarTrabajo({
@@ -22,6 +23,7 @@ export default function CompletarTrabajo({
   firmaCliente,
   aclaracionCliente,
   tipoVisita,
+  esFabrica = false,
 }: Props) {
   const router = useRouter();
   const supabase = createClient();
@@ -132,15 +134,15 @@ export default function CompletarTrabajo({
       .toLowerCase()
       .trim();
 
+    // Regla al finalizar: PENDIENTE_PRECIO solo para Presupuesto y Urgencia.
+    // Todo lo demas va a PRESUPUESTADO (bandeja /presupuestos, remito descargable).
     const requierePrecio =
       tipoLimpio.includes("presupuesto") ||
-      tipoLimpio.includes("mantenimiento") ||
-      tipoLimpio.includes("instalacion") ||
       tipoLimpio.includes("urgencia");
 
     const nuevoEstado = requierePrecio
       ? "PENDIENTE_PRECIO"
-      : "FINALIZADO";
+      : "PRESUPUESTADO";
 
     const datosActualizacion: any = {
       trabajo_realizado: trabajo,
@@ -151,10 +153,32 @@ export default function CompletarTrabajo({
       fecha_finalizacion: new Date().toISOString(),
     };
 
-    const { error } = await supabase
-      .from("solicitudes")
-      .update(datosActualizacion)
-      .eq("id", solicitudId);
+    let error = null;
+
+    if (esFabrica) {
+      // Trabajo de fabrica: el remito cambia de estado y los datos del
+      // trabajo se guardan en la solicitud principal vinculada.
+      const { error: errorFab } = await supabase
+        .from("solicitudes_fabrica")
+        .update({ estado: nuevoEstado })
+        .eq("id", solicitudId);
+
+      if (errorFab) {
+        error = errorFab;
+      } else {
+        const { error: errorSol } = await supabase
+          .from("solicitudes")
+          .update(datosActualizacion)
+          .eq("solicitud_fabrica_id", solicitudId);
+        error = errorSol;
+      }
+    } else {
+      const { error: errorSol } = await supabase
+        .from("solicitudes")
+        .update(datosActualizacion)
+        .eq("id", solicitudId);
+      error = errorSol;
+    }
 
     if (error) {
       console.error(error);
@@ -167,7 +191,7 @@ export default function CompletarTrabajo({
     setGuardando(false);
     
     router.refresh();
-    router.push("/mis-trabajos");
+    router.push("/trabajos");
   }
 
   const inputClassName = "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed";
