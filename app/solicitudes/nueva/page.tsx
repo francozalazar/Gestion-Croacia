@@ -238,7 +238,7 @@ export default function NuevaSolicitudPage() {
               Volver al Inicio
             </button>
 
-            <h1 className="text-3xl font-bold text-slate-900">Nueva solicitud</h1>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Nueva solicitud</h1>
             <p className="mt-1 text-slate-500">
               Cargá los datos necesarios para solicitar un trabajo.
             </p>
@@ -246,7 +246,7 @@ export default function NuevaSolicitudPage() {
 
           <form onSubmit={crearSolicitud} className="space-y-6">
           {/* Cliente y Ubicación */}
-          <section className="rounded-2xl bg-white p-6 shadow-sm">
+          <section className="rounded-xl bg-white p-6 shadow-sm">
             <div className="mb-6 flex items-center gap-3">
               <div className="rounded-xl bg-slate-100 p-3">
                 <UserRound size={20} />
@@ -271,7 +271,7 @@ export default function NuevaSolicitudPage() {
           </section>
 
           {/* Visita */}
-          <section className="rounded-2xl bg-white p-6 shadow-sm">
+          <section className="rounded-xl bg-white p-6 shadow-sm">
             <div className="mb-6 flex items-center gap-3">
               <div className="rounded-xl bg-slate-100 p-3">
                 <CalendarDays size={20} />
@@ -347,7 +347,7 @@ export default function NuevaSolicitudPage() {
           </section>
 
           {/* Observaciones */}
-          <section className="rounded-2xl bg-white p-6 shadow-sm">
+          <section className="rounded-xl bg-white p-6 shadow-sm">
             <div className="mb-6 flex items-center gap-3">
               <div className="rounded-xl bg-slate-100 p-3">
                 <ClipboardList size={20} />
