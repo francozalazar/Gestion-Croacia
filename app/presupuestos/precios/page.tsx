@@ -139,7 +139,7 @@ export default function SeccionPreciosAdminPage() {
       <main className="ml-0 md:ml-64 flex-1 p-6 md:p-10">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Lock className="text-amber-500" size={22} />
-          <h1 className="text-3xl font-bold text-slate-900">Asignación de Precios (Admin)</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Asignación de Precios (Admin)</h1>
         </div>
         <p className="text-center text-xs text-slate-500 mb-8">
           Trabajos terminados por técnicos que requieren tu tarifación. Al guardar, se enviarán al Inbox de la Oficina.
@@ -148,7 +148,7 @@ export default function SeccionPreciosAdminPage() {
         {cargando ? (
           <p className="text-center text-sm text-slate-400">Cargando trabajos...</p>
         ) : presupuestos.length === 0 ? (
-          <div className="bg-white p-12 rounded-2xl text-center max-w-md mx-auto shadow-xs border border-slate-100">
+          <div className="bg-white p-12 rounded-xl text-center max-w-md mx-auto shadow-sm border border-slate-100">
             <p className="text-sm text-slate-500">No hay presupuestos pendientes para tarifar.</p>
           </div>
         ) : (
@@ -157,7 +157,7 @@ export default function SeccionPreciosAdminPage() {
               <div
                 key={p.id}
                 onClick={() => abrirModalAdmin(p)}
-                className="cursor-pointer rounded-2xl bg-white p-6 shadow-xs border border-slate-200 transition hover:shadow-md hover:border-amber-400"
+                className="cursor-pointer rounded-xl bg-white p-6 shadow-sm border border-slate-200 transition hover:shadow-md hover:border-amber-400"
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">Remito #{p.numero || p.id}</span>
@@ -192,7 +192,7 @@ export default function SeccionPreciosAdminPage() {
                   <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-700">Remito #{modalTrabajo.numero || modalTrabajo.id}</span>
                   <span className="text-xs px-2.5 py-0.5 rounded-md font-semibold bg-amber-100 text-amber-800">Pendiente de Tarifar</span>
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900">{modalTrabajo.cliente_nombre || "Cliente"}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">{modalTrabajo.cliente_nombre || "Cliente"}</h1>
                 <p className="text-base font-medium text-slate-600 mt-1">{modalTrabajo.direccion} {modalTrabajo.localidad ? `- ${modalTrabajo.localidad}` : ""}</p>
                 <div className="mt-4 space-y-2 text-xs text-slate-700 leading-relaxed">
                   <p><strong>Cargado por:</strong> {modalTrabajo.usuario_creador}</p>
