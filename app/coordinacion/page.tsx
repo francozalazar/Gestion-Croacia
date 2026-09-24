@@ -406,7 +406,7 @@ export default function CoordinacionPage() {
 
       <main className="ml-0 flex-1 p-6 pt-20 md:ml-64 md:p-10">
 
-        <h1 className="mb-2 text-3xl font-bold text-slate-900">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
           Coordinación de Trabajos
         </h1>
 
@@ -429,7 +429,7 @@ export default function CoordinacionPage() {
             onChange={(e) =>
               setBusqueda(e.target.value)
             }
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-10 text-sm outline-none shadow-xs focus:border-blue-500"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-10 text-sm outline-none shadow-sm focus:border-blue-500"
           />
 
           <Search
@@ -451,7 +451,7 @@ export default function CoordinacionPage() {
 
         ) : solicitudesFiltradas.length === 0 ? (
 
-          <div className="rounded-2xl bg-white p-12 text-center shadow-xs">
+          <div className="rounded-xl bg-white p-12 text-center shadow-sm">
 
             <p className="text-sm text-slate-500">
               No hay coordinaciones pendientes.
@@ -468,7 +468,7 @@ export default function CoordinacionPage() {
               <div
                 key={`${s.es_fabrica ? "fabrica" : "solicitud"}-${s.id}`}
                 onClick={() => abrirModal(s)}
-                className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-6 shadow-xs transition hover:border-blue-400 hover:shadow-md"
+                className="cursor-pointer rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-blue-400 hover:shadow-md"
               >
 
                 {/* CABECERA */}
@@ -574,7 +574,7 @@ export default function CoordinacionPage() {
 
               {/* CLIENTE */}
 
-              <h1 className="text-2xl font-bold text-slate-900">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
                 {solicitudModal.cliente_nombre ||
                   "Cliente sin nombre"}
               </h1>
