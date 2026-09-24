@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/cliente";
+import ClienteAutocomplete from "@/components/ClienteAutocomplete";
+import { resolverClienteYDireccion } from "@/lib/clientes";
 import { useRouter } from "next/navigation";
 import { Clock, BellRing, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
@@ -118,9 +120,20 @@ export default function SolicitudFabricaPage() {
       ? `[Aviso: ${preferencia.trim()}]\n${observaciones.trim()}`
       : observaciones.trim() || null;
 
-    const { data, error } = await supabase
+    const { clienteId, direccionId } = await resolverClienteYDireccion(
+      supabase,
+      {
+        nombre: cliente,
+        direccion,
+        localidad,
+        userId: user.id,
+      }
+    );
+
+    let { data, error } = await supabase
       .from("solicitudes_fabrica")
       .insert({
+        cliente_id: clienteId,
         cliente_nombre: cliente.trim(),
         cliente_telefono: null,
 
@@ -149,6 +162,35 @@ export default function SolicitudFabricaPage() {
       .select("id, numero_remito")
       .single();
 
+    if (error && clienteId) {
+      // Reintento sin cliente_id por si falta correr el SQL nuevo
+      const reintento = await supabase
+        .from("solicitudes_fabrica")
+        .insert({
+          cliente_nombre: cliente.trim(),
+          cliente_telefono: null,
+          direccion: direccion.trim(),
+          localidad: localidad.trim() || null,
+          fecha: fecha || null,
+          horario_desde: hDesde,
+          horario_hasta: hHasta,
+          tipo_visita: tipoVisita.trim() || null,
+          observaciones: observacionesFinales,
+          total_pesos: total ? Number(total) : null,
+          saldo_restante: saldo ? Number(saldo) : null,
+          sena_porcentaje: senaPorcentaje ? Number(senaPorcentaje) : null,
+          sena_pesos: senaPesos ? Number(senaPesos) : null,
+          medio_pago: medioPago || null,
+          aclaracion_pago: aclaracionPago.trim() || null,
+          estado: "PENDIENTE_APROBACION",
+          creado_por: user.id,
+        })
+        .select("id, numero_remito")
+        .single();
+      data = reintento.data;
+      error = reintento.error;
+    }
+
     if (error) {
       console.error(error);
       setMensaje(error.message);
@@ -156,9 +198,40 @@ export default function SolicitudFabricaPage() {
       return;
     }
 
+    // Venta automática (+ seña como primer pago si la cargaron)
+    if (clienteId && data) {
+      try {
+        const { data: venta } = await supabase
+          .from("ventas")
+          .insert({
+            cliente_id: clienteId,
+            direccion_id: direccionId,
+            descripcion: `Remito fábrica #${data.numero_remito}`,
+            total: total ? Number(total) : 0,
+            solicitud_fabrica_id: data.id,
+            creado_por: user.id,
+          })
+          .select("id")
+          .single();
+
+        const senaNum = parseFloat(senaPesos) || 0;
+        if (venta && senaNum > 0) {
+          await supabase.from("pagos").insert({
+            venta_id: venta.id,
+            monto: senaNum,
+            fecha: new Date().toISOString().slice(0, 10),
+            medio: [medioPago, aclaracionPago.trim()].filter(Boolean).join(" - ") || null,
+            creado_por: user.id,
+          });
+        }
+      } catch {
+        // Si todavía no existen las tablas de ventas, no pasa nada
+      }
+    }
+
     setExito(true);
     setMensaje(
-      `¡Remito Nº ${data.numero_remito} cargado correctamente! Redirigiendo...`
+      `¡Remito Nº ${data?.numero_remito} cargado correctamente! Redirigiendo...`
     );
 
     setGuardando(false);
@@ -229,47 +302,15 @@ export default function SolicitudFabricaPage() {
             </h2>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-medium">
-                  Cliente *
-                </label>
-                <input
-                  type="text"
-                  value={cliente}
-                  onChange={(e) => setCliente(e.target.value)}
-                  placeholder="Nombre y apellido"
-                  className={inputClassName}
-                  disabled={exito}
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Dirección *
-                </label>
-                <input
-                  type="text"
-                  value={direccion}
-                  onChange={(e) => setDireccion(e.target.value)}
-                  placeholder="Dirección"
-                  className={inputClassName}
-                  disabled={exito}
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Localidad
-                </label>
-                <input
-                  type="text"
-                  value={localidad}
-                  onChange={(e) => setLocalidad(e.target.value)}
-                  placeholder="Localidad"
-                  className={inputClassName}
-                  disabled={exito}
-                />
-              </div>
+              <ClienteAutocomplete
+                cliente={cliente}
+                setCliente={setCliente}
+                direccion={direccion}
+                setDireccion={setDireccion}
+                localidad={localidad}
+                setLocalidad={setLocalidad}
+                inputClassName={inputClassName}
+              />
             </div>
           </section>
 
