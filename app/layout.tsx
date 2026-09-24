@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Gestión Cortinas",
+  title: "Croacia",
   description: "Sistema de gestión de trabajos",
 };
 
