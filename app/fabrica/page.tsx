@@ -317,7 +317,7 @@ export default async function FabricaPage() {
                       <input
                         type="hidden"
                         name="nuevoEstado"
-                        value="LISTO_INSTALACION"
+                        value="LISTO_PARA_COLOCAR"
                       />
                       <button
                         type="submit"
