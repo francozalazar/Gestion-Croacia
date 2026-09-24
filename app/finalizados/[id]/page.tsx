@@ -84,10 +84,10 @@ export default async function ComprobantePage({
 
           </div>
 
-          <div className="rounded-2xl bg-white p-8 shadow-sm">
+          <div className="rounded-xl bg-white p-8 shadow-sm">
 
             <div className="border-b border-slate-200 pb-6">
-              <h1 className="text-3xl font-bold text-slate-900">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
                 Comprobante de trabajo
               </h1>
 
