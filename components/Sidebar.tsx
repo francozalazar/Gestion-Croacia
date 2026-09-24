@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,6 +13,8 @@ import {
   List,
   Hammer,
   Users,
+  Menu,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/cliente";
 
@@ -27,6 +29,11 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
   const supabase = createClient();
 
   const [seccionAbierta, setSeccionAbierta] = useState<string | null>("visitas");
+  const [menuMovil, setMenuMovil] = useState(false);
+
+  useEffect(() => {
+    setMenuMovil(false);
+  }, [pathname]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -42,8 +49,43 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
   const esAdminOficina = ["ADMIN", "OFICINA"].includes(rol?.toUpperCase() || "");
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col justify-between border-r border-slate-800">
+    <>
+      {/* BARRA SUPERIOR MÓVIL */}
+      <div className="fixed inset-x-0 top-0 z-30 flex h-16 items-center gap-3 bg-slate-900 px-4 text-white md:hidden">
+        <button
+          onClick={() => setMenuMovil(true)}
+          aria-label="Abrir menú"
+          className="rounded-lg p-2 hover:bg-slate-800"
+        >
+          <Menu size={22} />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold">
+            S
+          </div>
+          <span className="text-sm font-bold">Gestión Cortinas</span>
+        </div>
+      </div>
+
+      {/* FONDO OSCURO CUANDO EL MENÚ ESTÁ ABIERTO EN MÓVIL */}
+      {menuMovil && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          onClick={() => setMenuMovil(false)}
+        />
+      )}
+
+      <aside className={`fixed left-0 top-0 z-40 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col justify-between border-r border-slate-800 transform transition-transform duration-200 md:translate-x-0 ${
+        menuMovil ? "translate-x-0" : "-translate-x-full"
+      }`}>
       <div className="p-5">
+        <button
+          onClick={() => setMenuMovil(false)}
+          aria-label="Cerrar menú"
+          className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white md:hidden"
+        >
+          <X size={18} />
+        </button>
         {/* LOGO */}
         <div className="flex items-center gap-3 border-b border-slate-800 pb-5 mb-6">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 font-bold text-white text-lg">
@@ -372,5 +414,6 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
         </div>
       </div>
     </aside>
+    </>
   );
 }
