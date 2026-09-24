@@ -94,6 +94,10 @@ export default function AprobacionFabricaPage() {
         if (clienteExistente) {
           clienteId = clienteExistente.id;
         } else {
+          const {
+            data: { user: usuarioCreador },
+          } = await supabase.auth.getUser();
+
           const { data: nuevoCliente } = await supabase
             .from("clientes")
             .insert({
@@ -101,6 +105,7 @@ export default function AprobacionFabricaPage() {
               direccion: remito.direccion,
               localidad: remito.localidad,
               telefono: remito.cliente_telefono,
+              creado_por: usuarioCreador?.id || null,
             })
             .select("id")
             .single();
@@ -113,6 +118,18 @@ export default function AprobacionFabricaPage() {
         const {
           data: { user },
         } = await supabase.auth.getUser();
+
+        if (clienteId && remito.direccion) {
+          try {
+            await supabase.from("direcciones").insert({
+              cliente_id: clienteId,
+              direccion: remito.direccion,
+              localidad: remito.localidad || null,
+            });
+          } catch {
+            // sin la tabla direcciones todavía, no pasa nada
+          }
+        }
 
         const { error: errorSolicitud } = await supabase
           .from("solicitudes")
