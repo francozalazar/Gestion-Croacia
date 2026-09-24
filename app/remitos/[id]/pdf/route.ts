@@ -55,45 +55,65 @@ export async function GET(
   const alto = 841.89;
   const margen = 45;
   const anchoContenido = ancho - margen * 2;
-  const negro = rgb(0.1, 0.1, 0.1);
-  const gris = rgb(0.45, 0.45, 0.45);
+  const negro = rgb(0.05, 0.05, 0.05);
 
   let pagina = pdf.addPage([ancho, alto]);
-  let y = alto - 50;
+  let y = alto - 40;
 
   function nuevaPaginaSiHaceFalta(espacio: number) {
-    if (y - espacio < 60) {
+    if (y - espacio < 70) {
       pagina = pdf.addPage([ancho, alto]);
       y = alto - 60;
     }
   }
 
-  function texto(
-    contenido: string,
-    x: number,
-    yPos: number,
-    size: number,
-    bold = false,
-    color = negro
-  ) {
+  function centrado(contenido: string, yPos: number, size: number, bold = false) {
+    const f = bold ? negrita : fuente;
+    const w = f.widthOfTextAtSize(contenido, size);
     pagina.drawText(contenido, {
-      x,
+      x: (ancho - w) / 2,
       y: yPos,
       size,
-      font: bold ? negrita : fuente,
-      color,
+      font: f,
+      color: negro,
     });
   }
 
-  function lineaWrap(contenido: string, size: number, bold = false): string[] {
-    const f = bold ? negrita : fuente;
-    const palabras = contenido.split(/\s+/);
+  function regla(yPos: number, grosor = 1.6) {
+    pagina.drawLine({
+      start: { x: margen, y: yPos },
+      end: { x: ancho - margen, y: yPos },
+      thickness: grosor,
+      color: negro,
+    });
+  }
+
+  function campo(etiqueta: string, valor: string, x: number, yPos: number, size = 11) {
+    pagina.drawText(`${etiqueta}:`, {
+      x,
+      y: yPos,
+      size,
+      font: negrita,
+      color: negro,
+    });
+    const offset = negrita.widthOfTextAtSize(`${etiqueta}: `, size);
+    pagina.drawText(String(valor || "-"), {
+      x: x + offset,
+      y: yPos,
+      size,
+      font: fuente,
+      color: negro,
+    });
+  }
+
+  function lineasWrap(contenido: string, size: number): string[] {
+    const palabras = String(contenido || "").split(/\s+/);
     const lineas: string[] = [];
     let actual = "";
     for (const palabra of palabras) {
       const prueba = actual ? actual + " " + palabra : palabra;
-      if (f.widthOfTextAtSize(prueba, size) > anchoContenido) {
-        if (actual) lineas.push(actual);
+      if (fuente.widthOfTextAtSize(prueba, size) > anchoContenido && actual) {
+        lineas.push(actual);
         actual = palabra;
       } else {
         actual = prueba;
@@ -103,76 +123,117 @@ export async function GET(
     return lineas;
   }
 
-  function parrafo(contenido: string, size = 10, bold = false, gap = 6) {
-    for (const linea of lineaWrap(contenido, size, bold)) {
-      nuevaPaginaSiHaceFalta(size + 4);
-      texto(linea, margen, y, size, bold);
-      y -= size + 4;
+  function parrafo(contenido: string, size = 10.5, interlineado = 15) {
+    for (const linea of lineasWrap(contenido, size)) {
+      nuevaPaginaSiHaceFalta(interlineado + 4);
+      pagina.drawText(linea, { x: margen, y, size, font: fuente, color: negro });
+      y -= interlineado;
     }
-    y -= gap;
   }
 
-  function campo(etiqueta: string, valor: string) {
-    nuevaPaginaSiHaceFalta(14);
-    texto(etiqueta, margen, y, 9, true, gris);
-    parrafo(valor, 10, false, 8);
-  }
-
-  // Encabezado
-  if (logo) {
-    const escala = 55 / logo.height;
-    pagina.drawImage(logo, {
+  function seccion(titulo: string, contenido: string) {
+    nuevaPaginaSiHaceFalta(70);
+    pagina.drawText(titulo, {
       x: margen,
-      y: y - 55,
-      width: logo.width * escala,
-      height: 55,
+      y,
+      size: 15,
+      font: negrita,
+      color: negro,
     });
+    y -= 22;
+    parrafo(contenido);
+    y -= 4;
+    regla(y, 1);
+    y -= 30;
   }
 
-  const titulo = `REMITO Nº ${remito.numero_remito || remito.id}`;
-  const wTitulo = negrita.widthOfTextAtSize(titulo, 18);
-  texto(titulo, ancho - margen - wTitulo, y - 20, 18, true);
+  // =========================
+  // ENCABEZADO (misma membrete que Solicitud de Trabajo)
+  // =========================
 
-  const fechaRemito = remito.fecha
-    ? new Date(`${remito.fecha}T12:00:00`).toLocaleDateString("es-AR")
-    : "-";
-  const wFecha = fuente.widthOfTextAtSize(`Fecha: ${fechaRemito}`, 10);
-  texto(`Fecha: ${fechaRemito}`, ancho - margen - wFecha, y - 40, 10, false, gris);
+  if (logo) {
+    const altoLogo = 58;
+    const anchoLogo = (logo.width / logo.height) * altoLogo;
+    pagina.drawImage(logo, {
+      x: (ancho - anchoLogo) / 2,
+      y: y - altoLogo,
+      width: anchoLogo,
+      height: altoLogo,
+    });
+    y -= altoLogo + 8;
+  }
 
-  y -= 80;
+  centrado("CROACIA SRL", y - 16, 20, true);
+  y -= 26;
+  centrado("FÁBRICA DE CORTINAS METÁLICAS", y - 8, 9, true);
+  y -= 22;
 
-  pagina.drawLine({
-    start: { x: margen, y },
-    end: { x: ancho - margen, y },
-    thickness: 1,
-    color: rgb(0.85, 0.85, 0.85),
-  });
-  y -= 25;
-
-  // Cliente
-  texto("CLIENTE", margen, y, 9, true, gris);
-  y -= 16;
-  parrafo(remito.cliente_nombre || "-", 13, true, 2);
-  campo(
-    "DIRECCIÓN",
-    [remito.direccion, remito.localidad].filter(Boolean).join(" - ") || "-"
+  centrado(
+    "Fábrica: Ruta de la Tradición 670, Luis Guillón  4281-3813 / 3966-6430 / 11 5450-2050",
+    y,
+    7.5
   );
-  if (remito.cliente_telefono) campo("TELÉFONO", remito.cliente_telefono);
+  y -= 11;
+  centrado(
+    "Suc. Lomas de Zamora: Camino negro, Esq. Colombres  11 5818-4428",
+    y,
+    7.5
+  );
+  y -= 11;
+  centrado("Suc. La Plata: Av 44 N° 3269  11 5659-4671", y, 7.5);
+  y -= 30;
 
-  campo("ESTADO", (remito.estado || "-").replaceAll("_", " "));
+  centrado("REMITO", y - 20, 24, true);
+  y -= 34;
+  regla(y, 2.2);
+  y -= 24;
+
+  // =========================
+  // DATOS
+  // =========================
+
+  const numeroRemito = remito.numero_remito || remito.id;
+  const fechaRemito = remito.fecha
+    ? new Date(`${remito.fecha}T12:00:00`).toLocaleDateString("es-AR", {
+        timeZone: "America/Argentina/Buenos_Aires",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    : "-";
+
+  campo("N° remito", String(numeroRemito), margen, y, 11.5);
+  y -= 26;
+
+  campo("Fecha", fechaRemito, margen, y);
+  campo("Cliente", remito.cliente_nombre || "-", 175, y);
+  if (remito.cliente_telefono) campo("Teléfono", remito.cliente_telefono, 430, y);
+  y -= 24;
+
+  campo("Dirección", remito.direccion || "-", margen, y);
+  campo("Localidad", String(remito.localidad || "-").toUpperCase(), 350, y);
+  y -= 24;
+
+  campo("Estado", String(remito.estado || "-").replaceAll("_", " "), margen, y);
   if (remito.horario_desde && remito.horario_hasta) {
-    campo("HORARIO", `${remito.horario_desde} a ${remito.horario_hasta}`);
+    campo("Horario", `${remito.horario_desde} a ${remito.horario_hasta}`, 195, y);
   }
-  if (remito.tipo_visita) campo("TIPO", remito.tipo_visita);
+  if (remito.tipo_visita) campo("Tipo", remito.tipo_visita, 400, y);
+  y -= 20;
 
-  // Detalle
-  y -= 5;
-  nuevaPaginaSiHaceFalta(30);
-  texto("DETALLE DEL TRABAJO", margen, y, 9, true, gris);
-  y -= 16;
-  parrafo(remito.observaciones || "Sin detalle cargado.", 10, false, 10);
+  regla(y, 1.4);
+  y -= 28;
 
-  // Montos
+  // =========================
+  // DETALLE
+  // =========================
+
+  seccion("Detalle del trabajo", remito.observaciones || "Sin detalle cargado.");
+
+  // =========================
+  // VALORES
+  // =========================
+
   const plata = (n: any) =>
     n === null || n === undefined || n === ""
       ? "-"
@@ -184,39 +245,55 @@ export async function GET(
     remito.saldo_restante ||
     remito.medio_pago
   ) {
-    nuevaPaginaSiHaceFalta(90);
-    y -= 5;
-    pagina.drawLine({
-      start: { x: margen, y },
-      end: { x: ancho - margen, y },
-      thickness: 1,
-      color: rgb(0.85, 0.85, 0.85),
+    nuevaPaginaSiHaceFalta(110);
+    pagina.drawText("Valores", {
+      x: margen,
+      y,
+      size: 15,
+      font: negrita,
+      color: negro,
     });
-    y -= 20;
-    texto("VALORES", margen, y, 9, true, gris);
-    y -= 16;
-    campo("TOTAL", plata(remito.total_pesos));
+    y -= 26;
+    campo("Total", plata(remito.total_pesos), margen, y);
+    y -= 22;
     if (remito.sena_pesos) {
       campo(
-        "SEÑA",
+        "Seña",
         plata(remito.sena_pesos) +
-          (remito.sena_porcentaje ? ` (${remito.sena_porcentaje}%)` : "")
+          (remito.sena_porcentaje ? ` (${remito.sena_porcentaje}%)` : ""),
+        margen,
+        y
       );
+      y -= 22;
     }
-    if (remito.saldo_restante) campo("SALDO", plata(remito.saldo_restante));
+    if (remito.saldo_restante !== null && remito.saldo_restante !== undefined) {
+      campo("Saldo", plata(remito.saldo_restante), margen, y);
+      y -= 22;
+    }
     if (remito.medio_pago) {
       campo(
-        "MEDIO DE PAGO",
+        "Medio de pago",
         remito.medio_pago +
-          (remito.aclaracion_pago ? ` — ${remito.aclaracion_pago}` : "")
+          (remito.aclaracion_pago ? ` — ${remito.aclaracion_pago}` : ""),
+        margen,
+        y
       );
+      y -= 22;
     }
+    y -= 8;
+    regla(y, 1);
   }
 
-  // Pie
-  pagina.drawText(
-    `Generado el ${new Date().toLocaleDateString("es-AR")} · Gestión Cortinas`,
-    { x: margen, y: 30, size: 8, font: fuente, color: gris }
+  // =========================
+  // PIE
+  // =========================
+
+  centrado(
+    `Generado el ${new Date().toLocaleDateString("es-AR", {
+      timeZone: "America/Argentina/Buenos_Aires",
+    })} · Croacia S.R.L. · Gestión Cortinas`,
+    40,
+    8
   );
 
   const pdfBytes = await pdf.save();
@@ -224,7 +301,7 @@ export async function GET(
   return new NextResponse(Buffer.from(pdfBytes), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="remito-${remito.numero_remito || remito.id}.pdf"`,
+      "Content-Disposition": `inline; filename="remito-${numeroRemito}.pdf"`,
     },
   });
 }
