@@ -84,17 +84,18 @@ export default function AsignarSolicitud({
       .update({ estado: "ASIGNADO", fecha: fechaPactada })
       .eq("id", solicitudId);
 
-    // 3. Cambiar estado a ASIGNADO en solicitudes_fabrica por id o numero_remito
-    await supabase
-      .from("solicitudes_fabrica")
-      .update({ estado: "ASIGNADO", fecha: fechaPactada })
-      .eq("id", solicitudId);
+    // 3. Si la solicitud tiene un remito de fábrica vinculado, marcarlo ASIGNADO
+    const { data: solicitudRow } = await supabase
+      .from("solicitudes")
+      .select("solicitud_fabrica_id")
+      .eq("id", solicitudId)
+      .maybeSingle();
 
-    if (numeroRemito) {
+    if (solicitudRow?.solicitud_fabrica_id) {
       await supabase
         .from("solicitudes_fabrica")
         .update({ estado: "ASIGNADO", fecha: fechaPactada })
-        .eq("numero_remito", numeroRemito);
+        .eq("id", solicitudRow.solicitud_fabrica_id);
     }
 
     setMensaje("Trabajo asignado al técnico correctamente.");
