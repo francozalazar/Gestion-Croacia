@@ -190,7 +190,7 @@ export default function AprobacionFabricaPage() {
         rol={perfil?.rol || "OFICINA"}
       />
 
-      <main className="ml-0 md:ml-64 flex-1 p-6 md:p-10">
+      <main className="ml-0 md:ml-64 flex-1 p-6 pt-20 md:p-10">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">
           Aprobación de Fábrica
         </h1>
