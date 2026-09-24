@@ -24,6 +24,8 @@ type Venta = {
   descripcion: string | null;
   total: number;
   created_at: string;
+  solicitud_id: number | null;
+  solicitud_fabrica_id: number | null;
   pagos: Pago[];
 };
 type Visita = {
@@ -333,6 +335,21 @@ export default function ClienteFicha({
                         <p className="text-xs text-slate-500">
                           {fechaLinda(v.created_at)}
                         </p>
+                        {v.solicitud_fabrica_id ? (
+                          <Link
+                            href={`/remitos/${v.solicitud_fabrica_id}`}
+                            className="mt-1 inline-block text-xs font-semibold text-blue-600 hover:underline"
+                          >
+                            Ver remito →
+                          </Link>
+                        ) : v.solicitud_id ? (
+                          <Link
+                            href={`/finalizados/${v.solicitud_id}`}
+                            className="mt-1 inline-block text-xs font-semibold text-blue-600 hover:underline"
+                          >
+                            Ver visita →
+                          </Link>
+                        ) : null}
                       </div>
                       {editandoTotal === v.id ? (
                         <form
@@ -549,9 +566,14 @@ export default function ClienteFicha({
               </h3>
               <div className="space-y-2">
                 {items.map((it) => (
-                  <div
+                  <Link
                     key={`${it.tipo}-${it.id}`}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3"
+                    href={
+                      it.tipo === "remito"
+                        ? `/remitos/${it.id}`
+                        : `/finalizados/${it.id}`
+                    }
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300 hover:shadow-sm"
                   >
                     <div className="flex items-center gap-3">
                       <span
@@ -579,7 +601,7 @@ export default function ClienteFicha({
                         {it.estado.replaceAll("_", " ")}
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
