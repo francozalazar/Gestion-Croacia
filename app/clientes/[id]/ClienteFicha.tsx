@@ -588,4 +588,4 @@ export default function ClienteFicha({
       </section>
     </div>
   );
-                          }
+}
