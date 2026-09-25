@@ -143,6 +143,17 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                 <Hammer size={18} className="text-amber-400" />
                 <span>Producción</span>
               </Link>
+              <Link
+                href="/visitas-finalizadas"
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                  pathname === "/visitas-finalizadas"
+                    ? "bg-amber-600 text-white"
+                    : "hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                <FileText size={18} className="text-amber-400" />
+                <span>Visitas finalizadas</span>
+              </Link>
             </div>
           ) : esTecnico ? (
             /* MENÚ EXCLUSIVO PARA TÉCNICOS */
@@ -175,7 +186,16 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                   >
                     • Trabajos asignados
                   </Link>
-                 
+                  <Link
+                    href="/visitas-finalizadas"
+                    className={`block py-2 text-xs font-medium transition ${
+                      pathname === "/visitas-finalizadas"
+                        ? "text-blue-400 font-bold"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    • Visitas finalizadas
+                  </Link>
                 </div>
               )}
             </div>
