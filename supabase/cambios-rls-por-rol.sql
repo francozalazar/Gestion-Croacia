@@ -5,8 +5,8 @@
 -- Reglas nuevas:
 --   * Admin, Oficina y Coordinacion: ven y tocan todo.
 --   * Tecnico y Fabrica: solo sus trabajos asignados.
---   * Visitas finalizadas: TODOS los roles pueden VER todas
---     las solicitudes FINALIZADAS y quien las subio.
+--   * Visitas finalizadas: solo admin/oficina/coordinacion
+--     (tecnico y fabrica NO ven trabajos de otros).
 --   * Borrar solicitudes: solo Admin y Coordinacion.
 --
 -- Ejecutar en Supabase > SQL Editor, TODO el archivo de una vez.
@@ -38,13 +38,12 @@ end $$;
 
 alter table public.solicitudes enable row level security;
 
--- Lectura: admin/oficina/coordinacion todo;
--- tecnico/fabrica solo asignados; FINALIZADAS las ven todos.
+-- Lectura: admin/oficina/coordinacion todo (incluye la
+-- seccion Visitas finalizadas); tecnico/fabrica solo asignados.
 create policy "solicitudes_select" on public.solicitudes
 for select to authenticated
 using (
   public.mi_rol() in ('ADMIN', 'OFICINA', 'COORDINACION')
-  or estado = 'FINALIZADO'
   or exists (
     select 1 from public.asignaciones a
     where a.usuario_id = auth.uid()
@@ -100,11 +99,14 @@ end $$;
 
 alter table public.asignaciones enable row level security;
 
--- Lectura: cualquier usuario logueado (se usa para mostrar
--- el nombre del tecnico y "cargado por" en varias pantallas).
+-- Lectura: cada uno ve sus asignaciones;
+-- admin/oficina/coordinacion las ven todas.
 create policy "asignaciones_select" on public.asignaciones
 for select to authenticated
-using (true);
+using (
+  usuario_id = auth.uid()
+  or public.mi_rol() in ('ADMIN', 'OFICINA', 'COORDINACION')
+);
 
 -- Alta, cambios y borrado: admin/oficina/coordinacion.
 create policy "asignaciones_insert" on public.asignaciones
@@ -177,12 +179,3 @@ with check (
 create policy "solicitudes_fabrica_delete" on public.solicitudes_fabrica
 for delete to authenticated
 using (public.mi_rol() in ('ADMIN', 'COORDINACION'));
-
--- 4) profiles: todos los logueados pueden leer los perfiles
--- (necesario para mostrar quien subio cada trabajo y el nombre
--- del tecnico en Visitas finalizadas).
-drop policy if exists "profiles_select_logueados" on public.profiles;
-
-create policy "profiles_select_logueados" on public.profiles
-for select to authenticated
-using (true);
