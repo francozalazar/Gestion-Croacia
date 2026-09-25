@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
+import VolverLink from "@/components/VolverLink";
 
 function plata(n: any) {
   if (n === null || n === undefined || n === "") return "-";
@@ -54,12 +55,9 @@ export default async function RemitoPage({
 
       <main className="ml-0 md:ml-64 min-h-screen bg-slate-50 p-6 md:p-8 pt-20 md:pt-8">
         <div className="mx-auto max-w-3xl">
-          <Link
-            href="/clientes"
-            className="text-sm text-slate-500 hover:text-slate-800"
-          >
-            ← Volver
-          </Link>
+          <VolverLink
+            fallback={remito.cliente_id ? `/clientes/${remito.cliente_id}` : "/clientes"}
+          />
 
           <div className="mt-3 mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
