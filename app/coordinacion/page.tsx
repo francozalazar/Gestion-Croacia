@@ -15,6 +15,50 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
+
+// =========================================================
+// FRANJAS HORARIAS (misma convención que solicitudes)
+// =========================================================
+
+function obtenerFranjaDesdeHorario(
+  desde?: string | null,
+  hasta?: string | null
+): "MANANA" | "TARDE" | "DIA_COMPLETO" | "PERSONALIZADO" | null {
+  if (!desde && !hasta) return null; // sin horario pactado
+  const hDesde = (desde || "").slice(0, 5);
+  const hHasta = (hasta || "").slice(0, 5);
+  if (
+    ["08:00", "08:30", "09:00"].includes(hDesde) &&
+    ["12:00", "12:30", "13:00"].includes(hHasta)
+  ) {
+    return "MANANA";
+  }
+  if (
+    ["13:00", "13:30", "14:00"].includes(hDesde) &&
+    ["17:00", "17:30", "18:00"].includes(hHasta)
+  ) {
+    return "TARDE";
+  }
+  if (
+    ["08:00", "08:30", "09:00"].includes(hDesde) &&
+    ["17:00", "17:30", "18:00"].includes(hHasta)
+  ) {
+    return "DIA_COMPLETO";
+  }
+  return "PERSONALIZADO";
+}
+
+function textoFranjaPactada(
+  desde?: string | null,
+  hasta?: string | null
+): string {
+  const f = obtenerFranjaDesdeHorario(desde, hasta);
+  if (f === "MANANA") return "🌅 Mañana (08:30 - 12:30 hs)";
+  if (f === "TARDE") return "☀️ Tarde (13:00 - 17:00 hs)";
+  if (f === "DIA_COMPLETO") return "📅 Día completo (08:30 - 17:00 hs)";
+  return `🕐 ${(desde || "").slice(0, 5) || "--:--"} a ${(hasta || "").slice(0, 5) || "--:--"} hs`;
+}
+
 export default function CoordinacionPage() {
   const supabase = createClient();
 
@@ -241,10 +285,21 @@ export default function CoordinacionPage() {
       return;
     }
 
+    // Si la solicitud ya trae un horario pactado (cargado en la
+    // solicitud o al enviar a coordinación), se respeta tal cual:
+    // coordinación no lo puede cambiar.
+    const franjaPactada = obtenerFranjaDesdeHorario(
+      solicitudModal.horario_desde,
+      solicitudModal.horario_hasta
+    );
+
     let hDesde = "08:30";
     let hHasta = "17:00";
 
-    if (franjaSeleccionada === "MANANA") {
+    if (franjaPactada) {
+      hDesde = solicitudModal.horario_desde;
+      hHasta = solicitudModal.horario_hasta;
+    } else if (franjaSeleccionada === "MANANA") {
       hDesde = "08:30";
       hHasta = "12:30";
     } else if (franjaSeleccionada === "TARDE") {
@@ -379,7 +434,17 @@ export default function CoordinacionPage() {
         new Date().toISOString().split("T")[0]
     );
 
-    setFranjaSeleccionada("DIA_COMPLETO");
+    setFranjaSeleccionada(
+      obtenerFranjaDesdeHorario(
+        s.horario_desde,
+        s.horario_hasta
+      ) === null
+        ? "DIA_COMPLETO"
+        : (obtenerFranjaDesdeHorario(
+            s.horario_desde,
+            s.horario_hasta
+          ) as string)
+    );
     setTecnicoId("");
   }
 
@@ -681,37 +746,64 @@ export default function CoordinacionPage() {
 
                   {/* FRANJA */}
 
-                  <div>
+                  {obtenerFranjaDesdeHorario(
+                    solicitudModal.horario_desde,
+                    solicitudModal.horario_hasta
+                  ) !== null ? (
 
-                    <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">
-                      Franja Horaria
-                    </label>
+                    <div>
 
-                    <select
-                      value={franjaSeleccionada}
-                      onChange={(e) =>
-                        setFranjaSeleccionada(
-                          e.target.value
-                        )
-                      }
-                      className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500"
-                    >
+                      <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">
+                        Horario pactado
+                      </label>
 
-                      <option value="MANANA">
-                        🌅 Mañana (08:30 - 12:30 hs)
-                      </option>
+                      <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-700">
+                        {textoFranjaPactada(
+                          solicitudModal.horario_desde,
+                          solicitudModal.horario_hasta
+                        )}
+                        <span className="ml-2 text-xs text-slate-400">
+                          (cargado en la solicitud, no se puede cambiar)
+                        </span>
+                      </div>
 
-                      <option value="TARDE">
-                        ☀️ Tarde (13:00 - 17:00 hs)
-                      </option>
+                    </div>
 
-                      <option value="DIA_COMPLETO">
-                        📅 Día completo (08:30 - 17:00 hs)
-                      </option>
+                  ) : (
 
-                    </select>
+                    <div>
 
-                  </div>
+                      <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">
+                        Franja Horaria
+                      </label>
+
+                      <select
+                        value={franjaSeleccionada}
+                        onChange={(e) =>
+                          setFranjaSeleccionada(
+                            e.target.value
+                          )
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500"
+                      >
+
+                        <option value="MANANA">
+                          🌅 Mañana (08:30 - 12:30 hs)
+                        </option>
+
+                        <option value="TARDE">
+                          ☀️ Tarde (13:00 - 17:00 hs)
+                        </option>
+
+                        <option value="DIA_COMPLETO">
+                          📅 Día completo (08:30 - 17:00 hs)
+                        </option>
+
+                      </select>
+
+                    </div>
+
+                  )}
 
                   {/* PRIORIDAD */}
 
