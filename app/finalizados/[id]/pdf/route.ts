@@ -33,7 +33,7 @@ export async function GET(
     .eq("id", user.id)
     .single();
 
-  if (!profile || !["ADMIN", "OFICINA", "COORDINACION"].includes(profile.rol)) {
+  if (!profile || !["ADMIN", "OFICINA", "COORDINACION", "TECNICO", "FABRICA"].includes(profile.rol)) {
     return new NextResponse("No autorizado", { status: 403 });
   }
 
