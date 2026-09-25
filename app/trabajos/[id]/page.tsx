@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { textoFranja } from "@/lib/franjas";
 import { redirect, notFound } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import CompletarTrabajo from "@/components/CompletarTrabajo";
@@ -289,11 +290,9 @@ export default async function TrabajoPage({
               </p>
 
               <p className="mt-1 text-base text-slate-700">
-                {vista.horario_desde || "-"}
-                {" "}
-                {vista.horario_hasta
-                  ? `- ${vista.horario_hasta}`
-                  : ""}
+                {vista.horario_desde || vista.horario_hasta
+                  ? textoFranja(vista.horario_desde, vista.horario_hasta)
+                  : "-"}
               </p>
             </div>
 
