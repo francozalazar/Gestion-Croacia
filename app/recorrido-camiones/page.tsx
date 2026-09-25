@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { textoFranja as obtenerTextoFranja } from "@/lib/franjas";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
 import { Search, X, Truck, Calendar } from "lucide-react";
@@ -58,19 +59,6 @@ export default function RecorridoCamionesPage() {
     }
   }
 
-  function obtenerTextoFranja(desde?: string | null, hasta?: string | null) {
-    if (!desde && !hasta) return "Día completo (8:30 - 17:00 hs)";
-    const hDesde = desde?.slice(0, 5) || "";
-    const hHasta = hasta?.slice(0, 5) || "";
-
-    if (["08:00", "08:30", "09:00"].includes(hDesde) && ["12:00", "12:30", "13:00"].includes(hHasta)) {
-      return "Mañana (8:30 - 12:30 hs)";
-    }
-    if (["13:00", "13:30", "14:00"].includes(hDesde) && ["17:00", "17:30", "18:00"].includes(hHasta)) {
-      return "Tarde (13:00 - 17:00 hs)";
-    }
-    return `Horario: ${desde || "8:30"} a ${hasta || "17:00"} hs`;
-  }
 
   async function buscarRecorrido() {
     if (!tecnicoSeleccionado) return;
