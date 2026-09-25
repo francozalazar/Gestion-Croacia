@@ -8,7 +8,14 @@ export async function resolverClienteYDireccion(
     direccion,
     localidad,
     userId,
-  }: { nombre: string; direccion: string; localidad: string; userId: string }
+    telefono,
+  }: {
+    nombre: string;
+    direccion: string;
+    localidad: string;
+    userId: string;
+    telefono?: string;
+  }
 ): Promise<{ clienteId: number | null; direccionId: number | null }> {
   const nombreLimpio = nombre.trim();
   const direccionLimpia = direccion.trim();
@@ -31,7 +38,7 @@ export async function resolverClienteYDireccion(
         .from("clientes")
         .insert({
           nombre: nombreLimpio,
-          telefono: null,
+          telefono: telefono?.trim() || null,
           direccion: direccionLimpia,
           localidad: localidadLimpia,
           creado_por: userId,
