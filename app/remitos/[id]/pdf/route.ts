@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { textoFranja } from "@/lib/franjas";
 import { createClient } from "@/lib/supabase/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import fs from "fs/promises";
@@ -218,8 +219,8 @@ export async function GET(
   if (remito.tipo_visita) campo("Tipo", remito.tipo_visita, 300, y);
   y -= 24;
 
-  if (remito.horario_desde && remito.horario_hasta) {
-    campo("Horario", `${remito.horario_desde} a ${remito.horario_hasta}`, margen, y);
+  if (remito.horario_desde || remito.horario_hasta) {
+    campo("Horario", textoFranja(remito.horario_desde, remito.horario_hasta), margen, y);
     y -= 24;
   }
   y -= 4;
