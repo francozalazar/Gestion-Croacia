@@ -23,7 +23,7 @@ export default async function FinalizadosPage() {
 
   if (
     !profile ||
-    !["ADMIN", "OFICINA", "COORDINACION", "TECNICO", "FABRICA"].includes(profile.rol)
+    !["ADMIN", "OFICINA", "COORDINACION"].includes(profile.rol)
   ) {
     notFound();
   }
