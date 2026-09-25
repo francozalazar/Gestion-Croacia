@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { textoFranja } from "@/lib/franjas";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
@@ -97,8 +98,8 @@ export default async function RemitoPage({
               </p>
               <p className="text-slate-600">
                 <strong className="text-slate-900">Horario:</strong>{" "}
-                {remito.horario_desde && remito.horario_hasta
-                  ? `${remito.horario_desde} a ${remito.horario_hasta}`
+                {remito.horario_desde || remito.horario_hasta
+                  ? textoFranja(remito.horario_desde, remito.horario_hasta)
                   : "-"}
               </p>
               <p className="text-slate-600">
