@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { textoFranjaConEmoji as obtenerEtiquetaFranja } from "@/lib/franjas";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
@@ -128,29 +129,6 @@ export default async function MisTrabajosPage() {
     clientes = data || [];
   }
 
-  // Helper para franja horaria compacta
-  function obtenerEtiquetaFranja(desde?: string | null, hasta?: string | null) {
-    if (!desde && !hasta) return "📅 Día completo (8:30 - 17:00 hs)";
-    
-    const hDesde = desde?.slice(0, 5) || "";
-    const hHasta = hasta?.slice(0, 5) || "";
-
-    if (
-      ["08:00", "08:30", "09:00"].includes(hDesde) &&
-      ["12:00", "12:30", "13:00"].includes(hHasta)
-    ) {
-      return "🌅 Mañana (8:30 - 12:30 hs)";
-    }
-
-    if (
-      ["13:00", "13:30", "14:00"].includes(hDesde) &&
-      ["17:00", "17:30", "18:00"].includes(hHasta)
-    ) {
-      return "☀️ Tarde (13:00 - 17:00 hs)";
-    }
-
-    return `🕐 ${desde || "08:30"} a ${hasta || "17:00"} hs`;
-  }
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-800">
