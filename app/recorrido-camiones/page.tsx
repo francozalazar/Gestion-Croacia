@@ -157,6 +157,14 @@ export default function RecorridoCamionesPage() {
       return !estadosNoVisiblesEnRecorrido.includes(estado);
     });
 
+    // Ordenar por prioridad (1, 2, 3...); los trabajos sin prioridad van al final
+    trabajosActivos.sort((a, b) => {
+      const pa = a.prioridad ?? 9999;
+      const pb = b.prioridad ?? 9999;
+      if (pa !== pb) return pa - pb;
+      return (a.numero ?? 0) - (b.numero ?? 0);
+    });
+
     setTrabajos(trabajosActivos);
     setCargando(false);
   }
