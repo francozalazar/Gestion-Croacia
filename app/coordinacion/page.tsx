@@ -97,14 +97,59 @@ export default function CoordinacionPage() {
     }
 
     // =========================================================
-    // 1. OBTENER PERFIL DEL USUARIO ACTUAL
+    // 1-4. PERFIL + TÉCNICOS + SOLICITUDES (NORMALES Y FÁBRICA)
+    // Son consultas independientes: las lanzamos en paralelo
+    // para que la pantalla cargue más rápido.
     // =========================================================
 
-    const { data: profile, error: errorProfile } = await supabase
-      .from("profiles")
-      .select("id, nombre, apellido, rol")
-      .eq("id", user.id)
-      .single();
+    const [
+      { data: profile, error: errorProfile },
+      { data: tecs, error: errorTecnicos },
+      { data: solBase, error: errorSolBase },
+      { data: solFabrica, error: errorSolFabrica },
+    ] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, nombre, apellido, rol")
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("profiles")
+        .select("id, nombre, apellido")
+        .eq("rol", "TECNICO")
+        .eq("activo", true)
+        .order("nombre"),
+      supabase
+        .from("solicitudes")
+        .select(`
+          *,
+          creador:profiles!creado_por(
+            id,
+            nombre,
+            apellido
+          )
+        `)
+        .in("estado", [
+          "PENDIENTE",
+          "PENDIENTE_COORDINACION",
+          "COORDINACION",
+        ]),
+      supabase
+        .from("solicitudes_fabrica")
+        .select(`
+          *,
+          creador:profiles!creado_por(
+            id,
+            nombre,
+            apellido
+          )
+        `)
+        .in("estado", [
+          "PENDIENTE",
+          "PENDIENTE_COORDINACION",
+          "COORDINACION",
+        ]),
+    ]);
 
     if (errorProfile) {
       console.error("Error obteniendo perfil:", errorProfile);
@@ -112,66 +157,15 @@ export default function CoordinacionPage() {
 
     setPerfil(profile);
 
-    // =========================================================
-    // 2. CARGAR TÉCNICOS
-    // =========================================================
-
-    const { data: tecs, error: errorTecnicos } = await supabase
-      .from("profiles")
-      .select("id, nombre, apellido")
-      .eq("rol", "TECNICO")
-      .eq("activo", true)
-      .order("nombre");
-
     if (errorTecnicos) {
       console.error("Error obteniendo técnicos:", errorTecnicos);
     }
 
     setTecnicos(tecs || []);
 
-    // =========================================================
-    // 3. SOLICITUDES NORMALES
-    // =========================================================
-
-   const { data: solBase, error: errorSolBase } = await supabase
-  .from("solicitudes")
-  .select(`
-    *,
-    creador:profiles!creado_por(
-      id,
-      nombre,
-      apellido
-    )
-  `)
-  .in("estado", [
-    "PENDIENTE",
-    "PENDIENTE_COORDINACION",
-    "COORDINACION",
-  ]);
-
     if (errorSolBase) {
       console.error("Error obteniendo solicitudes:", errorSolBase);
     }
-
-    // =========================================================
-    // 4. SOLICITUDES DE FÁBRICA
-    // =========================================================
-
-    const { data: solFabrica, error: errorSolFabrica } = await supabase
-      .from("solicitudes_fabrica")
-      .select(`
-        *,
-        creador:profiles!creado_por(
-          id,
-          nombre,
-          apellido
-        )
-      `)
-      .in("estado", [
-        "PENDIENTE",
-        "PENDIENTE_COORDINACION",
-        "COORDINACION",
-      ]);
 
     if (errorSolFabrica) {
       console.error(
