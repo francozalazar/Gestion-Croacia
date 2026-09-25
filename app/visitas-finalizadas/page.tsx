@@ -5,6 +5,16 @@ import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
 import { CheckCircle2, User, Search, MapPin, FileText, X, ArrowRight, Download, DollarSign } from "lucide-react";
 
+function etiquetaEstado(estado: string) {
+  if (estado === "PENDIENTE_PRECIO") {
+    return { texto: "Pendiente de precio", clases: "bg-amber-100 text-amber-800" };
+  }
+  if (estado === "PRESUPUESTADO") {
+    return { texto: "Presupuestado", clases: "bg-blue-100 text-blue-800" };
+  }
+  return { texto: "Finalizado", clases: "bg-emerald-100 text-emerald-800" };
+}
+
 export default function VisitasFinalizadasPage() {
   const supabase = createClient();
 
@@ -47,7 +57,7 @@ export default function VisitasFinalizadasPage() {
     const { data: solData } = await supabase
       .from("solicitudes")
       .select("*, creador:profiles!usuario_id(nombre, apellido)")
-      .eq("estado", "FINALIZADO")
+      .in("estado", ["FINALIZADO", "PENDIENTE_PRECIO", "PRESUPUESTADO"])
       .order("id", { ascending: false });
 
     const lista = solData || [];
@@ -179,8 +189,8 @@ export default function VisitasFinalizadasPage() {
                     <p className="font-semibold text-slate-800">{v.tecnico_real}</p>
                   </div>
 
-                  <span className="px-2.5 py-1 rounded-md font-semibold bg-emerald-100 text-emerald-800">
-                    Finalizado
+                  <span className={`px-2.5 py-1 rounded-md font-semibold ${etiquetaEstado(v.estado).clases}`}>
+                    {etiquetaEstado(v.estado).texto}
                   </span>
 
                   <ArrowRight size={16} className="text-slate-400" />
@@ -205,8 +215,8 @@ export default function VisitasFinalizadasPage() {
                 <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
                   Remito #{modalDetalle.numero || modalDetalle.id}
                 </span>
-                <span className="text-xs px-3 py-1 rounded-md font-semibold bg-emerald-100 text-emerald-800">
-                  Finalizado
+                <span className={`text-xs px-3 py-1 rounded-md font-semibold ${etiquetaEstado(modalDetalle.estado).clases}`}>
+                  {etiquetaEstado(modalDetalle.estado).texto}
                 </span>
               </div>
 
