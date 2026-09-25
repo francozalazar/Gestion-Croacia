@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
+import VolverLink from "@/components/VolverLink";
 
 export default async function ComprobantePage({
   params,
@@ -68,12 +69,10 @@ export default async function ComprobantePage({
 
           <div className="mb-6 flex flex-wrap gap-3">
 
-            <Link
-              href="/finalizados"
+            <VolverLink
+              fallback="/finalizados"
               className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              ← Volver
-            </Link>
+            />
 
             <Link
               href={`/finalizados/${solicitud.id}/pdf`}
