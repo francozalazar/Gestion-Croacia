@@ -35,7 +35,7 @@ export default async function ComprobantePage({
 
   if (
     !profile ||
-    !["ADMIN", "OFICINA", "COORDINACION", "TECNICO", "FABRICA"].includes(profile.rol)
+    !["ADMIN", "OFICINA", "COORDINACION"].includes(profile.rol)
   ) {
     notFound();
   }
