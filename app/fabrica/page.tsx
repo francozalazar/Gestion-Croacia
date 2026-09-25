@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { textoFranja } from "@/lib/franjas";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
@@ -243,8 +244,7 @@ export default async function FabricaPage() {
                       </p>
                       {(solicitud.horario_desde || solicitud.horario_hasta) && (
                         <p className="text-sm text-slate-500">
-                          {solicitud.horario_desde || "--:--"} -{" "}
-                          {solicitud.horario_hasta || "--:--"}
+                          {textoFranja(solicitud.horario_desde, solicitud.horario_hasta)}
                         </p>
                       )}
                     </div>
