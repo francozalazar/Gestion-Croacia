@@ -16,6 +16,41 @@ interface Props {
   };
 }
 
+const FRANJAS: Record<string, { desde: string; hasta: string }> = {
+  manana: { desde: "08:30", hasta: "12:30" },
+  tarde: { desde: "13:00", hasta: "17:00" },
+  completo: { desde: "08:30", hasta: "17:00" },
+};
+
+// Misma lógica de lectura que usan Recorrido de camiones y Trabajos
+function franjaDesdeHorario(
+  desde?: string | null,
+  hasta?: string | null
+): string {
+  if (!desde && !hasta) return "";
+  const hDesde = (desde || "").slice(0, 5);
+  const hHasta = (hasta || "").slice(0, 5);
+  if (
+    ["08:00", "08:30", "09:00"].includes(hDesde) &&
+    ["12:00", "12:30", "13:00"].includes(hHasta)
+  ) {
+    return "manana";
+  }
+  if (
+    ["13:00", "13:30", "14:00"].includes(hDesde) &&
+    ["17:00", "17:30", "18:00"].includes(hHasta)
+  ) {
+    return "tarde";
+  }
+  if (
+    ["08:00", "08:30", "09:00"].includes(hDesde) &&
+    ["17:00", "17:30", "18:00"].includes(hHasta)
+  ) {
+    return "completo";
+  }
+  return "custom";
+}
+
 export default function EnviarACoordinacion({ solicitud }: Props) {
   const router = useRouter();
   const supabase = createClient();
@@ -23,19 +58,31 @@ export default function EnviarACoordinacion({ solicitud }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [fecha, setFecha] = useState(solicitud.fecha || "");
-  const [horarioDesde, setHorarioDesde] = useState(solicitud.horario_desde || "");
-  const [horarioHasta, setHorarioHasta] = useState(solicitud.horario_hasta || "");
+  const [franja, setFranja] = useState(() =>
+    franjaDesdeHorario(solicitud.horario_desde, solicitud.horario_hasta)
+  );
   const [observaciones, setObservaciones] = useState(solicitud.observaciones || "");
 
   async function handleEnviar(e: React.FormEvent) {
     e.preventDefault();
     setGuardando(true);
 
+    let horarioDesde: string | null = null;
+    let horarioHasta: string | null = null;
+    if (franja === "custom") {
+      // Horario ya pactado con valores no estándar: se conserva tal cual
+      horarioDesde = solicitud.horario_desde || null;
+      horarioHasta = solicitud.horario_hasta || null;
+    } else if (franja && FRANJAS[franja]) {
+      horarioDesde = FRANJAS[franja].desde;
+      horarioHasta = FRANJAS[franja].hasta;
+    }
+
     const datosNuevos = {
       estado: "PENDIENTE_COORDINACION",
       fecha: fecha || null,
-      horario_desde: horarioDesde || null,
-      horario_hasta: horarioHasta || null,
+      horario_desde: horarioDesde,
+      horario_hasta: horarioHasta,
       observaciones: observaciones || null,
     };
 
@@ -98,35 +145,28 @@ export default function EnviarACoordinacion({ solicitud }: Props) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium uppercase text-slate-500 mb-1">
-                    Horario desde
-                  </label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-2.5 text-slate-400" size={18} />
-                    <input
-                      type="time"
-                      value={horarioDesde}
-                      onChange={(e) => setHorarioDesde(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 pl-10 pr-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium uppercase text-slate-500 mb-1">
-                    Horario hasta
-                  </label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-2.5 text-slate-400" size={18} />
-                    <input
-                      type="time"
-                      value={horarioHasta}
-                      onChange={(e) => setHorarioHasta(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 pl-10 pr-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                    />
-                  </div>
+              <div>
+                <label className="block text-xs font-medium uppercase text-slate-500 mb-1">
+                  Franja horaria
+                </label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-2.5 text-slate-400" size={18} />
+                  <select
+                    value={franja}
+                    onChange={(e) => setFranja(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="">Coordinar con cliente...</option>
+                    <option value="manana">Por la mañana (8:30 a 12:30)</option>
+                    <option value="tarde">Por la tarde (13:00 a 17:00)</option>
+                    <option value="completo">Día completo (8:30 a 17:00)</option>
+                    {franja === "custom" && (
+                      <option value="custom">
+                        Actual: {(solicitud.horario_desde || "").slice(0, 5)} a{" "}
+                        {(solicitud.horario_hasta || "").slice(0, 5)} hs
+                      </option>
+                    )}
+                  </select>
                 </div>
               </div>
 
