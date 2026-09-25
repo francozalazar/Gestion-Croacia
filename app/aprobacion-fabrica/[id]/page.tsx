@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { textoFranja } from "@/lib/franjas";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
@@ -484,9 +485,9 @@ export default function DetalleAprobacionFabricaPage() {
                 Horario
               </p>
               <p className="mt-1">
-                {solicitud.horario_desde || "-"}
-                {" - "}
-                {solicitud.horario_hasta || "-"}
+                {solicitud.horario_desde || solicitud.horario_hasta
+                  ? textoFranja(solicitud.horario_desde, solicitud.horario_hasta)
+                  : "-"}
               </p>
             </div>
 
