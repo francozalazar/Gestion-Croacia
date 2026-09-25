@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import ClienteAutocomplete from "@/components/ClienteAutocomplete";
 import { resolverClienteYDireccion } from "@/lib/clientes";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
@@ -40,6 +39,17 @@ export default function NuevaSolicitudPage() {
   const [direccion, setDireccion] = useState("");
   const [localidad, setLocalidad] = useState("");
 
+  const [clientes, setClientes] = useState<
+    { id: number; nombre: string; telefono: string | null }[]
+  >([]);
+  const [clienteIdSel, setClienteIdSel] = useState<number | null>(null);
+  const [modoClienteNuevo, setModoClienteNuevo] = useState(false);
+  const [contacto, setContacto] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [direccionesCliente, setDireccionesCliente] = useState<
+    { id: number; direccion: string; localidad: string | null }[]
+  >([]);
+
   const [fecha, setFecha] = useState("");
   const [tipoVisita, setTipoVisita] = useState("");
   
@@ -71,11 +81,36 @@ export default function NuevaSolicitudPage() {
       }
 
       setPerfil(profile);
+
+      const { data: listaClientes } = await supabase
+        .from("clientes")
+        .select("id, nombre, telefono")
+        .order("nombre");
+      setClientes(listaClientes || []);
+
       setLoading(false);
     }
 
     verificarUsuario();
   }, [router, supabase]);
+
+  async function cargarDirecciones(clienteId: number | null) {
+    if (!clienteId) {
+      setDireccionesCliente([]);
+      return;
+    }
+    try {
+      const { data } = await supabase
+        .from("direcciones")
+        .select("id, direccion, localidad")
+        .eq("cliente_id", clienteId)
+        .order("created_at", { ascending: false })
+        .limit(6);
+      setDireccionesCliente(data || []);
+    } catch {
+      setDireccionesCliente([]);
+    }
+  }
 
   async function crearSolicitud(e: FormEvent) {
     e.preventDefault();
@@ -84,7 +119,12 @@ export default function NuevaSolicitudPage() {
     setGuardando(true);
 
     try {
-      if (!cliente.trim()) throw new Error("Ingresá el nombre del cliente.");
+      if (modoClienteNuevo) {
+        if (!cliente.trim())
+          throw new Error("Ingresá el nombre del cliente nuevo.");
+      } else if (!clienteIdSel) {
+        throw new Error("Elegí un cliente de la lista o creá uno nuevo.");
+      }
       if (!direccion.trim()) throw new Error("Ingresá la dirección.");
       if (!fecha) throw new Error("Seleccioná una fecha.");
       if (!tipoVisita) throw new Error("Seleccioná el tipo de visita.");
@@ -121,6 +161,7 @@ export default function NuevaSolicitudPage() {
           direccion,
           localidad,
           userId: user.id,
+          telefono,
         }
       );
 
@@ -132,7 +173,7 @@ export default function NuevaSolicitudPage() {
           .from("clientes")
           .insert({
             nombre: cliente.trim(),
-            telefono: null,
+            telefono: telefono.trim() || null,
             direccion: direccion.trim(),
             localidad: localidad.trim() || null,
             creado_por: user.id,
@@ -146,7 +187,7 @@ export default function NuevaSolicitudPage() {
             .from("clientes")
             .insert({
               nombre: cliente.trim(),
-              telefono: null,
+              telefono: telefono.trim() || null,
               direccion: direccion.trim(),
               localidad: localidad.trim() || null,
             })
@@ -167,7 +208,8 @@ export default function NuevaSolicitudPage() {
         .insert({
           cliente_id: clienteIdFinal,
           cliente_nombre: cliente.trim(),
-          cliente_telefono: null, // Se envía null
+          cliente_telefono: telefono.trim() || null,
+          aclaracion_cliente: contacto.trim() || null,
           direccion: direccion.trim(),
           localidad: localidad.trim() || null,
           fecha,
@@ -258,15 +300,143 @@ export default function NuevaSolicitudPage() {
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
-              <ClienteAutocomplete
-                cliente={cliente}
-                setCliente={setCliente}
-                direccion={direccion}
-                setDireccion={setDireccion}
-                localidad={localidad}
-                setLocalidad={setLocalidad}
-                inputClassName={inputClassName}
-              />
+              {modoClienteNuevo ? (
+                <>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Nombre / Razón social *
+                    </label>
+                    <input
+                      value={cliente}
+                      onChange={(e) => setCliente(e.target.value)}
+                      placeholder="Ej: Juan Pérez"
+                      className={inputClassName}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModoClienteNuevo(false);
+                        setCliente("");
+                        setContacto("");
+                        setTelefono("");
+                      }}
+                      className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                    >
+                      Elegir cliente existente
+                    </button>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Contacto
+                    </label>
+                    <input
+                      value={contacto}
+                      onChange={(e) => setContacto(e.target.value)}
+                      placeholder="Ej: María (encargada)"
+                      className={inputClassName}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Teléfono
+                    </label>
+                    <input
+                      value={telefono}
+                      onChange={(e) => setTelefono(e.target.value)}
+                      placeholder="Ej: 11 5555-5555"
+                      className={inputClassName}
+                      autoComplete="off"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Cliente *
+                  </label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <select
+                      value={clienteIdSel ?? ""}
+                      onChange={(e) => {
+                        const id = e.target.value ? Number(e.target.value) : null;
+                        setClienteIdSel(id);
+                        const elegido = clientes.find((c) => c.id === id);
+                        setCliente(elegido ? elegido.nombre : "");
+                        setTelefono(elegido?.telefono ?? "");
+                        cargarDirecciones(id);
+                      }}
+                      className={inputClassName}
+                    >
+                      <option value="">Elegir cliente...</option>
+                      {clientes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModoClienteNuevo(true);
+                        setClienteIdSel(null);
+                        setCliente("");
+                        setTelefono("");
+                        setDireccionesCliente([]);
+                      }}
+                      className="shrink-0 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+                    >
+                      + Cliente nuevo
+                    </button>
+                  </div>
+                  {direccionesCliente.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {direccionesCliente.map((d) => (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => {
+                            setDireccion(d.direccion);
+                            setLocalidad(d.localidad || "");
+                          }}
+                          className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                        >
+                          {d.direccion}
+                          {d.localidad ? ` (${d.localidad})` : ""}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Dirección *
+                </label>
+                <input
+                  value={direccion}
+                  onChange={(e) => setDireccion(e.target.value)}
+                  placeholder="Ej: Av. Mitre 1234"
+                  className={inputClassName}
+                  autoComplete="off"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Localidad
+                </label>
+                <input
+                  value={localidad}
+                  onChange={(e) => setLocalidad(e.target.value)}
+                  placeholder="Ej: Quilmes"
+                  className={inputClassName}
+                />
+              </div>
             </div>
           </section>
 
