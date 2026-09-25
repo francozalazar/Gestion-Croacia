@@ -15,25 +15,29 @@ export default async function MisTrabajosPage() {
     redirect("/");
   }
 
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("nombre, apellido, rol")
-    .eq("id", user.id)
-    .single();
+  // Perfil y asignaciones son independientes: las pedimos en
+  // paralelo para ahorrar un viaje de ida y vuelta a la base.
+  const [{ data: perfil }, { data: asignaciones, error }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("nombre, apellido, rol")
+        .eq("id", user.id)
+        .single(),
+      // Asignaciones del técnico ordenadas por prioridad
+      supabase
+        .from("asignaciones")
+        .select("*")
+        .eq("usuario_id", user.id)
+        .order("prioridad", {
+          ascending: true,
+          nullsFirst: false,
+        }),
+    ]);
 
   if (!perfil || !["TECNICO", "FABRICA"].includes(perfil.rol)) {
     redirect("/dashboard");
   }
-
-  // 1. Traemos las asignaciones del técnico ordenadas por prioridad
-  const { data: asignaciones, error } = await supabase
-    .from("asignaciones")
-    .select("*")
-    .eq("usuario_id", user.id)
-    .order("prioridad", {
-      ascending: true,
-      nullsFirst: false,
-    });
 
   let solicitudes: any[] = [];
 
