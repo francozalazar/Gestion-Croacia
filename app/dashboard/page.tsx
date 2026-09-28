@@ -17,6 +17,8 @@ import {
   MapPin,
   Calendar,
   Factory,
+  ShieldAlert,
+  X,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -46,12 +48,91 @@ export default function DashboardPage() {
     anulados: 0,
   });
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
+  const [novedadEnVivo, setNovedadEnVivo] = useState<any | null>(null);
   const [paraHoy, setParaHoy] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     cargarDashboard();
   }, []);
+
+  // Novedades en vivo: si el usuario está con la página abierta, la
+  // notificación aparece en el momento, sin recargar.
+  useEffect(() => {
+    if (!perfil?.rol) return;
+    const rol = perfil.rol.toUpperCase();
+    if (!["ADMIN", "OFICINA", "COORDINACION"].includes(rol)) return;
+
+    function agregarNovedad(n: any) {
+      setNotificaciones((prev) => {
+        if (prev.some((x) => x.id === n.id)) return prev;
+        return [n, ...prev].slice(0, 8);
+      });
+      setNovedadEnVivo(n);
+    }
+
+    const canal = supabase
+      .channel("dashboard-novedades")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "solicitudes_fabrica" },
+        async (payload) => {
+          const t: any = payload.new;
+          if (rol !== "ADMIN" || t.estado !== "PENDIENTE_APROBACION") return;
+
+          let quien = "Oficina";
+          if (t.creado_por) {
+            const { data: creador } = await supabase
+              .from("profiles")
+              .select("nombre, apellido")
+              .eq("id", t.creado_por)
+              .maybeSingle();
+            if (creador) quien = `${creador.nombre} ${creador.apellido || ""}`.trim();
+          }
+
+          agregarNovedad({
+            id: `aprobacion-${t.id}`,
+            titulo: "Cargaron un trabajo para aprobación",
+            detalle: `Remito #${t.numero_remito || t.id} - ${t.cliente_nombre || "Cliente"} (lo cargó ${quien})`,
+            fecha: t.created_at || new Date().toISOString(),
+            link: "/aprobacion-fabrica",
+            icono: ShieldAlert,
+            colorIcono: "bg-red-100 text-red-600",
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "solicitudes" },
+        (payload) => {
+          const s: any = payload.new;
+          if (s.estado !== "PRESUPUESTADO") return;
+          if (rol === "OFICINA" && s.creado_por !== perfil.id) return;
+
+          agregarNovedad({
+            id: `presupuesto-${s.id}`,
+            titulo: `Le asignaron precio al trabajo #${String(s.numero || s.id).padStart(5, "0")}`,
+            detalle: `Cliente: ${s.cliente_nombre || "Cliente"} - Monto: $${(s.subtotal || s.precio || 0).toLocaleString()}`,
+            fecha: s.updated_at || new Date().toISOString(),
+            link: "/presupuestos",
+            icono: DollarSign,
+            colorIcono: "bg-emerald-100 text-emerald-600",
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [perfil]);
+
+  // El aviso en vivo se oculta solo a los 10 segundos
+  useEffect(() => {
+    if (!novedadEnVivo) return;
+    const timer = setTimeout(() => setNovedadEnVivo(null), 10000);
+    return () => clearTimeout(timer);
+  }, [novedadEnVivo]);
 
   async function cargarDashboard() {
     setCargando(true);
@@ -272,6 +353,31 @@ export default function DashboardPage() {
       });
 
       const eventos: any[] = [];
+
+      // ADMIN: aviso cuando cargan un trabajo nuevo para aprobación de fábrica
+      if (profile?.rol?.toUpperCase() === "ADMIN") {
+        const { data: pendientesAprobacion } = await supabase
+          .from("solicitudes_fabrica")
+          .select("*, creador:profiles!creado_por(nombre, apellido)")
+          .eq("estado", "PENDIENTE_APROBACION")
+          .order("created_at", { ascending: false })
+          .limit(10);
+
+        (pendientesAprobacion || []).forEach((t: any) => {
+          const quien = t.creador
+            ? `${t.creador.nombre} ${t.creador.apellido || ""}`.trim()
+            : "Oficina";
+          eventos.push({
+            id: `aprobacion-${t.id}`,
+            titulo: `Cargaron un trabajo para aprobación`,
+            detalle: `Remito #${t.numero_remito || t.id} - ${t.cliente_nombre || "Cliente"} (lo cargó ${quien})`,
+            fecha: t.created_at,
+            link: "/aprobacion-fabrica",
+            icono: ShieldAlert,
+            colorIcono: "bg-red-100 text-red-600",
+          });
+        });
+      }
 
       lista.forEach((s) => {
         if (s.estado === "PRESUPUESTADO") {
@@ -601,6 +707,35 @@ export default function DashboardPage() {
           </div>
 
         </div>
+
+        {/* AVISO EN VIVO: aparece en el momento si la página está abierta */}
+        {novedadEnVivo && (
+          <div className="fixed bottom-4 right-4 left-4 md:left-auto md:w-96 z-50 rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
+            <div className="flex items-start gap-3">
+              <div className={`p-2.5 rounded-xl shrink-0 ${novedadEnVivo.colorIcono}`}>
+                <Bell size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Novedad
+                </p>
+                <Link href={novedadEnVivo.link} className="block">
+                  <p className="text-sm font-bold text-slate-800 hover:text-blue-600">
+                    {novedadEnVivo.titulo}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">{novedadEnVivo.detalle}</p>
+                </Link>
+              </div>
+              <button
+                onClick={() => setNovedadEnVivo(null)}
+                className="shrink-0 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Cerrar aviso"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
