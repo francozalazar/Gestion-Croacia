@@ -108,6 +108,11 @@ export default function ProduccionLista({
                 action={anularProduccionAction}
                 className="mt-5"
                 onClick={(e) => e.stopPropagation()}
+                onSubmit={(e) => {
+                  if (!window.confirm("\u00bfAnular este trabajo? Esta acci\u00f3n no se puede deshacer.")) {
+                    e.preventDefault();
+                  }
+                }}
               >
                 <input type="hidden" name="id" value={trabajo.id} />
                 <button
