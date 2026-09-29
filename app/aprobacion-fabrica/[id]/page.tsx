@@ -374,6 +374,15 @@ export default function DetalleAprobacionFabricaPage() {
           </Link>
         </div>
 
+        <div className="mb-4">
+          <Link
+            href={`/ficha/remito/${solicitud.id}`}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 border border-blue-100 hover:bg-blue-100"
+          >
+            Ver ficha completa del trabajo →
+          </Link>
+        </div>
+
         {/* ENCABEZADO */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
