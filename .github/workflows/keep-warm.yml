@@ -1,0 +1,12 @@
+name: keep-warm
+on:
+  schedule:
+    # Cada 30 min: evita el cold start de Vercel entre usos.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping app
+        run: curl -s -o /dev/null -w "HTTP %{http_code}\n" https://gestion-croacia.vercel.app/
