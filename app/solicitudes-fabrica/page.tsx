@@ -31,6 +31,9 @@ export default function SolicitudFabricaPage() {
 
   const [senaPorcentaje, setSenaPorcentaje] = useState("");
   const [senaPesos, setSenaPesos] = useState("");
+  const [ultimaEdicionSena, setUltimaEdicionSena] = useState<
+    "porcentaje" | "pesos" | null
+  >(null);
 
   const [medioPago, setMedioPago] = useState("");
   const [aclaracionPago, setAclaracionPago] = useState("");
@@ -65,18 +68,35 @@ export default function SolicitudFabricaPage() {
     const porcNum = parseFloat(senaPorcentaje) || 0;
     let pesosNum = parseFloat(senaPesos) || 0;
 
-    if (porcNum > 0 && totalNum > 0) {
-      pesosNum = (totalNum * porcNum) / 100;
-      setSenaPesos(pesosNum.toString());
-    }
-
     if (totalNum > 0) {
+      // Lo que se editó último manda: el otro campo se calcula solo.
+      if (ultimaEdicionSena === "pesos") {
+        if (senaPesos !== "") {
+          const porcCalculado =
+            Math.round((pesosNum / totalNum) * 100 * 100) / 100;
+          const porcStr = porcCalculado.toString();
+          if (porcStr !== senaPorcentaje) {
+            setSenaPorcentaje(porcStr);
+          }
+        }
+      } else if (ultimaEdicionSena === "porcentaje") {
+        if (senaPorcentaje !== "") {
+          const pesosCalculado =
+            Math.round(((totalNum * porcNum) / 100) * 100) / 100;
+          const pesosStr = pesosCalculado.toString();
+          if (pesosStr !== senaPesos) {
+            setSenaPesos(pesosStr);
+            pesosNum = pesosCalculado;
+          }
+        }
+      }
+
       const saldoCalculado = totalNum - pesosNum;
       setSaldo(saldoCalculado >= 0 ? saldoCalculado.toString() : "0");
     } else {
       setSaldo("");
     }
-  }, [total, senaPorcentaje, senaPesos]);
+  }, [total, senaPorcentaje, senaPesos, ultimaEdicionSena]);
 
   async function guardarSolicitud() {
     setMensaje("");
@@ -446,7 +466,10 @@ export default function SolicitudFabricaPage() {
                   max="100"
                   step="0.01"
                   value={senaPorcentaje}
-                  onChange={(e) => setSenaPorcentaje(e.target.value)}
+                  onChange={(e) => {
+                    setSenaPorcentaje(e.target.value);
+                    setUltimaEdicionSena("porcentaje");
+                  }}
                   placeholder="Ej: 50"
                   className={inputClassName}
                   disabled={exito}
@@ -462,7 +485,10 @@ export default function SolicitudFabricaPage() {
                   min="0"
                   step="0.01"
                   value={senaPesos}
-                  onChange={(e) => setSenaPesos(e.target.value)}
+                  onChange={(e) => {
+                    setSenaPesos(e.target.value);
+                    setUltimaEdicionSena("pesos");
+                  }}
                   placeholder="Ej: 425000"
                   className={inputClassName}
                   disabled={exito}
