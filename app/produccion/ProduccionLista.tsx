@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { X } from "lucide-react";
 import {
   anularProduccionAction,
@@ -151,6 +152,13 @@ export default function ProduccionLista({
             <p className="mt-5 text-sm text-slate-700">
               <strong>Fecha estimada:</strong> {seleccionado.fecha || "-"}
             </p>
+
+            <Link
+              href={`/ficha/remito/${seleccionado.id}`}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 border border-blue-100 hover:bg-blue-100"
+            >
+              Ver ficha completa del trabajo →
+            </Link>
 
             <div className="mt-5">
               <h3 className="text-sm font-bold text-slate-900">
