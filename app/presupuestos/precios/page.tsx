@@ -120,6 +120,7 @@ export default function SeccionPreciosAdminPage() {
         adicionales_visita: adicionalesPrecio || null,
         adicionales_precio: adicionalesPrecio || null,
         estado: "PRESUPUESTADO", 
+        presupuesto_fecha: new Date().toISOString(),
       })
       .eq("id", modalTrabajo.id);
 
