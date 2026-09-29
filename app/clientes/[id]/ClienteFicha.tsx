@@ -336,19 +336,35 @@ export default function ClienteFicha({
                           {fechaLinda(v.created_at)}
                         </p>
                         {v.solicitud_fabrica_id ? (
-                          <Link
-                            href={`/remitos/${v.solicitud_fabrica_id}`}
-                            className="mt-1 inline-block text-xs font-semibold text-blue-600 hover:underline"
-                          >
-                            Ver remito →
-                          </Link>
+                          <span className="mt-1 flex gap-3">
+                            <Link
+                              href={`/ficha/remito/${v.solicitud_fabrica_id}`}
+                              className="inline-block text-xs font-semibold text-blue-600 hover:underline"
+                            >
+                              Ver ficha →
+                            </Link>
+                            <Link
+                              href={`/remitos/${v.solicitud_fabrica_id}`}
+                              className="inline-block text-xs font-semibold text-blue-600 hover:underline"
+                            >
+                              Ver remito →
+                            </Link>
+                          </span>
                         ) : v.solicitud_id ? (
-                          <Link
-                            href={`/finalizados/${v.solicitud_id}`}
-                            className="mt-1 inline-block text-xs font-semibold text-blue-600 hover:underline"
-                          >
-                            Ver visita →
-                          </Link>
+                          <span className="mt-1 flex gap-3">
+                            <Link
+                              href={`/ficha/visita/${v.solicitud_id}`}
+                              className="inline-block text-xs font-semibold text-blue-600 hover:underline"
+                            >
+                              Ver ficha →
+                            </Link>
+                            <Link
+                              href={`/finalizados/${v.solicitud_id}`}
+                              className="inline-block text-xs font-semibold text-blue-600 hover:underline"
+                            >
+                              Ver visita →
+                            </Link>
+                          </span>
                         ) : null}
                       </div>
                       {editandoTotal === v.id ? (
