@@ -118,49 +118,40 @@ export default async function FichaPage({
   const base = remito || solicitud;
   const clienteId = base.cliente_id || solicitud?.cliente_id || null;
 
-  let cliente: any = null;
-  if (clienteId) {
-    const { data } = await supabase
-      .from("clientes")
-      .select("*")
-      .eq("id", clienteId)
-      .maybeSingle();
-    cliente = data;
-  }
-
   // =========================
-  // LINEA DE TIEMPO
+  // LECTURAS EN PARALELO (cliente, timeline, ventas, asignaciones)
   // =========================
   const orEventos: string[] = [];
   if (solicitud) orEventos.push(`solicitud_id.eq.${solicitud.id}`);
   if (remito) orEventos.push(`solicitud_fabrica_id.eq.${remito.id}`);
 
-  let eventos: any[] = [];
-  if (orEventos.length) {
-    const { data } = await supabase
-      .from("trabajo_eventos")
-      .select("*")
-      .or(orEventos.join(","))
-      .order("created_at", { ascending: true });
-    eventos = data || [];
-  }
-
-  // =========================
-  // VENTAS Y PAGOS (plata)
-  // =========================
   const orVentas: string[] = [];
   if (solicitud) orVentas.push(`solicitud_id.eq.${solicitud.id}`);
   if (remito) orVentas.push(`solicitud_fabrica_id.eq.${remito.id}`);
 
-  let ventas: any[] = [];
-  if (orVentas.length) {
-    const { data } = await supabase
-      .from("ventas")
-      .select("*")
-      .or(orVentas.join(","))
-      .order("created_at", { ascending: true });
-    ventas = data || [];
-  }
+  const orAsig: string[] = [];
+  if (solicitud) orAsig.push(`solicitud_id.eq.${solicitud.id}`);
+  if (remito) orAsig.push(`solicitud_fabrica_id.eq.${remito.id}`);
+
+  const [resCliente, resEventos, resVentas, resAsig] = await Promise.all([
+    clienteId
+      ? supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle()
+      : Promise.resolve({ data: null }),
+    orEventos.length
+      ? supabase.from("trabajo_eventos").select("*").or(orEventos.join(",")).order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] as any[] }),
+    orVentas.length
+      ? supabase.from("ventas").select("*").or(orVentas.join(",")).order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] as any[] }),
+    orAsig.length
+      ? supabase.from("asignaciones").select("*").or(orAsig.join(",")).order("fecha", { ascending: true })
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+
+  const cliente: any = resCliente.data;
+  const eventos: any[] = resEventos.data || [];
+  const ventas: any[] = resVentas.data || [];
+  const asignaciones: any[] = resAsig.data || [];
 
   let pagos: any[] = [];
   if (ventas.length) {
@@ -198,22 +189,8 @@ export default async function FichaPage({
   }
 
   // =========================
-  // ASIGNACIONES (instalacion)
+  // ASIGNACIONES (instalacion): nombres de tecnicos
   // =========================
-  const orAsig: string[] = [];
-  if (solicitud) orAsig.push(`solicitud_id.eq.${solicitud.id}`);
-  if (remito) orAsig.push(`solicitud_fabrica_id.eq.${remito.id}`);
-
-  let asignaciones: any[] = [];
-  if (orAsig.length) {
-    const { data } = await supabase
-      .from("asignaciones")
-      .select("*")
-      .or(orAsig.join(","))
-      .order("fecha", { ascending: true });
-    asignaciones = data || [];
-  }
-
   const idsTecnicos = [...new Set(asignaciones.map((a) => a.usuario_id).filter(Boolean))];
   if (idsTecnicos.length) {
     const { data: tecs } = await supabase
@@ -747,4 +724,4 @@ export default async function FichaPage({
       </main>
     </div>
   );
-                  }
+}
