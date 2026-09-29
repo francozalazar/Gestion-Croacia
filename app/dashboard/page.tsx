@@ -296,29 +296,30 @@ export default function DashboardPage() {
         consultaSolicitudes = consultaSolicitudes.eq("creado_por", user.id);
       }
 
-      const { data: solicitudes } = await consultaSolicitudes;
-
-      const { data: trabajosFabrica } = await supabase
-        .from("solicitudes_fabrica")
-        .select("*")
-        .in("estado", [
-          "ENVIADO_A_CORTAR",
-          "EN_CORTE",
-          "EN_FABRICACION",
-          "EN_FABRICA",
-          "FALTANTES",
-          "LISTO_PARA_COLOCAR",
-          "ANULADO",
-        ])
-        .order("created_at", { ascending: false });
+      const [{ data: solicitudes }, { data: trabajosFabrica }, { data: asignacionesHoy }] =
+        await Promise.all([
+          consultaSolicitudes,
+          supabase
+            .from("solicitudes_fabrica")
+            .select("*")
+            .in("estado", [
+              "ENVIADO_A_CORTAR",
+              "EN_CORTE",
+              "EN_FABRICACION",
+              "EN_FABRICA",
+              "FALTANTES",
+              "LISTO_PARA_COLOCAR",
+              "ANULADO",
+            ])
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("asignaciones")
+            .select("solicitud_id, solicitud_fabrica_id")
+            .eq("fecha", hoy),
+        ]);
 
       const lista = solicitudes || [];
       const trabajos = trabajosFabrica || [];
-
-      const { data: asignacionesHoy } = await supabase
-        .from("asignaciones")
-        .select("solicitud_id, solicitud_fabrica_id")
-        .eq("fecha", hoy);
 
       const idsHoy = new Set(
         (asignacionesHoy || [])
