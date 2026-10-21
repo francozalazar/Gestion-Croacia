@@ -1,5 +1,6 @@
 "use client";
 
+import { requierePrecio } from "@/lib/tipoVisita";
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { useRouter } from "next/navigation";
@@ -128,18 +129,9 @@ export default function CompletarTrabajo({
       firmaFinal = canvas.toDataURL("image/png");
     }
 
-    const tipoLimpio = String(tipoVisita || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim();
-
-    // Regla al finalizar: PENDIENTE_PRECIO solo para Presupuesto y Urgencia.
+    // Regla: PENDIENTE_PRECIO solo para Presupuesto y Urgencia (lib/tipoVisita).
     // Todo lo demas va a PRESUPUESTADO (bandeja /presupuestos, remito descargable).
-    const requierePrecio =
-      tipoLimpio === "presupuesto" || tipoLimpio === "urgencia";
-
-    const nuevoEstado = requierePrecio
+    const nuevoEstado = requierePrecio(tipoVisita)
       ? "PENDIENTE_PRECIO"
       : "PRESUPUESTADO";
 
