@@ -8,8 +8,26 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-plex-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+/* Estilo sobrio: esquinas casi rectas en toda la app */
+@theme {
+  --radius-xs: 0px;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.125rem;
+  --radius-lg: 0.125rem;
+  --radius-xl: 0.25rem;
+  --radius-2xl: 0.25rem;
+  --radius-3xl: 0.25rem;
+  --radius-4xl: 0.25rem;
+}
+
+/* Etiquetas/estados en forma de pastilla pasan a rectangulares.
+   Puntos y circulos (sin padding horizontal) siguen redondos. */
+.rounded-full[class*="px-"] {
+  border-radius: 0.125rem;
 }
 
 html {
@@ -21,7 +39,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-plex-sans), Arial, Helvetica, sans-serif;
 }
 
 ::selection {
@@ -33,7 +51,7 @@ body {
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid #1d4ed8;
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
 /* Transiciones suaves y uniformes */
@@ -60,7 +78,7 @@ body {
 }
 *::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 8px;
+  border-radius: 0;
 }
 *::-webkit-scrollbar-track {
   background: transparent;
