@@ -13,6 +13,7 @@ import {
   List,
   Hammer,
   Users,
+  BarChart3,
   Menu,
   X,
 } from "lucide-react";
@@ -32,6 +33,7 @@ function seccionDeRuta(path: string | null): string | null {
   if (en("/solicitudes-fabrica", "/aprobacion-fabrica", "/produccion", "/listos-para-colocar", "/trabajos-finalizados")) return "fabrica";
   if (en("/solicitudes", "/coordinacion", "/recorrido-camiones", "/visitas-finalizadas")) return "visitas";
   if (en("/presupuestos")) return "presupuestos";
+  if (en("/saldos-pendientes", "/estadisticas")) return "administracion";
   if (en("/clientes")) return "clientes";
   if (en("/trabajos")) return "trabajos";
   return null;
@@ -287,33 +289,55 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                     >
                       • Mis clientes
                     </Link>
-                    {rol === "ADMIN" && (
-                      <>
-                        <Link
-                          href="/saldos-pendientes"
-                          className={`block py-2 text-xs font-medium transition ${
-                            pathname === "/saldos-pendientes"
-                              ? "text-violet-400 font-bold"
-                              : "text-slate-400 hover:text-white"
-                          }`}
-                        >
-                          • Saldos pendientes
-                        </Link>
-                        <Link
-                          href="/estadisticas"
-                          className={`block py-2 text-xs font-medium transition ${
-                            pathname === "/estadisticas"
-                              ? "text-violet-400 font-bold"
-                              : "text-slate-400 hover:text-white"
-                          }`}
-                        >
-                          • Estadísticas
-                        </Link>
-                      </>
-                    )}
                   </div>
                 )}
               </div>
+
+              {/* GRUPO: ADMINISTRACION (solo ADMIN) */}
+              {rol === "ADMIN" && (
+                <div className="pt-2">
+                  <button
+                    onClick={() => toggleSeccion("administracion")}
+                    className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <BarChart3 size={18} className="text-rose-400" />
+                      <span>Administración</span>
+                    </div>
+                    <ChevronDown
+                      size={16}
+                      className={`transition-transform duration-200 ${
+                        seccionAbierta === "administracion" ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {seccionAbierta === "administracion" && (
+                    <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
+                      <Link
+                        href="/estadisticas"
+                        className={`block py-2 text-xs font-medium transition ${
+                          pathname === "/estadisticas"
+                            ? "text-rose-400 font-bold"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        • Estadísticas
+                      </Link>
+                      <Link
+                        href="/saldos-pendientes"
+                        className={`block py-2 text-xs font-medium transition ${
+                          pathname === "/saldos-pendientes"
+                            ? "text-rose-400 font-bold"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        • Saldos pendientes
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* 2. GRUPO: PRESUPUESTOS */}
               <div className="pt-2">
