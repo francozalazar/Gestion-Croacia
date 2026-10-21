@@ -20,50 +20,51 @@ export default async function ClientePage({
 
   if (!user) redirect("/");
 
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("nombre, apellido, rol")
-    .eq("id", user.id)
-    .single();
+  // Consultas independientes en paralelo (antes iban una detrás de otra).
+  const [
+    { data: perfil },
+    { data: cliente },
+    { data: direcciones },
+    { data: ventas },
+    { data: solicitudes },
+    { data: remitosVinculados },
+  ] = await Promise.all([
+    supabase.from("profiles").select("nombre, apellido, rol").eq("id", user.id).single(),
+    supabase
+      .from("clientes")
+      .select("id, nombre, telefono, email, direccion, localidad, creado_por, created_at")
+      .eq("id", clienteId)
+      .single(),
+    supabase
+      .from("direcciones")
+      .select("id, direccion, localidad")
+      .eq("cliente_id", clienteId)
+      .order("created_at"),
+    supabase
+      .from("ventas")
+      .select("id, direccion_id, descripcion, total, created_at, solicitud_id, solicitud_fabrica_id, pagos(id, monto, fecha, medio, facturado, factura_url)")
+      .eq("cliente_id", clienteId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("solicitudes")
+      .select("id, numero, direccion, localidad, fecha, estado, tipo_visita, observaciones, created_at, solicitud_fabrica_id, fecha_finalizacion")
+      .eq("cliente_id", clienteId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("solicitudes_fabrica")
+      .select("id, numero_remito, direccion, localidad, fecha, estado, observaciones, created_at")
+      .eq("cliente_id", clienteId)
+      .order("created_at", { ascending: false }),
+  ]);
 
   const rol = perfil?.rol || "OFICINA";
   const esAdmin = rol.toUpperCase() === "ADMIN";
-
-  const { data: cliente } = await supabase
-    .from("clientes")
-    .select("id, nombre, telefono, email, direccion, localidad, creado_por, created_at")
-    .eq("id", clienteId)
-    .single();
 
   if (!cliente) redirect("/clientes");
 
   if (!esAdmin && cliente.creado_por && cliente.creado_por !== user.id) {
     redirect("/clientes");
   }
-
-  const { data: direcciones } = await supabase
-    .from("direcciones")
-    .select("id, direccion, localidad")
-    .eq("cliente_id", clienteId)
-    .order("created_at");
-
-  const { data: ventas } = await supabase
-    .from("ventas")
-    .select("id, direccion_id, descripcion, total, created_at, solicitud_id, solicitud_fabrica_id, pagos(id, monto, fecha, medio, facturado, factura_url)")
-    .eq("cliente_id", clienteId)
-    .order("created_at", { ascending: false });
-
-  const { data: solicitudes } = await supabase
-    .from("solicitudes")
-    .select("id, numero, direccion, localidad, fecha, estado, tipo_visita, observaciones, created_at, solicitud_fabrica_id, fecha_finalizacion")
-    .eq("cliente_id", clienteId)
-    .order("created_at", { ascending: false });
-
-  const { data: remitosVinculados } = await supabase
-    .from("solicitudes_fabrica")
-    .select("id, numero_remito, direccion, localidad, fecha, estado, observaciones, created_at")
-    .eq("cliente_id", clienteId)
-    .order("created_at", { ascending: false });
 
   const { data: remitosPorNombre } = await supabase
     .from("solicitudes_fabrica")
