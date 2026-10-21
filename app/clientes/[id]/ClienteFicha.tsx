@@ -365,12 +365,6 @@ export default function ClienteFicha({
                             >
                               Ver ficha →
                             </Link>
-                            <Link
-                              href={`/remitos/${v.solicitud_fabrica_id}`}
-                              className="inline-block text-xs font-semibold text-blue-600 hover:underline"
-                            >
-                              Ver pedido →
-                            </Link>
                           </span>
                         ) : v.solicitud_id ? (
                           <span className="mt-1 flex gap-3">
