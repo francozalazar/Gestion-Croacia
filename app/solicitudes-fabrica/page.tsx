@@ -63,6 +63,32 @@ export default function SolicitudFabricaPage() {
   const [perfil, setPerfil] = useState<any>(null);
 
   useEffect(() => {
+    // Si quedó un pedido a medio guardar (se recargó la página), avisar y permitir completarlo sin crear otro.
+    try {
+      const raw = localStorage.getItem("croacia_pedido_pendiente");
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p && p.id) {
+          progreso.current = {
+            id: p.id,
+            numero: p.numero ?? null,
+            clienteId: p.clienteId ?? null,
+            direccionId: p.direccionId ?? null,
+            itemsOk: !!p.itemsOk,
+            ventaId: p.ventaId ?? null,
+            pagoOk: !!p.pagoOk,
+          };
+          setMensaje(
+            `Hay un pedido a medio guardar: el remito Nº ${p.numero} quedó cargado pero faltan pasos (qué se vende, venta o seña). Volvé a completar los mismos datos y tocá guardar: se completa ese pedido, no se crea otro.`
+          );
+        }
+      }
+    } catch {
+      // sin almacenamiento local
+    }
+  }, []);
+
+  useEffect(() => {
     async function cargarPerfil() {
       const {
         data: { user },
@@ -283,6 +309,17 @@ export default function SolicitudFabricaPage() {
       };
     }
     const paso = progreso.current!;
+    const guardarLocal = () => {
+      try {
+        localStorage.setItem(
+          "croacia_pedido_pendiente",
+          JSON.stringify({ ...paso, cuando: new Date().toISOString() })
+        );
+      } catch {
+        // sin almacenamiento local: igual queda el aviso en pantalla
+      }
+    };
+    guardarLocal();
     const avisoParcial = (que: string, detalle: string) => {
       console.error(que, detalle);
       setMensaje(
@@ -292,6 +329,13 @@ export default function SolicitudFabricaPage() {
     };
 
     // Qué se vende (para estadísticas)
+    if (!paso.itemsOk) {
+      const { count: yaHay } = await supabase
+        .from("pedido_items")
+        .select("id", { count: "exact", head: true })
+        .eq("solicitud_fabrica_id", paso.id);
+      if ((yaHay ?? 0) > 0) paso.itemsOk = true;
+    }
     if (!paso.itemsOk) {
       const { error: errorItems } = await supabase.from("pedido_items").insert(
         renglonesValidos.map((r) => ({
@@ -306,10 +350,20 @@ export default function SolicitudFabricaPage() {
         return;
       }
       paso.itemsOk = true;
+      guardarLocal();
     }
 
     // Venta automática (+ seña como primer pago si la cargaron)
     if (paso.clienteId) {
+      if (!paso.ventaId) {
+        const { data: ventaPrevia } = await supabase
+          .from("ventas")
+          .select("id")
+          .eq("solicitud_fabrica_id", paso.id)
+          .limit(1)
+          .maybeSingle();
+        if (ventaPrevia) paso.ventaId = ventaPrevia.id;
+      }
       if (!paso.ventaId) {
         const { data: venta, error: errorVenta } = await supabase
           .from("ventas")
@@ -328,9 +382,17 @@ export default function SolicitudFabricaPage() {
           return;
         }
         paso.ventaId = venta.id;
+        guardarLocal();
       }
 
       const senaNum = parseFloat(senaPesos) || 0;
+      if (senaNum > 0 && !paso.pagoOk) {
+        const { count: pagosPrevios } = await supabase
+          .from("pagos")
+          .select("id", { count: "exact", head: true })
+          .eq("venta_id", paso.ventaId);
+        if ((pagosPrevios ?? 0) > 0) paso.pagoOk = true;
+      }
       if (senaNum > 0 && !paso.pagoOk) {
         const { error: errorPago } = await supabase.from("pagos").insert({
           venta_id: paso.ventaId,
@@ -347,6 +409,12 @@ export default function SolicitudFabricaPage() {
       }
     }
 
+    try {
+      localStorage.removeItem("croacia_pedido_pendiente");
+    } catch {
+      // nada
+    }
+    progreso.current = null;
     setExito(true);
     setMensaje(
       `¡Remito Nº ${data?.numero_remito} cargado correctamente! Redirigiendo...`
