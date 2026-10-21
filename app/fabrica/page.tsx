@@ -333,44 +333,6 @@ export default async function FabricaPage() {
           })}
         </div>
 
-        {/* LISTA DE TRABAJOS */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {trabajos.map((trabajo) => (
-            <Link
-              key={trabajo.id}
-              href={`/fabrica/${trabajo.id}`}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-amber-400 hover:shadow-md"
-            >
-              <h2 className="truncate text-lg font-bold text-slate-900">
-                {trabajo.cliente || trabajo.cliente_nombre || "Cliente sin nombre"}
-              </h2>
-
-              <div className="mt-4 space-y-2 text-sm text-slate-600">
-                <p>
-                  <strong>Solicitud creada:</strong>{" "}
-                  {trabajo.created_at
-                    ? new Date(trabajo.created_at).toLocaleDateString("es-AR")
-                    : "-"}
-                </p>
-
-                <p>
-                  <strong>Finalización estimada:</strong>{" "}
-                  {trabajo.fecha
-                    ? new Date(`${trabajo.fecha}T12:00:00`).toLocaleDateString("es-AR")
-                    : "-"}
-                </p>
-
-                <p>
-                  <strong>Dirección:</strong> {trabajo.direccion || "-"}
-                </p>
-
-                <p>
-                  <strong>Localidad:</strong> {trabajo.localidad || "-"}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
       </main>
     </div>
   );
