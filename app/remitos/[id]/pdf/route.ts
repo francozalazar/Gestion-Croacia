@@ -234,59 +234,7 @@ export async function GET(
 
   seccion("Detalle del trabajo", remito.observaciones || "Sin detalle cargado.");
 
-  // =========================
-  // VALORES
-  // =========================
-
-  const plata = (n: any) =>
-    n === null || n === undefined || n === ""
-      ? "-"
-      : "$ " + Number(n).toLocaleString("es-AR", { maximumFractionDigits: 2 });
-
-  if (
-    remito.total_pesos ||
-    remito.sena_pesos ||
-    remito.saldo_restante ||
-    remito.medio_pago
-  ) {
-    nuevaPaginaSiHaceFalta(110);
-    pagina.drawText("Valores", {
-      x: margen,
-      y,
-      size: 15,
-      font: negrita,
-      color: negro,
-    });
-    y -= 26;
-    campo("Total", plata(remito.total_pesos), margen, y);
-    y -= 22;
-    if (remito.sena_pesos) {
-      campo(
-        "Seña",
-        plata(remito.sena_pesos) +
-          (remito.sena_porcentaje ? ` (${remito.sena_porcentaje}%)` : ""),
-        margen,
-        y
-      );
-      y -= 22;
-    }
-    if (remito.saldo_restante !== null && remito.saldo_restante !== undefined) {
-      campo("Saldo", plata(remito.saldo_restante), margen, y);
-      y -= 22;
-    }
-    if (remito.medio_pago) {
-      campo(
-        "Medio de pago",
-        remito.medio_pago +
-          (remito.aclaracion_pago ? ` — ${remito.aclaracion_pago}` : ""),
-        margen,
-        y
-      );
-      y -= 22;
-    }
-    y -= 8;
-    regla(y, 1);
-  }
+  // Los remitos descargables no llevan precios ni importes (pedido de Franco 21/10/2026).
 
   // =========================
   // PIE
