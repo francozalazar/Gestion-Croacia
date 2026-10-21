@@ -184,7 +184,7 @@ export async function GET(
   centrado("Suc. La Plata: Av 44 N° 3269  11 5659-4671", y, 7.5);
   y -= 30;
 
-  centrado("REMITO", y - 20, 24, true);
+  centrado("PEDIDO DE FÁBRICA", y - 20, 24, true);
   y -= 34;
   regla(y, 2.2);
   y -= 24;
@@ -203,7 +203,7 @@ export async function GET(
       })
     : "-";
 
-  campo("N° remito", String(numeroRemito), margen, y, 11.5);
+  campo("N° pedido", String(numeroRemito), margen, y, 11.5);
   y -= 26;
 
   campo("Fecha", fechaRemito, margen, y);
@@ -253,7 +253,7 @@ export async function GET(
   return new NextResponse(Buffer.from(pdfBytes), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="remito-${numeroRemito}.pdf"`,
+      "Content-Disposition": `inline; filename="pedido-${numeroRemito}.pdf"`,
     },
   });
 }
