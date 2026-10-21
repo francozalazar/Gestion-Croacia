@@ -10,6 +10,7 @@ export type TrabajoInstalado = {
   direccion: string;
   fechaInstalacion: string | null; // fecha_finalizacion registrada por el tecnico
   tecnico: string;
+  aviso?: string;
 };
 
 const TZ = "America/Argentina/Buenos_Aires";
@@ -58,7 +59,7 @@ export default function TrabajosFinalizadosLista({
           type="date"
           value={fecha}
           onChange={(e) => setFecha(e.target.value)}
-          aria-label="Fecha de instalación"
+          aria-label="Fecha de finalización registrada"
           className="w-full border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-900"
         />
         <button
@@ -75,15 +76,15 @@ export default function TrabajosFinalizadosLista({
 
       {filtrados.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-          No hay trabajos instalados para mostrar.
+          No hay trabajos finalizados para mostrar.
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <div className="hidden grid-cols-[90px_1.2fr_1.4fr_120px_1fr_auto] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase text-slate-500 md:grid">
+          <div className="hidden grid-cols-[90px_1.2fr_1.4fr_140px_1fr_auto] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase text-slate-500 md:grid">
             <span>Pedido</span>
             <span>Cliente</span>
             <span>Dirección</span>
-            <span>Instalado</span>
+            <span>Finalización registrada</span>
             <span>Técnico</span>
             <span className="text-right">Remito</span>
           </div>
@@ -91,16 +92,23 @@ export default function TrabajosFinalizadosLista({
             {filtrados.map((x) => (
               <li
                 key={x.id}
-                className="grid gap-2 px-5 py-4 text-sm md:grid-cols-[90px_1.2fr_1.4fr_120px_1fr_auto] md:items-center md:gap-4"
+                className="grid gap-2 px-5 py-4 text-sm md:grid-cols-[90px_1.2fr_1.4fr_140px_1fr_auto] md:items-center md:gap-4"
               >
                 <span className="font-bold text-slate-900">
                   <span className="text-xs font-medium text-slate-400 md:hidden">Pedido </span>
                   #{x.pedido ?? "-"}
                 </span>
-                <span className="truncate font-semibold text-slate-800">{x.cliente}</span>
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold text-slate-800">{x.cliente}</span>
+                  {x.aviso && (
+                    <span className="mt-1 block border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+                      Revisar: {x.aviso}
+                    </span>
+                  )}
+                </span>
                 <span className="truncate text-slate-700">{x.direccion || "-"}</span>
                 <span className="text-slate-700">
-                  <span className="text-xs text-slate-400 md:hidden">Instalado: </span>
+                  <span className="text-xs text-slate-400 md:hidden">Finalización registrada: </span>
                   {diaLindo(x.fechaInstalacion)}
                 </span>
                 <span className="truncate text-slate-600">{x.tecnico || "-"}</span>
