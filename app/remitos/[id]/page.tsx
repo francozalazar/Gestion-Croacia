@@ -69,13 +69,19 @@ export default async function RemitoPage({
                 {remito.cliente_nombre || "Cliente sin nombre"}
               </p>
             </div>
-            <a
-              href={`/remitos/${remito.id}/pdf`}
-              target="_blank"
-              className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
-            >
-              Descargar PDF
-            </a>
+            {String(remito.observaciones || "").trim() || remito.fecha_finalizado ? (
+              <a
+                href={`/remitos/${remito.id}/pdf`}
+                target="_blank"
+                className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+              >
+                Descargar PDF
+              </a>
+            ) : (
+              <span className="text-sm text-slate-500">
+                Sin detalle cargado todavía: no hay PDF para descargar.
+              </span>
+            )}
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
