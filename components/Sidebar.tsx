@@ -24,15 +24,34 @@ interface SidebarProps {
   rol: string;
 }
 
+// Grupo del menu al que pertenece cada ruta (para dejar abierto el que se esta usando).
+function seccionDeRuta(path: string | null): string | null {
+  if (!path) return null;
+  const en = (...bases: string[]) =>
+    bases.some((b) => path === b || path.startsWith(b + "/"));
+  if (en("/solicitudes-fabrica", "/aprobacion-fabrica", "/produccion", "/listos-para-colocar")) return "fabrica";
+  if (en("/solicitudes", "/coordinacion", "/recorrido-camiones", "/visitas-finalizadas")) return "visitas";
+  if (en("/presupuestos")) return "presupuestos";
+  if (en("/clientes")) return "clientes";
+  if (en("/trabajos")) return "trabajos";
+  return null;
+}
+
 export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
   const pathname = usePathname();
   const supabase = createClient();
 
-  const [seccionAbierta, setSeccionAbierta] = useState<string | null>("visitas");
+  const [seccionAbierta, setSeccionAbierta] = useState<string | null>(
+    seccionDeRuta(pathname)
+  );
   const [menuMovil, setMenuMovil] = useState(false);
 
   useEffect(() => {
     setMenuMovil(false);
+    // Al cambiar de pantalla, queda abierta la seccion en uso.
+    // Las demas se pueden abrir a mano igual.
+    const actual = seccionDeRuta(pathname);
+    if (actual) setSeccionAbierta(actual);
   }, [pathname]);
 
   async function handleLogout() {
