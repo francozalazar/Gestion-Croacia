@@ -56,3 +56,28 @@ revoke truncate, references, trigger on all tables in schema public from authent
 -- drop policy if exists "sf_update_logueados" on public.solicitudes_fabrica;
 -- create policy "sf_select_roles" on public.solicitudes_fabrica for select to authenticated using (public.get_my_role() in ('ADMIN','OFICINA','COORDINACION','FABRICA','TECNICO'));
 -- create policy "sf_update_roles" on public.solicitudes_fabrica for update to authenticated using (public.get_my_role() in ('ADMIN','OFICINA','COORDINACION','FABRICA','TECNICO')) with check (public.get_my_role() in ('ADMIN','OFICINA','COORDINACION','FABRICA','TECNICO'));
+
+-- ============================================================
+-- APLICADO 15:00 en public.solicitudes (visitas)
+-- ============================================================
+-- Antes: policy "Permitir todo a usuarios autenticados en solicitudes" (ALL, true) anulaba las policies por rol
+-- ya existentes (Coordinación modifica, Oficina crea, Oficina y coordinación ven, Técnico actualiza asignado).
+-- Ahora esa policy se eliminó, quedan las existentes + las siguientes, que reflejan lo que hace el código:
+--   TECNICO: ve solo solicitudes que tiene en asignaciones (el código ya las pedía por asignaciones).
+--   FABRICA: ve/actualiza solo solicitudes vinculadas a un pedido de fábrica (solicitud_fabrica_id not null).
+--   OFICINA: puede actualizar solo las vinculadas a pedido de fábrica (EnviarACoordinacion).
+-- Sin delete para nadie. Usuarios sin rol válido: sin acceso.
+-- Pruebas con rollback (usuario real por rol): antes TECNICO y FABRICA veían 31/31; después ADMIN 31, OFICINA 31 (update vinculada OK),
+-- FABRICA 6 (update OK), TECNICO 0 (no tiene asignaciones de visitas), sin rol 0; delete=0 para todos. COORDINACION: no hay usuario para probar (policies previas).
+-- Reversión:
+--   drop policy "sol_select_tecnico_asignado" on public.solicitudes;
+--   drop policy "sol_select_fabrica_vinculada" on public.solicitudes;
+--   drop policy "sol_update_fabrica_vinculada" on public.solicitudes;
+--   drop policy "sol_update_oficina_vinculada" on public.solicitudes;
+--   create policy "Permitir todo a usuarios autenticados en solicitudes" on public.solicitudes for all to authenticated using (true) with check (true);
+-- Código aplicado:
+-- drop policy "Permitir todo a usuarios autenticados en solicitudes" on public.solicitudes;
+-- create policy "sol_select_tecnico_asignado" on public.solicitudes for select to authenticated using (public.get_my_role() = 'TECNICO' and exists (select 1 from public.asignaciones a where a.solicitud_id = solicitudes.id and a.usuario_id = auth.uid()));
+-- create policy "sol_select_fabrica_vinculada" on public.solicitudes for select to authenticated using (public.get_my_role() = 'FABRICA' and solicitud_fabrica_id is not null);
+-- create policy "sol_update_fabrica_vinculada" on public.solicitudes for update to authenticated using (public.get_my_role() = 'FABRICA' and solicitud_fabrica_id is not null) with check (public.get_my_role() = 'FABRICA' and solicitud_fabrica_id is not null);
+-- create policy "sol_update_oficina_vinculada" on public.solicitudes for update to authenticated using (public.get_my_role() = 'OFICINA' and solicitud_fabrica_id is not null) with check (public.get_my_role() = 'OFICINA' and solicitud_fabrica_id is not null);
