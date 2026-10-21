@@ -11,6 +11,12 @@ import Sidebar from "@/components/Sidebar";
 
 const tiposVisita = ["Cortar e instalar"];
 
+const tiposVenta = [
+  { value: "CORTINA", label: "Cortina completa" },
+  { value: "PORTON_LAMA", label: "Portón lama" },
+  { value: "REPARACION", label: "Reparación" },
+];
+
 export default function SolicitudFabricaPage() {
   const supabase = createClient();
   const router = useRouter();
@@ -38,6 +44,9 @@ export default function SolicitudFabricaPage() {
   const [medioPago, setMedioPago] = useState("");
   const [aclaracionPago, setAclaracionPago] = useState("");
 
+  const [renglones, setRenglones] = useState<
+    { tipo: string; cantidad: string }[]
+  >([{ tipo: "", cantidad: "1" }]);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [exito, setExito] = useState(false);
@@ -113,6 +122,20 @@ export default function SolicitudFabricaPage() {
 
     if (!direccion.trim()) {
       setMensaje("Ingresá la dirección.");
+      return;
+    }
+
+    const renglonesValidos = renglones
+      .filter((r) => r.tipo)
+      .map((r) => ({ tipo: r.tipo, cantidad: parseInt(r.cantidad, 10) }));
+    if (
+      renglonesValidos.length === 0 ||
+      renglonesValidos.some((r) => !(r.cantidad >= 1)) ||
+      renglones.some((r) => !r.tipo)
+    ) {
+      setMensaje(
+        "Elegí qué se vende (cortina completa, portón lama o reparación) y la cantidad de cada renglón."
+      );
       return;
     }
 
@@ -221,6 +244,21 @@ export default function SolicitudFabricaPage() {
       setMensaje(error.message);
       setGuardando(false);
       return;
+    }
+
+    // Qué se vende (para estadísticas)
+    if (data) {
+      const { error: errorItems } = await supabase.from("pedido_items").insert(
+        renglonesValidos.map((r) => ({
+          solicitud_fabrica_id: data.id,
+          tipo: r.tipo,
+          cantidad: r.cantidad,
+          creado_por: user.id,
+        }))
+      );
+      if (errorItems) {
+        console.error(errorItems);
+      }
     }
 
     // Venta automática (+ seña como primer pago si la cargaron)
@@ -336,6 +374,75 @@ export default function SolicitudFabricaPage() {
                 setLocalidad={setLocalidad}
                 inputClassName={inputClassName}
               />
+            </div>
+          </section>
+
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Qué se vende
+            </h2>
+            <div className="mt-5 space-y-3">
+              {renglones.map((r, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <select
+                    value={r.tipo}
+                    onChange={(e) =>
+                      setRenglones(
+                        renglones.map((x, j) =>
+                          j === i ? { ...x, tipo: e.target.value } : x
+                        )
+                      )
+                    }
+                    className={inputClassName}
+                    disabled={exito}
+                  >
+                    <option value="">Elegí qué es...</option>
+                    {tiposVenta.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={r.cantidad}
+                    onChange={(e) =>
+                      setRenglones(
+                        renglones.map((x, j) =>
+                          j === i ? { ...x, cantidad: e.target.value } : x
+                        )
+                      )
+                    }
+                    className={inputClassName + " max-w-[6rem]"}
+                    disabled={exito}
+                    aria-label="Cantidad"
+                  />
+                  {renglones.length > 1 && !exito && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRenglones(renglones.filter((_, j) => j !== i))
+                      }
+                      className="rounded-lg px-3 py-2 text-sm text-red-700 hover:bg-red-50"
+                    >
+                      Quitar
+                    </button>
+                  )}
+                </div>
+              ))}
+              {!exito && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRenglones([...renglones, { tipo: "", cantidad: "1" }])
+                  }
+                  className="text-sm font-medium text-blue-700 hover:underline"
+                >
+                  + Agregar otro renglón
+                </button>
+              )}
             </div>
           </section>
 
@@ -558,4 +665,4 @@ export default function SolicitudFabricaPage() {
     </main>
     </div>
   );
-}
+                }
