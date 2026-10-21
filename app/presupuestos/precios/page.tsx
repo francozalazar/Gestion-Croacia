@@ -1,5 +1,6 @@
 "use client";
 
+import { requierePrecio } from "@/lib/tipoVisita";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
@@ -56,20 +57,9 @@ export default function SeccionPreciosAdminPage() {
       return;
     }
 
-    const solicitudesLista = (solData || []).filter((solicitud) => {
-      const tipo = String(solicitud.tipo_visita || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
-        .trim();
-
-      return (
-        tipo.includes("presupuesto") ||
-        tipo.includes("mantenimiento") ||
-        tipo.includes("instalacion") ||
-        tipo.includes("urgencia")
-      );
-    });
+    const solicitudesLista = (solData || []).filter((solicitud) =>
+      requierePrecio(solicitud.tipo_visita)
+    );
 
     if (solicitudesLista.length > 0) {
       const ids = solicitudesLista.map((s) => s.id);
