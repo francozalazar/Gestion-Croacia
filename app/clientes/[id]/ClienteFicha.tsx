@@ -347,7 +347,7 @@ export default function ClienteFicha({
                               href={`/remitos/${v.solicitud_fabrica_id}`}
                               className="inline-block text-xs font-semibold text-blue-600 hover:underline"
                             >
-                              Ver remito →
+                              Ver pedido →
                             </Link>
                           </span>
                         ) : v.solicitud_id ? (
@@ -572,7 +572,7 @@ export default function ClienteFicha({
         <h2 className="mb-4 text-lg font-bold text-slate-900">Historial</h2>
         {Object.keys(historial).length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-            No hay visitas ni remitos todavía.
+            No hay visitas ni pedidos de fábrica todavía.
           </div>
         ) : (
           Object.entries(historial).map(([dir, items]) => (
@@ -600,7 +600,7 @@ export default function ClienteFicha({
                         }`}
                       >
                         {it.tipo === "remito"
-                          ? `Remito #${it.numero_remito || it.id}`
+                          ? `Pedido #${it.numero_remito || it.id}`
                           : `Visita #${it.numero || it.id}`}
                       </span>
                       <span className="text-sm text-slate-700">
