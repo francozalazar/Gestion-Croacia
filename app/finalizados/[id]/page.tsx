@@ -56,6 +56,38 @@ export default async function ComprobantePage({
     .eq("id", solicitud.cliente_id)
     .single();
 
+  if (!solicitud.fecha_finalizacion) {
+    return (
+      <div className="min-h-screen bg-slate-100">
+        <Sidebar
+          nombre={profile.nombre}
+          apellido={profile.apellido || ""}
+          rol={profile.rol}
+        />
+        <main className="ml-0 md:ml-64 min-h-screen bg-slate-50 p-6 pt-20 md:pt-8">
+          <div className="mx-auto max-w-4xl">
+            <div className="mb-6">
+              <VolverLink
+                fallback="/finalizados"
+                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+              />
+            </div>
+            <div className="rounded-2xl bg-white p-8 shadow-sm">
+              <h1 className="text-xl font-bold text-slate-900">
+                Este trabajo todavía no fue finalizado
+              </h1>
+              <p className="mt-2 text-sm text-slate-600">
+                Trabajo #{solicitud.id}
+                {cliente?.nombre ? ` · ${cliente.nombre}` : ""}. El comprobante
+                se genera cuando el técnico finaliza el trabajo.
+              </p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100">
       <Sidebar
