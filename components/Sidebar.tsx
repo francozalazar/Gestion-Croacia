@@ -151,17 +151,6 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                 <Factory size={18} className="text-amber-400" />
                 <span>Trabajos a realizar</span>
               </Link>
-              <Link
-                href="/produccion"
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                  pathname === "/produccion"
-                    ? "bg-amber-600 text-white"
-                    : "hover:bg-slate-800 hover:text-white"
-                }`}
-              >
-                <Hammer size={18} className="text-amber-400" />
-                <span>Producción</span>
-              </Link>
             </div>
           ) : esTecnico ? (
             /* MENÚ EXCLUSIVO PARA TÉCNICOS */
