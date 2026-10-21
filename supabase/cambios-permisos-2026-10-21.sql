@@ -126,3 +126,12 @@ revoke truncate, references, trigger on all tables in schema public from authent
 -- Prueba rollback: OFICINA 42501, TECNICO 42501, ADMIN OK.
 -- Reversion: recrear la funcion sin el bloque "if ... raise exception 'Sin permiso para asignar'" (cuerpo anterior en el commit 2580dad).
 -- Pendiente (decision de negocio): asignaciones_delete_logueados permite borrar a cualquier logueado.
+
+-- ============================================================
+-- APLICADO 16:24: solicitudes_fabrica, OFICINA y COORDINACION limitadas a lo que la app ya escribe
+-- ============================================================
+-- Columnas que el codigo escribe con esos roles (update): estado, fecha, horario_desde, horario_hasta, observaciones,
+-- fecha_enviada_cortar, fecha_finalizado (EnviarACoordinacion, coordinacion, AsignarSolicitud, aprobacion-fabrica). ADMIN sin limite.
+-- FABRICA/TECNICO siguen solo con "estado". Insert/delete sin cambios (policies).
+-- Prueba rollback: OFICINA permitidas=1 fila, otra columna (direccion) 42501; ADMIN ambas OK. COORDINACION sin usuario para probar (misma rama de codigo que OFICINA).
+-- Reversion: recrear sf_restringir_update con la rama OFICINA/COORDINACION "return new" (version anterior arriba en este archivo).
