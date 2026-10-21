@@ -98,21 +98,16 @@ export default async function FabricaPage() {
         </div>
 
         {/* RESUMEN / CONTADORES */}
-        <div className="mb-8 grid gap-5 md:grid-cols-3">
+        <div className="mb-8 grid gap-5 md:grid-cols-2">
           <div className="rounded-xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">En corte / Asignados</p>
-            <p className="mt-2 text-3xl font-bold text-slate-900">{enCorte}</p>
-          </div>
-
-          <div className="rounded-xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">En fabricación</p>
+            <p className="text-sm text-slate-500">En producción</p>
             <p className="mt-2 text-3xl font-bold text-blue-600">
-              {enFabricacion}
+              {enCorte + enFabricacion}
             </p>
           </div>
 
           <div className="rounded-xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Con faltantes</p>
+            <p className="text-sm text-slate-500">Faltantes</p>
             <p className="mt-2 text-3xl font-bold text-amber-600">{faltantes}</p>
           </div>
         </div>
@@ -142,10 +137,10 @@ export default async function FabricaPage() {
 
             const textoEstado =
               estadoActual === "ENVIADO_A_CORTAR" || estadoActual === "EN_CORTE"
-                ? "Pendiente"
+                ? "En producción"
                 : estadoActual === "EN_FABRICACION" ||
                   estadoActual === "EN_FABRICA"
-                  ? "En proceso"
+                  ? "En producción"
                   : estadoActual === "FALTANTES"
                     ? "Faltantes"
                     : estadoActual;
@@ -294,7 +289,7 @@ export default async function FabricaPage() {
                             : "bg-blue-50 text-blue-700 hover:bg-blue-100"
                         }`}
                       >
-                        En proceso
+                        En producción
                       </button>
                     </form>
 
