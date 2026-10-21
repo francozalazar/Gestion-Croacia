@@ -254,13 +254,19 @@ export default function AprobacionFabricaPage() {
                           </span>
                         ) : (
                           enviadoACortar && (
-                            <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-red-100 text-red-800">
-                              Saldo Restante: $
-                              {(s.cuenta
-                                ? s.cuenta.saldo
-                                : s.saldo_restante || 0
-                              ).toLocaleString()}
-                            </span>
+                            (s.cuenta || s.saldo_restante != null) ? (
+                              <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-red-100 text-red-800">
+                                Saldo Restante: $
+                                {(s.cuenta
+                                  ? s.cuenta.saldo
+                                  : Number(s.saldo_restante)
+                                ).toLocaleString()}
+                              </span>
+                            ) : (
+                              <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-slate-100 text-slate-700">
+                                Saldo sin dato
+                              </span>
+                            )
                           )
                         )}
                       </div>
@@ -328,13 +334,19 @@ export default function AprobacionFabricaPage() {
                   </span>
                 ) : (
                   modalRemito.estado === "ENVIADO_A_CORTAR" && (
-                    <span className="text-xs px-3 py-1 rounded-md font-semibold bg-red-100 text-red-800">
-                      Saldo pendiente: $
-                      {(modalRemito.cuenta
-                        ? modalRemito.cuenta.saldo
-                        : modalRemito.saldo_restante || 0
-                      ).toLocaleString()}
-                    </span>
+                    (modalRemito.cuenta || modalRemito.saldo_restante != null) ? (
+                      <span className="text-xs px-3 py-1 rounded-md font-semibold bg-red-100 text-red-800">
+                        Saldo pendiente: $
+                        {(modalRemito.cuenta
+                          ? modalRemito.cuenta.saldo
+                          : Number(modalRemito.saldo_restante)
+                        ).toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-xs px-3 py-1 rounded-md font-semibold bg-slate-100 text-slate-700">
+                        Saldo sin dato
+                      </span>
+                    )
                   )
                 )}
               </div>
@@ -392,7 +404,7 @@ export default function AprobacionFabricaPage() {
                             : `$${modalRemito.cuenta.saldo.toLocaleString()}`
                           : modalRemito.saldo_restante !== null && modalRemito.saldo_restante !== undefined
                           ? `$${modalRemito.saldo_restante.toLocaleString()}`
-                          : "$0"}
+                          : "Sin dato"}
                       </p>
                     </div>
 
