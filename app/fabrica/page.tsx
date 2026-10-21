@@ -125,7 +125,7 @@ export default async function FabricaPage() {
               No hay trabajos pendientes en fábrica
             </h2>
             <p className="mt-2 text-sm text-slate-500">
-              Cuando administración apruebe y envíe un remito, aparecerá acá.
+              Cuando administración apruebe y envíe un pedido, aparecerá acá.
             </p>
           </div>
         )}
@@ -154,7 +154,7 @@ export default async function FabricaPage() {
                   <div>
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-lg font-bold text-slate-900">
-                        Remito Nº {solicitud.numero_remito}
+                        Pedido Nº {solicitud.numero_remito}
                       </span>
 
                       <span
