@@ -97,6 +97,19 @@ export async function GET(
     );
   }
 
+  let fechaFinalizacion = "-";
+  if (datos.fecha_finalizacion) {
+    fechaFinalizacion = new Date(datos.fecha_finalizacion).toLocaleDateString(
+      "es-AR",
+      {
+        timeZone: "America/Argentina/Buenos_Aires",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }
+    );
+  }
+
   const pdf = await PDFDocument.create();
   const fuente = await pdf.embedFont(StandardFonts.Helvetica);
   const fuenteNegrita = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -259,8 +272,11 @@ export async function GET(
   campo("N° remito", String(numeroRemito), margen, y, 11.5);
   y -= 26;
 
-  campo("Fecha", fechaVisita, margen, y);
-  campo("Cliente", clienteNombre, 175, y);
+  campo("Fecha pactada", fechaVisita, margen, y);
+  campo("Finalización registrada", fechaFinalizacion, 260, y);
+  y -= 24;
+
+  campo("Cliente", clienteNombre, margen, y);
   campo("Contacto", contacto, 430, y);
   y -= 24;
 
