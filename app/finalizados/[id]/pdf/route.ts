@@ -47,6 +47,13 @@ export async function GET(
     return new NextResponse("Trabajo no encontrado", { status: 404 });
   }
 
+  if (!solicitud.fecha_finalizacion) {
+    return new NextResponse(
+      "El comprobante se genera cuando el técnico finaliza el trabajo.",
+      { status: 409 }
+    );
+  }
+
   const { data: asignacion } = await supabase
     .from("asignaciones")
     .select("usuario_id, tipo")
