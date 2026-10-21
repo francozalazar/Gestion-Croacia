@@ -63,7 +63,7 @@ export default async function RemitoPage({
           <div className="mt-3 mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-                Remito #{remito.numero_remito || remito.id}
+                Pedido de fábrica #{remito.numero_remito || remito.id}
               </h1>
               <p className="mt-1 text-sm text-slate-500">
                 {remito.cliente_nombre || "Cliente sin nombre"}
