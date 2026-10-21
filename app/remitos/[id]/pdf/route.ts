@@ -206,7 +206,7 @@ export async function GET(
   campo("N° pedido", String(numeroRemito), margen, y, 11.5);
   y -= 26;
 
-  campo("Fecha", fechaRemito, margen, y);
+  campo("Fecha solicitada", fechaRemito, margen, y);
   campo("Cliente", remito.cliente_nombre || "-", 175, y);
   if (remito.cliente_telefono) campo("Teléfono", remito.cliente_telefono, 430, y);
   y -= 24;
@@ -215,7 +215,15 @@ export async function GET(
   campo("Localidad", String(remito.localidad || "-").toUpperCase(), 350, y);
   y -= 24;
 
-  campo("Estado", String(remito.estado || "-").replaceAll("_", " "), margen, y);
+  // PRESUPUESTADO / PENDIENTE_PRECIO en un pedido de fabrica es un estado que
+  // deja la finalizacion del tecnico: no dice en que etapa de fabrica estaba.
+  const estadoLegado = ["PRESUPUESTADO", "PENDIENTE_PRECIO"].includes(String(remito.estado));
+  campo(
+    "Estado",
+    estadoLegado ? "Sin dato concluyente" : String(remito.estado || "-").replaceAll("_", " "),
+    margen,
+    y
+  );
   if (remito.tipo_visita) campo("Tipo", remito.tipo_visita, 300, y);
   y -= 24;
 
