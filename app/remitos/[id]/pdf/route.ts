@@ -38,6 +38,13 @@ export async function GET(
     return new NextResponse("Remito no encontrado", { status: 404 });
   }
 
+  if (!String(remito.observaciones || "").trim() && !remito.fecha_finalizado) {
+    return new NextResponse(
+      "Este pedido todavía no tiene detalle cargado: no hay documento para descargar.",
+      { status: 409 }
+    );
+  }
+
   const pdf = await PDFDocument.create();
   const fuente = await pdf.embedFont(StandardFonts.Helvetica);
   const negrita = await pdf.embedFont(StandardFonts.HelveticaBold);
