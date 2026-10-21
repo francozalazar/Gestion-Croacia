@@ -398,7 +398,7 @@ export async function GET(
 
       pagina.drawImage(imagen, {
         x: margen + 30,
-        y: zonaFirmaY - 55,
+        y: zonaFirmaY - 38,
         width: imagen.width * escala,
         height: imagen.height * escala,
       });
