@@ -1,0 +1,561 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/cliente";
+import ClienteAutocomplete from "@/components/ClienteAutocomplete";
+import { resolverClienteYDireccion } from "@/lib/clientes";
+import { useRouter } from "next/navigation";
+import { Clock, BellRing, ArrowLeft, CheckCircle2 } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
+
+const tiposVisita = ["Cortar e instalar"];
+
+export default function SolicitudFabricaPage() {
+  const supabase = createClient();
+  const router = useRouter();
+
+  const [cliente, setCliente] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [localidad, setLocalidad] = useState("");
+
+  const [fecha, setFecha] = useState("");
+  const [franjaHoraria, setFranjaHoraria] = useState("");
+  const [preferencia, setPreferencia] = useState("");
+  const [tipoVisita, setTipoVisita] = useState("");
+
+  const [observaciones, setObservaciones] = useState("");
+
+  const [total, setTotal] = useState("");
+  const [saldo, setSaldo] = useState("");
+
+  const [senaPorcentaje, setSenaPorcentaje] = useState("");
+  const [senaPesos, setSenaPesos] = useState("");
+  const [ultimaEdicionSena, setUltimaEdicionSena] = useState<
+    "porcentaje" | "pesos" | null
+  >(null);
+
+  const [medioPago, setMedioPago] = useState("");
+  const [aclaracionPago, setAclaracionPago] = useState("");
+
+  const [guardando, setGuardando] = useState(false);
+  const [mensaje, setMensaje] = useState("");
+  const [exito, setExito] = useState(false);
+  const [perfil, setPerfil] = useState<any>(null);
+
+  useEffect(() => {
+    async function cargarPerfil() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("nombre, apellido, rol")
+        .eq("id", user.id)
+        .single();
+
+      setPerfil(data);
+    }
+
+    cargarPerfil();
+  }, []);
+
+  useEffect(() => {
+    const totalNum = parseFloat(total) || 0;
+    const porcNum = parseFloat(senaPorcentaje) || 0;
+    let pesosNum = parseFloat(senaPesos) || 0;
+
+    if (totalNum > 0) {
+      // Lo que se editó último manda: el otro campo se calcula solo.
+      if (ultimaEdicionSena === "pesos") {
+        if (senaPesos === "") {
+          if (senaPorcentaje !== "") setSenaPorcentaje("");
+        } else {
+          const porcCalculado =
+            Math.round((pesosNum / totalNum) * 100 * 100) / 100;
+          const porcStr = porcCalculado.toString();
+          if (porcStr !== senaPorcentaje) {
+            setSenaPorcentaje(porcStr);
+          }
+        }
+      } else if (ultimaEdicionSena === "porcentaje") {
+        if (senaPorcentaje === "") {
+          if (senaPesos !== "") setSenaPesos("");
+          pesosNum = 0;
+        } else {
+          const pesosCalculado =
+            Math.round(((totalNum * porcNum) / 100) * 100) / 100;
+          const pesosStr = pesosCalculado.toString();
+          if (pesosStr !== senaPesos) {
+            setSenaPesos(pesosStr);
+            pesosNum = pesosCalculado;
+          }
+        }
+      }
+
+      const saldoCalculado = totalNum - pesosNum;
+      setSaldo(saldoCalculado >= 0 ? saldoCalculado.toString() : "0");
+    } else {
+      setSaldo("");
+    }
+  }, [total, senaPorcentaje, senaPesos, ultimaEdicionSena]);
+
+  async function guardarSolicitud() {
+    setMensaje("");
+
+    if (!cliente.trim()) {
+      setMensaje("Ingresá el nombre del cliente.");
+      return;
+    }
+
+    if (!direccion.trim()) {
+      setMensaje("Ingresá la dirección.");
+      return;
+    }
+
+    setGuardando(true);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setMensaje("No se pudo identificar al usuario.");
+      setGuardando(false);
+      return;
+    }
+
+    let hDesde = null;
+    let hHasta = null;
+    if (franjaHoraria === "mañana") {
+      hDesde = "08:00";
+      hHasta = "12:00";
+    } else if (franjaHoraria === "tarde") {
+      hDesde = "13:00";
+      hHasta = "17:00";
+    } else if (franjaHoraria === "completo") {
+      hDesde = "08:00";
+      hHasta = "17:00";
+    }
+
+    const observacionesFinales = preferencia.trim()
+      ? `[Aviso: ${preferencia.trim()}]\n${observaciones.trim()}`
+      : observaciones.trim() || null;
+
+    const { clienteId, direccionId } = await resolverClienteYDireccion(
+      supabase,
+      {
+        nombre: cliente,
+        direccion,
+        localidad,
+        userId: user.id,
+      }
+    );
+
+    let { data, error } = await supabase
+      .from("solicitudes_fabrica")
+      .insert({
+        cliente_id: clienteId,
+        cliente_nombre: cliente.trim(),
+        cliente_telefono: null,
+
+        direccion: direccion.trim(),
+        localidad: localidad.trim() || null,
+
+        fecha: fecha || null,
+        horario_desde: hDesde,
+        horario_hasta: hHasta,
+        tipo_visita: tipoVisita.trim() || null,
+
+        observaciones: observacionesFinales,
+
+        total_pesos: total ? Number(total) : null,
+        saldo_restante: saldo ? Number(saldo) : null,
+
+        sena_porcentaje: senaPorcentaje ? Number(senaPorcentaje) : null,
+        sena_pesos: senaPesos ? Number(senaPesos) : null,
+
+        medio_pago: medioPago || null,
+        aclaracion_pago: aclaracionPago.trim() || null,
+
+        estado: "PENDIENTE_APROBACION",
+        creado_por: user.id,
+      })
+      .select("id, numero_remito")
+      .single();
+
+    if (error && clienteId) {
+      // Reintento sin cliente_id por si falta correr el SQL nuevo
+      const reintento = await supabase
+        .from("solicitudes_fabrica")
+        .insert({
+          cliente_nombre: cliente.trim(),
+          cliente_telefono: null,
+          direccion: direccion.trim(),
+          localidad: localidad.trim() || null,
+          fecha: fecha || null,
+          horario_desde: hDesde,
+          horario_hasta: hHasta,
+          tipo_visita: tipoVisita.trim() || null,
+          observaciones: observacionesFinales,
+          total_pesos: total ? Number(total) : null,
+          saldo_restante: saldo ? Number(saldo) : null,
+          sena_porcentaje: senaPorcentaje ? Number(senaPorcentaje) : null,
+          sena_pesos: senaPesos ? Number(senaPesos) : null,
+          medio_pago: medioPago || null,
+          aclaracion_pago: aclaracionPago.trim() || null,
+          estado: "PENDIENTE_APROBACION",
+          creado_por: user.id,
+        })
+        .select("id, numero_remito")
+        .single();
+      data = reintento.data;
+      error = reintento.error;
+    }
+
+    if (error) {
+      console.error(error);
+      setMensaje(error.message);
+      setGuardando(false);
+      return;
+    }
+
+    // Venta automática (+ seña como primer pago si la cargaron)
+    if (clienteId && data) {
+      try {
+        const { data: venta } = await supabase
+          .from("ventas")
+          .insert({
+            cliente_id: clienteId,
+            direccion_id: direccionId,
+            descripcion: `Remito fábrica #${data.numero_remito}`,
+            total: total ? Number(total) : 0,
+            solicitud_fabrica_id: data.id,
+            creado_por: user.id,
+          })
+          .select("id")
+          .single();
+
+        const senaNum = parseFloat(senaPesos) || 0;
+        if (venta && senaNum > 0) {
+          await supabase.from("pagos").insert({
+            venta_id: venta.id,
+            monto: senaNum,
+            fecha: new Date().toISOString().slice(0, 10),
+            medio: [medioPago, aclaracionPago.trim()].filter(Boolean).join(" - ") || null,
+            creado_por: user.id,
+          });
+        }
+      } catch {
+        // Si todavía no existen las tablas de ventas, no pasa nada
+      }
+    }
+
+    setExito(true);
+    setMensaje(
+      `¡Remito Nº ${data?.numero_remito} cargado correctamente! Redirigiendo...`
+    );
+
+    setGuardando(false);
+
+    setTimeout(() => {
+      router.push("/dashboard");
+      router.refresh();
+    }, 2000);
+  }
+
+  const inputClassName =
+    "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      {perfil && (
+        <Sidebar
+          nombre={perfil.nombre || "Usuario"}
+          apellido={perfil.apellido || ""}
+          rol={perfil.rol || "OFICINA"}
+        />
+      )}
+
+      <main className="ml-0 min-h-screen bg-slate-50 p-6 md:ml-64 md:p-8 pt-20 md:pt-8">
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-6">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+          >
+            <ArrowLeft size={18} />
+            Volver al inicio
+          </Link>
+        </div>
+
+        <div className="mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+            Nuevo remito para fábrica
+          </h1>
+
+          <p className="mt-2 text-slate-600">
+            Cargá todos los datos del cliente y de la cortina.
+          </p>
+        </div>
+
+        {mensaje && (
+          <div
+            className={`mb-6 flex items-center gap-3 rounded-xl border p-4 text-sm font-medium shadow-sm ${
+              exito
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-red-200 bg-red-50 text-red-700"
+            }`}
+          >
+            {exito && (
+              <CheckCircle2
+                size={20}
+                className="text-emerald-600 flex-shrink-0"
+              />
+            )}
+            {mensaje}
+          </div>
+        )}
+
+        <div className="space-y-6">
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Datos del cliente
+            </h2>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <ClienteAutocomplete
+                cliente={cliente}
+                setCliente={setCliente}
+                direccion={direccion}
+                setDireccion={setDireccion}
+                localidad={localidad}
+                setLocalidad={setLocalidad}
+                inputClassName={inputClassName}
+              />
+            </div>
+          </section>
+
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Datos de la solicitud
+            </h2>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Fecha</label>
+                <input
+                  type="date"
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                  className={inputClassName}
+                  disabled={exito}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Tipo de visita
+                </label>
+                <select
+                  value={tipoVisita}
+                  onChange={(e) => setTipoVisita(e.target.value)}
+                  className={inputClassName}
+                  disabled={exito}
+                >
+                  <option value="">Seleccionar...</option>
+                  {tiposVisita.map((tipo) => (
+                    <option key={tipo} value={tipo}>
+                      {tipo}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 flex items-center gap-2 text-sm font-medium">
+                  <Clock size={16} /> Franja Horaria
+                </label>
+                <select
+                  value={franjaHoraria}
+                  onChange={(e) => setFranjaHoraria(e.target.value)}
+                  className={inputClassName}
+                  disabled={exito}
+                >
+                  <option value="">Coordinar con cliente...</option>
+                  <option value="mañana">Por la mañana (08:00 a 12:00)</option>
+                  <option value="tarde">Por la tarde (13:00 a 17:00)</option>
+                  <option value="completo">Día completo (08:00 a 17:00)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 flex items-center gap-2 text-sm font-medium">
+                  <BellRing size={16} /> Aviso / Preferencia
+                </label>
+                <input
+                  type="text"
+                  value={preferencia}
+                  onChange={(e) => setPreferencia(e.target.value)}
+                  placeholder="Ej: Avisar media hora antes..."
+                  className={inputClassName}
+                  disabled={exito}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium">
+                Observaciones / datos de la cortina
+              </label>
+              <textarea
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                placeholder="Cargá acá toda la información de la cortina..."
+                rows={7}
+                className={`${inputClassName} resize-none`}
+                disabled={exito}
+              />
+            </div>
+          </section>
+
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Datos comerciales
+            </h2>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Total en pesos
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={total}
+                  onChange={(e) => setTotal(e.target.value)}
+                  placeholder="Ej: 850000"
+                  className={inputClassName}
+                  disabled={exito}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Saldo restante (Automático)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={saldo}
+                  readOnly
+                  placeholder="Se calcula solo..."
+                  className="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-slate-700 outline-none cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Seña (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={senaPorcentaje}
+                  onChange={(e) => {
+                    setSenaPorcentaje(e.target.value);
+                    setUltimaEdicionSena("porcentaje");
+                  }}
+                  placeholder="Ej: 50"
+                  className={inputClassName}
+                  disabled={exito}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Seña ($)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={senaPesos}
+                  onChange={(e) => {
+                    setSenaPesos(e.target.value);
+                    setUltimaEdicionSena("pesos");
+                  }}
+                  placeholder="Ej: 425000"
+                  className={inputClassName}
+                  disabled={exito}
+                />
+              </div>
+            </div>
+
+            {(parseFloat(senaPesos) || 0) > (parseFloat(total) || 0) &&
+              (parseFloat(total) || 0) > 0 && (
+                <p className="mt-2 text-sm font-medium text-red-600">
+                  La seña es mayor al total. Revisá el monto.
+                </p>
+              )}
+
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium">
+                Medio de pago
+              </label>
+              <select
+                value={medioPago}
+                onChange={(e) => setMedioPago(e.target.value)}
+                className={inputClassName}
+                disabled={exito}
+              >
+                <option value="">Seleccionar medio de pago</option>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Santander">Santander</option>
+                <option value="Mercado Pago">Mercado Pago</option>
+                <option value="Cuenta corriente">Cuenta corriente</option>
+              </select>
+            </div>
+
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium">
+                Aclaración de pago / Facturación
+              </label>
+              <input
+                type="text"
+                value={aclaracionPago}
+                onChange={(e) => setAclaracionPago(e.target.value)}
+                placeholder="Ej: Le pagaron a Juanjo / Factura A N° 0001-..."
+                className={inputClassName}
+                disabled={exito}
+              />
+            </div>
+          </section>
+
+          <button
+            type="button"
+            onClick={guardarSolicitud}
+            disabled={guardando || exito}
+            className="w-full rounded-xl bg-slate-900 px-5 py-4 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {guardando
+              ? "Guardando remito..."
+              : exito
+              ? "¡Remito guardado con éxito!"
+              : "Crear remito y enviar a aprobación"}
+          </button>
+        </div>
+      </div>
+    </main>
+    </div>
+  );
+}
