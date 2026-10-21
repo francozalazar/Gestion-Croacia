@@ -33,7 +33,7 @@ function seccionDeRuta(path: string | null): string | null {
   if (en("/solicitudes-fabrica", "/aprobacion-fabrica", "/produccion", "/listos-para-colocar", "/trabajos-finalizados")) return "fabrica";
   if (en("/solicitudes", "/coordinacion", "/recorrido-camiones", "/visitas-finalizadas")) return "visitas";
   if (en("/presupuestos")) return "presupuestos";
-  if (en("/saldos-pendientes", "/estadisticas")) return "administracion";
+  if (en("/saldos-pendientes", "/estadisticas", "/usuarios")) return "administracion";
   if (en("/clientes")) return "clientes";
   if (en("/trabajos")) return "trabajos";
   return null;
@@ -333,6 +333,16 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                         }`}
                       >
                         • Saldos pendientes
+                      </Link>
+                      <Link
+                        href="/usuarios"
+                        className={`block py-2 text-xs font-medium transition ${
+                          pathname === "/usuarios"
+                            ? "text-rose-400 font-bold"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        • Usuarios
                       </Link>
                     </div>
                   )}
