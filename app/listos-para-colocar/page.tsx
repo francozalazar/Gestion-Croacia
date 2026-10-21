@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
-import EnviarACoordinacion from "@/components/EnviarACoordinacion";
+import ListosLista from "@/components/ListosLista";
 import Link from "next/link";
 import {
   Factory,
@@ -107,57 +107,7 @@ export default async function ListosParaColocarPage() {
           )}
 
         {solicitudes && solicitudes.length > 0 && (
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <div className="hidden grid-cols-[90px_1.2fr_1.4fr_110px_auto] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase text-slate-500 md:grid">
-              <span>Pedido</span>
-              <span>Cliente</span>
-              <span>Dirección</span>
-              <span>Fecha</span>
-              <span className="text-right">Acción</span>
-            </div>
-            <ul className="divide-y divide-slate-100">
-              {solicitudes.map((solicitud) => (
-                <li
-                  key={solicitud.id}
-                  className="grid gap-2 px-5 py-4 text-sm md:grid-cols-[90px_1.2fr_1.4fr_110px_auto] md:items-center md:gap-4"
-                >
-                  <span className="font-bold text-slate-900">
-                    <span className="md:hidden text-xs font-medium text-slate-400">Pedido </span>
-                    #{solicitud.numero_remito}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-800">
-                      {solicitud.cliente_nombre || "-"}
-                    </p>
-                    <p className="truncate text-xs text-slate-500">
-                      {solicitud.tipo_visita || "Sin tipo especificado"}
-                      {solicitud.cliente_telefono ? ` - ${solicitud.cliente_telefono}` : ""}
-                    </p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-slate-700">
-                      {solicitud.direccion || "-"}
-                      {solicitud.localidad ? ` - ${solicitud.localidad}` : ""}
-                    </p>
-                    {solicitud.observaciones && (
-                      <p className="line-clamp-2 text-xs text-slate-500">
-                        {solicitud.observaciones}
-                      </p>
-                    )}
-                  </div>
-                  <span className="text-slate-700">
-                    <span className="md:hidden text-xs text-slate-400">Fecha solicitada: </span>
-                    {solicitud.fecha
-                      ? new Date(`${solicitud.fecha}T12:00:00`).toLocaleDateString("es-AR")
-                      : "-"}
-                  </span>
-                  <div className="md:text-right">
-                    <EnviarACoordinacion solicitud={solicitud} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <ListosLista solicitudes={solicitudes} />
         )}
       </main>
     </div>
