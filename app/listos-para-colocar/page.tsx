@@ -121,7 +121,7 @@ export default async function ListosParaColocarPage() {
               <div className="flex flex-col justify-between gap-4 border-b border-slate-100 pb-5 md:flex-row">
                 <div>
                   <span className="text-lg font-bold text-slate-900">
-                    Remito Nº {solicitud.numero_remito}
+                    Pedido Nº {solicitud.numero_remito}
                   </span>
 
                   <p className="mt-2 text-sm text-slate-500">
