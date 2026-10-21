@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { leerRecorrido } from "@/components/NavTracker";
 
 export default function VolverLink({
   fallback,
@@ -15,7 +16,9 @@ export default function VolverLink({
     <button
       type="button"
       onClick={() => {
-        if (window.history.length > 1) {
+        // Solo vuelve atras si hay una pantalla anterior DE LA APP en esta pestana.
+        // Si se entro directo o desde afuera, va al destino de respaldo.
+        if (leerRecorrido().length >= 2) {
           router.back();
         } else {
           router.push(fallback);
