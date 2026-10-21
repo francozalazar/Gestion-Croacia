@@ -24,7 +24,8 @@ export default async function ClientesPage() {
   let query = supabase
     .from("clientes")
     .select("id, nombre, direccion, localidad, creado_por, created_at")
-    .order("nombre");
+    .order("created_at", { ascending: false, nullsFirst: false })
+    .order("id", { ascending: false });
 
   if (!esAdmin) {
     query = query.or(`creado_por.eq.${user.id},creado_por.is.null`);
