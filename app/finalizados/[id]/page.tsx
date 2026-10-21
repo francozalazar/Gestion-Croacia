@@ -74,12 +74,18 @@ export default async function ComprobantePage({
               className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
             />
 
-            <Link
-              href={`/finalizados/${solicitud.id}/pdf`}
-              className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-            >
-              ↓ Descargar PDF
-            </Link>
+            {solicitud.fecha_finalizacion ? (
+              <Link
+                href={`/finalizados/${solicitud.id}/pdf`}
+                className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+              >
+                ↓ Descargar PDF
+              </Link>
+            ) : (
+              <span className="self-center text-sm text-slate-500">
+                El comprobante se puede descargar cuando el técnico finaliza el trabajo.
+              </span>
+            )}
 
           </div>
 
