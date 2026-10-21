@@ -3,6 +3,7 @@ import { textoFranja } from "@/lib/franjas";
 import { redirect, notFound } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
+import { requierePrecio } from "@/lib/tipoVisita";
 import VolverLink from "@/components/VolverLink";
 import {
   ArrowLeft,
@@ -596,7 +597,7 @@ export default async function FichaPage({
           </div>
 
           {/* PRESUPUESTO CON VIGENCIA */}
-          {estadoSol === "PRESUPUESTADO" && (
+          {estadoSol === "PRESUPUESTADO" && requierePrecio(solicitud?.tipo_visita) && (
             <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
               <div className="flex items-center gap-2">
                 <DollarSign size={18} className="text-emerald-600" />
@@ -653,37 +654,6 @@ export default async function FichaPage({
               )}
             </div>
           )}
-
-          {/* ACCESOS */}
-          <div className="mb-6 flex flex-wrap gap-3">
-            {remito && (
-              <Link
-                href={`/remitos/${remito.id}/pdf`}
-                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white hover:bg-slate-700"
-              >
-                <FileText size={14} />
-                Ver pedido PDF
-              </Link>
-            )}
-            {remito && ["ADMIN"].includes(perfil?.rol || "") && (
-              <Link
-                href={`/aprobacion-fabrica/${remito.id}`}
-                className="inline-flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-700 border border-amber-100 hover:bg-amber-100"
-              >
-                <Factory size={14} />
-                Aprobacion de fabrica
-              </Link>
-            )}
-            {clienteId && (
-              <Link
-                href={`/clientes/${clienteId}`}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-2.5 text-xs font-semibold text-blue-700 border border-blue-100 hover:bg-blue-100"
-              >
-                <User size={14} />
-                Ficha del cliente
-              </Link>
-            )}
-          </div>
 
           {/* LINEA DE TIEMPO */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
