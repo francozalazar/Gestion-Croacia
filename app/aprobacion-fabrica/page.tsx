@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
+import { cargarCuentas, fechaCarga } from "@/lib/saldoPedido";
 import Sidebar from "@/components/Sidebar";
 import { CheckCircle2, User, Scissors, X, ArrowRight, ShieldAlert, FileText, DollarSign, MapPin } from "lucide-react";
 
@@ -42,8 +43,14 @@ export default function AprobacionFabricaPage() {
       .in("estado", ["PENDIENTE_APROBACION", "ENVIADO_A_CORTAR"])
       .order("id", { ascending: false });
 
+    const cuentas = await cargarCuentas(
+      supabase,
+      (solFabrica || []).map((s: any) => s.id)
+    );
+
     const mapeadas = (solFabrica || []).map((s) => ({
       ...s,
+      cuenta: cuentas[s.id] || null,
       usuario_creador: s.creador
         ? `${s.creador.nombre} ${s.creador.apellido || ""}`.trim()
         : "Oficina",
@@ -238,10 +245,23 @@ export default function AprobacionFabricaPage() {
                           {enviadoACortar ? "Enviado a cortar" : "Pendiente de aprobación"}
                         </span>
 
-                        {enviadoACortar && (
-                          <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-red-100 text-red-800">
-                            Saldo Restante: ${s.saldo_restante ? s.saldo_restante.toLocaleString() : "0"}
+                        {s.cuenta?.saldado ? (
+                          <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-emerald-100 text-emerald-800">
+                            Saldo abonado
+                            {s.cuenta.fechaSaldado
+                              ? ` · ${fechaCarga(s.cuenta.fechaSaldado)}`
+                              : ""}
                           </span>
+                        ) : (
+                          enviadoACortar && (
+                            <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-red-100 text-red-800">
+                              Saldo Restante: $
+                              {(s.cuenta
+                                ? s.cuenta.saldo
+                                : s.saldo_restante || 0
+                              ).toLocaleString()}
+                            </span>
+                          )
                         )}
                       </div>
                     </div>
@@ -299,10 +319,23 @@ export default function AprobacionFabricaPage() {
                   {modalRemito.estado === "ENVIADO_A_CORTAR" ? "Enviado a cortar" : "Pendiente de aprobación"}
                 </span>
 
-                {modalRemito.estado === "ENVIADO_A_CORTAR" && (
-                  <span className="text-xs px-3 py-1 rounded-md font-semibold bg-red-100 text-red-800">
-                    Saldo pendiente: ${modalRemito.saldo_restante ? modalRemito.saldo_restante.toLocaleString() : "0"}
+                {modalRemito.cuenta?.saldado ? (
+                  <span className="text-xs px-3 py-1 rounded-md font-semibold bg-emerald-100 text-emerald-800">
+                    Saldo abonado
+                    {modalRemito.cuenta.fechaSaldado
+                      ? ` · ${fechaCarga(modalRemito.cuenta.fechaSaldado)}`
+                      : ""}
                   </span>
+                ) : (
+                  modalRemito.estado === "ENVIADO_A_CORTAR" && (
+                    <span className="text-xs px-3 py-1 rounded-md font-semibold bg-red-100 text-red-800">
+                      Saldo pendiente: $
+                      {(modalRemito.cuenta
+                        ? modalRemito.cuenta.saldo
+                        : modalRemito.saldo_restante || 0
+                      ).toLocaleString()}
+                    </span>
+                  )
                 )}
               </div>
 
@@ -353,7 +386,11 @@ export default function AprobacionFabricaPage() {
                     <div>
                       <p className="text-slate-500">Saldo restante:</p>
                       <p className="text-sm font-bold text-emerald-700">
-                        {modalRemito.saldo_restante !== null && modalRemito.saldo_restante !== undefined
+                        {modalRemito.cuenta
+                          ? modalRemito.cuenta.saldado
+                            ? `Saldo abonado${modalRemito.cuenta.fechaSaldado ? ` (${fechaCarga(modalRemito.cuenta.fechaSaldado)})` : ""}`
+                            : `$${modalRemito.cuenta.saldo.toLocaleString()}`
+                          : modalRemito.saldo_restante !== null && modalRemito.saldo_restante !== undefined
                           ? `$${modalRemito.saldo_restante.toLocaleString()}`
                           : "$0"}
                       </p>
