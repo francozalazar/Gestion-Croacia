@@ -71,7 +71,9 @@ export default function SolicitudFabricaPage() {
     if (totalNum > 0) {
       // Lo que se editó último manda: el otro campo se calcula solo.
       if (ultimaEdicionSena === "pesos") {
-        if (senaPesos !== "") {
+        if (senaPesos === "") {
+          if (senaPorcentaje !== "") setSenaPorcentaje("");
+        } else {
           const porcCalculado =
             Math.round((pesosNum / totalNum) * 100 * 100) / 100;
           const porcStr = porcCalculado.toString();
@@ -80,7 +82,10 @@ export default function SolicitudFabricaPage() {
           }
         }
       } else if (ultimaEdicionSena === "porcentaje") {
-        if (senaPorcentaje !== "") {
+        if (senaPorcentaje === "") {
+          if (senaPesos !== "") setSenaPesos("");
+          pesosNum = 0;
+        } else {
           const pesosCalculado =
             Math.round(((totalNum * porcNum) / 100) * 100) / 100;
           const pesosStr = pesosCalculado.toString();
@@ -495,6 +500,13 @@ export default function SolicitudFabricaPage() {
                 />
               </div>
             </div>
+
+            {(parseFloat(senaPesos) || 0) > (parseFloat(total) || 0) &&
+              (parseFloat(total) || 0) > 0 && (
+                <p className="mt-2 text-sm font-medium text-red-600">
+                  La seña es mayor al total. Revisá el monto.
+                </p>
+              )}
 
             <div className="mt-4">
               <label className="mb-1 block text-sm font-medium">
