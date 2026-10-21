@@ -294,7 +294,7 @@ export default function SolicitudFabricaPage() {
 
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-            Nuevo remito para fábrica
+            Nuevo pedido para fábrica
           </h1>
 
           <p className="mt-2 text-slate-600">
@@ -550,8 +550,8 @@ export default function SolicitudFabricaPage() {
             {guardando
               ? "Guardando remito..."
               : exito
-              ? "¡Remito guardado con éxito!"
-              : "Crear remito y enviar a aprobación"}
+              ? "¡Pedido guardado con éxito!"
+              : "Crear pedido y enviar a aprobación"}
           </button>
         </div>
       </div>
