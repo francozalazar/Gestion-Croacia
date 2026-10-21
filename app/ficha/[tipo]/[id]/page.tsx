@@ -31,6 +31,7 @@ type Etapa = {
   fecha?: string | null;
   responsable?: string | null;
   detalle?: string | null;
+  sinDato?: boolean;
 };
 
 function fechaLinda(fecha: string | null | undefined) {
@@ -252,8 +253,18 @@ export default async function FichaPage({
     "FINALIZADO",
   ];
 
+  // Cuando el tecnico finaliza, la app reemplaza el estado del pedido de fabrica
+  // (PRESUPUESTADO / PENDIENTE_PRECIO), asi que ya no se sabe en que etapa de
+  // fabrica estaba. No se inventa una etapa: se marca "sin dato".
+  const estadosTecnico = ["FINALIZADO", "PENDIENTE_PRECIO", "PRESUPUESTADO"];
+  const tecnicoFinalizo =
+    (estadoSol !== null && estadosTecnico.includes(estadoSol)) ||
+    (estadoFab !== null && estadosTecnico.includes(estadoFab));
+  const fabricaSobrescrita =
+    estadoFab !== null && estadosTecnico.includes(estadoFab);
+
   const finalizado =
-    estadoFab === "FINALIZADO" || estadoSol === "FINALIZADO";
+    estadoFab === "FINALIZADO" || estadoSol === "FINALIZADO" || tecnicoFinalizo;
 
   const evPrecio = buscarEvento("precio asignado");
   const evAprobacion = buscarEvento("enviado a cortar");
@@ -309,23 +320,33 @@ export default async function FichaPage({
     etapas.push({
       nombre: "Fabricacion",
       estado: estadoFab && estadosPostFabrica.includes(estadoFab) ? "hecha" : "pendiente",
+      sinDato: fabricaSobrescrita,
       fecha: evFabrica?.created_at || null,
       detalle:
         estadoFab && estadosEnFabrica.includes(estadoFab)
           ? `Ahora: ${estadoFab.replaceAll("_", " ")}`
+          : fabricaSobrescrita
+          ? "Sin dato: no quedó registrado cuándo terminó fábrica"
           : null,
     });
 
     etapas.push({
       nombre: "Instalacion",
       estado: finalizado ? "hecha" : "pendiente",
-      fecha: evFinalizado?.created_at || ultimaAsignacion?.fecha || null,
+      fecha: evFinalizado?.created_at || solicitud?.fecha_finalizacion || ultimaAsignacion?.fecha || null,
       responsable: ultimaAsignacion?.usuario_id
         ? nombres[ultimaAsignacion.usuario_id]
         : null,
-      detalle: ultimaAsignacion?.fecha
-        ? `Fecha pactada: ${fechaLinda(ultimaAsignacion.fecha)}`
-        : null,
+      detalle: [
+        tecnicoFinalizo && solicitud?.fecha_finalizacion
+          ? `Finalización registrada por el técnico: ${fechaLinda(solicitud.fecha_finalizacion)}`
+          : null,
+        ultimaAsignacion?.fecha
+          ? `Fecha pactada: ${fechaLinda(ultimaAsignacion.fecha)}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" - ") || null,
     });
 
     etapas.push({
@@ -402,7 +423,7 @@ export default async function FichaPage({
   });
 
   // Marcar la etapa actual (la primera pendiente)
-  const idxActual = etapas.findIndex((e) => e.estado === "pendiente");
+  const idxActual = etapas.findIndex((e) => e.estado === "pendiente" && !e.sinDato);
   if (idxActual >= 0) etapas[idxActual].estado = "actual";
 
   // Presupuesto con vigencia (reparaciones)
