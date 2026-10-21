@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { textoFranja } from "@/lib/franjas";
 import { useEffect, useState } from "react";
+import { cargarCuentas, fechaCarga, type CuentaPedido } from "@/lib/saldoPedido";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { ArrowLeft } from "lucide-react";
@@ -38,6 +39,7 @@ export default function DetalleAprobacionFabricaPage() {
   const [solicitud, setSolicitud] =
     useState<SolicitudFabrica | null>(null);
 
+  const [cuenta, setCuenta] = useState<CuentaPedido | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [procesando, setProcesando] = useState(false);
@@ -102,6 +104,8 @@ export default function DetalleAprobacionFabricaPage() {
     }
 
     setSolicitud(data);
+    const cuentas = await cargarCuentas(supabase, [data.id]);
+    setCuenta(cuentas[data.id] || null);
     setCargando(false);
   }
 
@@ -561,9 +565,26 @@ export default function DetalleAprobacionFabricaPage() {
               <p className="text-xs font-medium text-slate-500">
                 Saldo restante
               </p>
-              <p className="mt-1 text-lg font-bold">
-                {formatoPesos(solicitud.saldo_restante)}
-              </p>
+              {cuenta ? (
+                cuenta.saldado ? (
+                  <p className="mt-1 text-lg font-bold text-emerald-700">
+                    Saldo abonado
+                    <span className="block text-xs font-normal text-slate-500">
+                      {cuenta.fechaSaldado
+                        ? `Pago final cargado el ${fechaCarga(cuenta.fechaSaldado)}`
+                        : "Fecha de carga sin dato"}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="mt-1 text-lg font-bold">
+                    {formatoPesos(cuenta.saldo)}
+                  </p>
+                )
+              ) : (
+                <p className="mt-1 text-lg font-bold">
+                  {formatoPesos(solicitud.saldo_restante)}
+                </p>
+              )}
             </div>
 
           </div>
