@@ -206,30 +206,51 @@ export async function GET(
   campo("N° pedido", String(numeroRemito), margen, y, 11.5);
   y -= 26;
 
-  campo("Fecha solicitada", fechaRemito, margen, y);
-  campo("Cliente", remito.cliente_nombre || "-", 175, y);
-  if (remito.cliente_telefono) campo("Teléfono", remito.cliente_telefono, 430, y);
-  y -= 24;
+  // Una fila por dato y con ajuste de linea: nada se superpone con nombres o fechas largos.
+  function filaCampo(etiqueta: string, valor: string) {
+    const prefijo = `${etiqueta}: `;
+    const offset = negrita.widthOfTextAtSize(prefijo, 11);
+    const disponible = anchoContenido - offset;
+    const palabras = String(valor || "-").split(/\s+/);
+    const lineas: string[] = [];
+    let actual = "";
+    for (const palabra of palabras) {
+      const prueba = actual ? actual + " " + palabra : palabra;
+      if (fuente.widthOfTextAtSize(prueba, 11) > disponible && actual) {
+        lineas.push(actual);
+        actual = palabra;
+      } else {
+        actual = prueba;
+      }
+    }
+    if (actual) lineas.push(actual);
+    lineas.forEach((linea, i) => {
+      nuevaPaginaSiHaceFalta(20);
+      if (i === 0) {
+        pagina.drawText(prefijo, { x: margen, y, size: 11, font: negrita, color: negro });
+      }
+      pagina.drawText(linea, { x: margen + offset, y, size: 11, font: fuente, color: negro });
+      y -= 16;
+    });
+    y -= 4;
+  }
 
-  campo("Dirección", remito.direccion || "-", margen, y);
-  campo("Localidad", String(remito.localidad || "-").toUpperCase(), 350, y);
-  y -= 24;
+  filaCampo("Fecha solicitada", fechaRemito);
+  filaCampo("Cliente", remito.cliente_nombre || "-");
+  if (remito.cliente_telefono) filaCampo("Teléfono", remito.cliente_telefono);
+  filaCampo("Dirección", remito.direccion || "-");
+  filaCampo("Localidad", String(remito.localidad || "-").toUpperCase());
 
   // PRESUPUESTADO / PENDIENTE_PRECIO en un pedido de fabrica es un estado que
   // deja la finalizacion del tecnico: no dice en que etapa de fabrica estaba.
   const estadoLegado = ["PRESUPUESTADO", "PENDIENTE_PRECIO"].includes(String(remito.estado));
-  campo(
+  filaCampo(
     "Estado",
-    estadoLegado ? "Sin dato concluyente" : String(remito.estado || "-").replaceAll("_", " "),
-    margen,
-    y
+    estadoLegado ? "Sin dato concluyente" : String(remito.estado || "-").replaceAll("_", " ")
   );
-  if (remito.tipo_visita) campo("Tipo", remito.tipo_visita, 300, y);
-  y -= 24;
-
+  if (remito.tipo_visita) filaCampo("Tipo", remito.tipo_visita);
   if (remito.horario_desde || remito.horario_hasta) {
-    campo("Horario", textoFranja(remito.horario_desde, remito.horario_hasta), margen, y);
-    y -= 24;
+    filaCampo("Horario", textoFranja(remito.horario_desde, remito.horario_hasta));
   }
   y -= 4;
 
