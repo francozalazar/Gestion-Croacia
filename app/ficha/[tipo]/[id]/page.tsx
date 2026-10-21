@@ -217,6 +217,14 @@ export default async function FichaPage({
     return encontrados[encontrados.length - 1] || null;
   }
 
+  function primerEvento(...palabras: string[]) {
+    return (
+      eventos.find((e) =>
+        palabras.some((p) => (e.etapa || "").toLowerCase().includes(p.toLowerCase()))
+      ) || null
+    );
+  }
+
   // =========================
   // ETAPAS DEL CIRCUITO
   // =========================
@@ -297,8 +305,11 @@ export default async function FichaPage({
         Number(remito.sena_pesos || 0) > 0 || pagos.length > 0
           ? "hecha"
           : "pendiente",
-      fecha: evPago?.created_at || null,
-      responsable: evPago?.responsable ? nombres[evPago.responsable] : null,
+      // Fecha del primer pago registrado (no del ultimo ni de una actualizacion).
+      fecha: pagos[0]?.fecha || primerEvento("pago registrado", "venta registrada")?.created_at || null,
+      responsable: primerEvento("pago registrado", "venta registrada")?.responsable
+        ? nombres[primerEvento("pago registrado", "venta registrada")!.responsable]
+        : null,
       detalle:
         Number(remito.sena_pesos || 0) > 0
           ? `Sena: ${plata(remito.sena_pesos)}`
@@ -309,8 +320,12 @@ export default async function FichaPage({
 
     etapas.push({
       nombre: "Aprobacion de fabrica",
+      // Hecha solo con evidencia: estado posterior a la aprobacion, un evento de
+      // aprobacion, o una visita vinculada (se crea al aprobar).
       estado:
-        estadoFab && estadoFab !== "PENDIENTE_APROBACION" && estadoFab !== "ANULADO"
+        (estadoFab && estadosPostAprobacion.includes(estadoFab)) ||
+        evAprobacion ||
+        solicitud?.solicitud_fabrica_id
           ? "hecha"
           : "pendiente",
       fecha: evAprobacion?.created_at || null,
@@ -350,10 +365,14 @@ export default async function FichaPage({
     });
 
     etapas.push({
-      nombre: "Remito y garantia",
-      estado: finalizado ? "hecha" : "pendiente",
-      fecha: evFinalizado?.created_at || null,
-      detalle: "El remito firmado sirve de garantia",
+      nombre: "Remito del tecnico",
+      estado: tecnicoFinalizo ? "hecha" : "pendiente",
+      fecha: solicitud?.fecha_finalizacion || evFinalizado?.created_at || null,
+      detalle: tecnicoFinalizo
+        ? solicitud?.firma_cliente
+          ? "Firma del cliente registrada"
+          : "Finalizado sin firma del cliente registrada"
+        : null,
     });
   } else {
     // CIRCUITO REPARACION / VISITA
