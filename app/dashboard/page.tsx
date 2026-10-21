@@ -93,7 +93,7 @@ export default function DashboardPage() {
           agregarNovedad({
             id: `aprobacion-${t.id}`,
             titulo: "Cargaron un trabajo para aprobación",
-            detalle: `Remito #${t.numero_remito || t.id} - ${t.cliente_nombre || "Cliente"} (lo cargó ${quien})`,
+            detalle: `Pedido #${t.numero_remito || t.id} - ${t.cliente_nombre || "Cliente"} (lo cargó ${quien})`,
             fecha: t.created_at || new Date().toISOString(),
             link: "/aprobacion-fabrica",
             icono: ShieldAlert,
@@ -189,7 +189,7 @@ export default function DashboardPage() {
           .slice(0, 6)
           .map((t) => ({
             id: `hoy-fab-${t.id}`,
-            titulo: `Remito #${t.numero_remito || t.id} - ${t.cliente_nombre || "Cliente"}`,
+            titulo: `Pedido #${t.numero_remito || t.id} - ${t.cliente_nombre || "Cliente"}`,
             detalle: (t.estado || "").replaceAll("_", " "),
             link: "/fabrica",
           }))
@@ -199,7 +199,7 @@ export default function DashboardPage() {
         trabajos.slice(0, 8).map((trabajo) => ({
           id: `fabrica-${trabajo.id}`,
           titulo: "Te asignaron un trabajo nuevo",
-          detalle: `Remito #${trabajo.numero_remito || trabajo.id} - ${
+          detalle: `Pedido #${trabajo.numero_remito || trabajo.id} - ${
             trabajo.cliente_nombre || "Cliente sin nombre"
           }`,
           fecha: trabajo.created_at,
@@ -371,7 +371,7 @@ export default function DashboardPage() {
           eventos.push({
             id: `aprobacion-${t.id}`,
             titulo: `Cargaron un trabajo para aprobación`,
-            detalle: `Remito #${t.numero_remito || t.id} - ${t.cliente_nombre || "Cliente"} (lo cargó ${quien})`,
+            detalle: `Pedido #${t.numero_remito || t.id} - ${t.cliente_nombre || "Cliente"} (lo cargó ${quien})`,
             fecha: t.created_at,
             link: "/aprobacion-fabrica",
             icono: ShieldAlert,
