@@ -135,3 +135,13 @@ revoke truncate, references, trigger on all tables in schema public from authent
 -- FABRICA/TECNICO siguen solo con "estado". Insert/delete sin cambios (policies).
 -- Prueba rollback: OFICINA permitidas=1 fila, otra columna (direccion) 42501; ADMIN ambas OK. COORDINACION sin usuario para probar (misma rama de codigo que OFICINA).
 -- Reversion: recrear sf_restringir_update con la rama OFICINA/COORDINACION "return new" (version anterior arriba en este archivo).
+
+-- ============================================================
+-- APLICADO 16:28: borrar asignaciones solo ADMIN (decision de Franco, WhatsApp 16:26: "solo admin")
+-- ============================================================
+-- Antes: asignaciones_delete_logueados (true) permitia borrar a cualquier logueado.
+-- Efecto operativo: "quitar asignacion" en app/recorrido-camiones solo funciona para ADMIN; COORDINACION/OFICINA reciben error de permisos.
+-- Prueba rollback: OFICINA 0 filas, TECNICO 0 filas, ADMIN 1 fila.
+-- Reversion:
+--   drop policy "asignaciones_delete_admin" on public.asignaciones;
+--   create policy "asignaciones_delete_logueados" on public.asignaciones for delete to authenticated using (true);
