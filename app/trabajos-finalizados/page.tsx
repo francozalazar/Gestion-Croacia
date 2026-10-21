@@ -2,9 +2,20 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
+import { normalizarTipoVisita } from "@/lib/tipoVisita";
 import TrabajosFinalizadosLista, {
   type TrabajoInstalado,
 } from "@/components/TrabajosFinalizadosLista";
+
+// Estados del pedido de fabrica anteriores a "Terminado".
+const ENTRE_ETAPAS_FABRICA = [
+  "PENDIENTE_APROBACION",
+  "ENVIADO_A_CORTAR",
+  "EN_CORTE",
+  "EN_FABRICACION",
+  "EN_FABRICA",
+  "FALTANTES",
+];
 
 // Cierre del circuito: pedido de fabrica -> corte -> listo para colocar ->
 // coordinacion -> el tecnico instalo y finalizo. Solo lee, no modifica nada.
@@ -29,20 +40,24 @@ export default async function TrabajosFinalizadosPage() {
   // Visitas ligadas a un pedido de fabrica que el tecnico ya finalizo.
   const { data: visitas } = await supabase
     .from("solicitudes")
-    .select("id, solicitud_fabrica_id, cliente_nombre, direccion, localidad, estado, fecha_finalizacion")
+    .select("id, solicitud_fabrica_id, tipo_visita, cliente_nombre, direccion, localidad, estado, fecha_finalizacion")
     .not("solicitud_fabrica_id", "is", null)
     .not("fecha_finalizacion", "is", null)
     .in("estado", ["FINALIZADO", "PENDIENTE_PRECIO", "PRESUPUESTADO"])
     .order("fecha_finalizacion", { ascending: false });
 
-  const lista = visitas || [];
+  // Solo visitas de instalacion (cortar e instalar / instalacion). Otras visitas
+  // ligadas a fabrica (medicion, reclamo, etc.) no se cuentan como circuito completo.
+  const lista = (visitas || []).filter((v) =>
+    normalizarTipoVisita(v.tipo_visita).includes("instal")
+  );
   const pedidoIds = [...new Set(lista.map((v) => v.solicitud_fabrica_id))];
 
   let pedidos: any[] = [];
   if (pedidoIds.length > 0) {
     const { data } = await supabase
       .from("solicitudes_fabrica")
-      .select("id, numero_remito, cliente_nombre, creado_por")
+      .select("id, numero_remito, cliente_nombre, creado_por, estado")
       .in("id", pedidoIds);
     pedidos = data || [];
   }
@@ -71,6 +86,9 @@ export default async function TrabajosFinalizadosPage() {
         direccion: [v.direccion, v.localidad].filter(Boolean).join(" - "),
         fechaInstalacion: v.fecha_finalizacion as string | null,
         tecnico: tec ? [tec.nombre, tec.apellido].filter(Boolean).join(" ") : "",
+        aviso: ENTRE_ETAPAS_FABRICA.includes(pedido?.estado)
+          ? "Fábrica no marcó este pedido como Terminado"
+          : "",
         creadoPor: pedido?.creado_por as string | undefined,
       };
     })
@@ -97,7 +115,7 @@ export default async function TrabajosFinalizadosPage() {
               Trabajos finalizados
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Pedidos de fábrica que el técnico ya instaló. El remito es el comprobante del técnico.
+              Pedidos de fábrica con visita de instalación finalizada por el técnico. La fecha es la de finalización registrada en el remito, no una confirmación aparte de la obra.
             </p>
             {profile.rol === "OFICINA" && (
               <p className="mt-2 inline-block border border-blue-100 bg-blue-50 px-3 py-1.5 text-sm text-blue-700">
