@@ -200,15 +200,21 @@ export default function RecorridoCamionesPage() {
       ? "solicitudes_fabrica"
       : "solicitudes";
 
-    const { error: errorAsignacion } = await supabase
+    const { data: asignacionesBorradas, error: errorAsignacion } = await supabase
       .from("asignaciones")
       .delete()
       .eq(columnaRelacion, trabajoModal.id)
       .eq("usuario_id", tecnicoSeleccionado)
-      .eq("fecha", fecha);
+      .eq("fecha", fecha)
+      .select("id");
 
     if (errorAsignacion) {
       alert("Error quitando asignación: " + errorAsignacion.message);
+      return;
+    }
+
+    if (!asignacionesBorradas || asignacionesBorradas.length === 0) {
+      alert("No se quitó la asignación. Solo un administrador puede quitar asignaciones.");
       return;
     }
 
@@ -253,15 +259,21 @@ export default function RecorridoCamionesPage() {
       ? "solicitudes_fabrica"
       : "solicitudes";
 
-    const { error: errorAsignacion } = await supabase
+    const { data: asignacionesBorradas, error: errorAsignacion } = await supabase
       .from("asignaciones")
       .delete()
       .eq(columnaRelacion, trabajoModal.id)
       .eq("usuario_id", tecnicoSeleccionado)
-      .eq("fecha", fecha);
+      .eq("fecha", fecha)
+      .select("id");
 
     if (errorAsignacion) {
       alert("Error anulando asignación: " + errorAsignacion.message);
+      return;
+    }
+
+    if (!asignacionesBorradas || asignacionesBorradas.length === 0) {
+      alert("No se anuló la visita porque no se pudo quitar su asignación. Solo un administrador puede quitar asignaciones.");
       return;
     }
 
@@ -460,18 +472,22 @@ export default function RecorridoCamionesPage() {
 
               {/* BOTONES DE ACCIÓN */}
               <div className="mt-8 flex flex-wrap justify-end gap-3">
+                {perfil?.rol?.toUpperCase() === "ADMIN" && (
                 <button
                   onClick={removerTecnicoYFecha}
                   className="bg-amber-100 text-amber-900 border border-amber-200 px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-amber-200 transition"
                 >
                   Remover técnico y fecha
                 </button>
+                )}
+                {perfil?.rol?.toUpperCase() === "ADMIN" && (
                 <button
                   onClick={anularVisita}
                   className="bg-rose-500 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-rose-600 transition"
                 >
                   Anular visita
                 </button>
+                )}
                 <button
                   onClick={cambiarPrioridad}
                   className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-blue-700 transition"
