@@ -82,10 +82,12 @@ export default async function RemitoPage({
             <div className="grid gap-4 text-sm md:grid-cols-2">
               <p className="text-slate-600">
                 <strong className="text-slate-900">Estado:</strong>{" "}
-                {(remito.estado || "-").replaceAll("_", " ")}
+                {["PRESUPUESTADO", "PENDIENTE_PRECIO"].includes(String(remito.estado))
+                  ? "Sin dato concluyente (estado reemplazado al finalizar el técnico)"
+                  : (remito.estado || "-").replaceAll("_", " ")}
               </p>
               <p className="text-slate-600">
-                <strong className="text-slate-900">Fecha:</strong>{" "}
+                <strong className="text-slate-900">Fecha solicitada:</strong>{" "}
                 {fecha(remito.fecha)}
               </p>
               <p className="text-slate-600">
