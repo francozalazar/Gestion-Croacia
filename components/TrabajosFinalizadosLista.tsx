@@ -48,7 +48,7 @@ export default function TrabajosFinalizadosLista({
 
   return (
     <>
-      <div className="mb-6 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_200px_auto]">
+      <div className="mb-6 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 lg:grid-cols-[1fr_200px_auto]">
         <input
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
@@ -80,7 +80,7 @@ export default function TrabajosFinalizadosLista({
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <div className="hidden grid-cols-[90px_1.2fr_1.4fr_140px_1fr_auto] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase text-slate-500 md:grid">
+          <div className="hidden grid-cols-[90px_minmax(0,1.2fr)_minmax(0,1.4fr)_140px_minmax(0,1fr)_auto] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase text-slate-500 lg:grid">
             <span>Pedido</span>
             <span>Cliente</span>
             <span>Dirección</span>
@@ -92,10 +92,10 @@ export default function TrabajosFinalizadosLista({
             {filtrados.map((x) => (
               <li
                 key={x.id}
-                className="grid gap-2 px-5 py-4 text-sm md:grid-cols-[90px_1.2fr_1.4fr_140px_1fr_auto] md:items-center md:gap-4"
+                className="grid gap-2 px-5 py-4 text-sm lg:grid-cols-[90px_minmax(0,1.2fr)_minmax(0,1.4fr)_140px_minmax(0,1fr)_auto] lg:items-center lg:gap-4"
               >
                 <span className="font-bold text-slate-900">
-                  <span className="text-xs font-medium text-slate-400 md:hidden">Pedido </span>
+                  <span className="text-xs font-medium text-slate-400 lg:hidden">Pedido </span>
                   #{x.pedido ?? "-"}
                 </span>
                 <span className="min-w-0">
@@ -108,11 +108,11 @@ export default function TrabajosFinalizadosLista({
                 </span>
                 <span className="break-words text-slate-700">{x.direccion || "-"}</span>
                 <span className="text-slate-700">
-                  <span className="text-xs text-slate-400 md:hidden">Finalización registrada: </span>
+                  <span className="text-xs text-slate-400 lg:hidden">Finalización registrada: </span>
                   {diaLindo(x.fechaInstalacion)}
                 </span>
                 <span className="break-words text-slate-600">{x.tecnico || "-"}</span>
-                <span className="md:text-right">
+                <span className="lg:text-right">
                   <Link
                     href={`/finalizados/${x.id}`}
                     className="inline-block border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
