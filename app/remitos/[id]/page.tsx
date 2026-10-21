@@ -75,11 +75,11 @@ export default async function RemitoPage({
                 target="_blank"
                 className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
               >
-                Descargar PDF
+                Descargar pedido de fábrica
               </a>
             ) : (
               <span className="text-sm text-slate-500">
-                Sin detalle cargado todavía: no hay PDF para descargar.
+                Sin detalle cargado todavía: no hay documento del pedido para descargar.
               </span>
             )}
           </div>
