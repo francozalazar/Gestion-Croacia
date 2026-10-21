@@ -76,7 +76,7 @@ export default function ProduccionLista({
                   {trabajo.cliente_nombre || trabajo.cliente || "Cliente sin nombre"}
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Remito #{trabajo.numero_remito || trabajo.id}
+                  Pedido #{trabajo.numero_remito || trabajo.id}
                 </p>
               </div>
 
