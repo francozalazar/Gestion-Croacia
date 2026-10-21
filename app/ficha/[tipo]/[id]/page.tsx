@@ -3,6 +3,7 @@ import { textoFranja } from "@/lib/franjas";
 import { redirect, notFound } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
+import VolverLink from "@/components/VolverLink";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -428,13 +429,12 @@ export default async function FichaPage({
 
       <main className="ml-0 md:ml-64 flex-1 p-6 pt-20 md:p-10">
         <div className="mx-auto max-w-4xl">
-          <Link
-            href="/dashboard"
-            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900"
-          >
-            <ArrowLeft size={16} />
-            Volver al panel
-          </Link>
+          <div className="mb-4">
+            <VolverLink
+              fallback={clienteId ? `/clientes/${clienteId}` : "/dashboard"}
+              className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900"
+            />
+          </div>
 
           {/* ENCABEZADO */}
           <div className="mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
