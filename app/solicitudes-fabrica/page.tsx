@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/cliente";
 import ClienteAutocomplete from "@/components/ClienteAutocomplete";
@@ -50,6 +50,16 @@ export default function SolicitudFabricaPage() {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [exito, setExito] = useState(false);
+  // Pasos ya hechos de un pedido a medio guardar (para reintentar sin duplicar)
+  const progreso = useRef<{
+    id: string;
+    numero: number | string | null;
+    clienteId: string | number | null;
+    direccionId: string | number | null;
+    itemsOk: boolean;
+    ventaId: string | null;
+    pagoOk: boolean;
+  } | null>(null);
   const [perfil, setPerfil] = useState<any>(null);
 
   useEffect(() => {
@@ -168,7 +178,12 @@ export default function SolicitudFabricaPage() {
       ? `[Aviso: ${preferencia.trim()}]\n${observaciones.trim()}`
       : observaciones.trim() || null;
 
-    const { clienteId, direccionId } = await resolverClienteYDireccion(
+    const resueltos = progreso.current
+      ? {
+          clienteId: progreso.current.clienteId,
+          direccionId: progreso.current.direccionId,
+        }
+      : await resolverClienteYDireccion(
       supabase,
       {
         nombre: cliente,
@@ -177,8 +192,18 @@ export default function SolicitudFabricaPage() {
         userId: user.id,
       }
     );
+    const { clienteId, direccionId } = resueltos;
 
-    let { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let { data, error }: { data: any; error: any } = progreso.current
+      ? {
+          data: {
+            id: progreso.current.id,
+            numero_remito: progreso.current.numero,
+          },
+          error: null,
+        }
+      : await supabase
       .from("solicitudes_fabrica")
       .insert({
         cliente_id: clienteId,
@@ -246,49 +271,79 @@ export default function SolicitudFabricaPage() {
       return;
     }
 
+    if (!progreso.current) {
+      progreso.current = {
+        id: data.id,
+        numero: data.numero_remito,
+        clienteId: clienteId ?? null,
+        direccionId: direccionId ?? null,
+        itemsOk: false,
+        ventaId: null,
+        pagoOk: false,
+      };
+    }
+    const paso = progreso.current!;
+    const avisoParcial = (que: string, detalle: string) => {
+      console.error(que, detalle);
+      setMensaje(
+        `El remito Nº ${paso.numero} ya quedó cargado, pero falló un paso (${que}: ${detalle}). No lo des por completo: tocá guardar de nuevo para reintentar solo lo que falta (no se duplica el pedido).`
+      );
+      setGuardando(false);
+    };
+
     // Qué se vende (para estadísticas)
-    if (data) {
+    if (!paso.itemsOk) {
       const { error: errorItems } = await supabase.from("pedido_items").insert(
         renglonesValidos.map((r) => ({
-          solicitud_fabrica_id: data.id,
+          solicitud_fabrica_id: paso.id,
           tipo: r.tipo,
           cantidad: r.cantidad,
           creado_por: user.id,
         }))
       );
       if (errorItems) {
-        console.error(errorItems);
+        avisoParcial("qué se vende", errorItems.message);
+        return;
       }
+      paso.itemsOk = true;
     }
 
     // Venta automática (+ seña como primer pago si la cargaron)
-    if (clienteId && data) {
-      try {
-        const { data: venta } = await supabase
+    if (paso.clienteId) {
+      if (!paso.ventaId) {
+        const { data: venta, error: errorVenta } = await supabase
           .from("ventas")
           .insert({
-            cliente_id: clienteId,
-            direccion_id: direccionId,
-            descripcion: `Remito fábrica #${data.numero_remito}`,
+            cliente_id: paso.clienteId,
+            direccion_id: paso.direccionId,
+            descripcion: `Remito fábrica #${paso.numero}`,
             total: total ? Number(total) : 0,
-            solicitud_fabrica_id: data.id,
+            solicitud_fabrica_id: paso.id,
             creado_por: user.id,
           })
           .select("id")
           .single();
-
-        const senaNum = parseFloat(senaPesos) || 0;
-        if (venta && senaNum > 0) {
-          await supabase.from("pagos").insert({
-            venta_id: venta.id,
-            monto: senaNum,
-            fecha: new Date().toISOString().slice(0, 10),
-            medio: [medioPago, aclaracionPago.trim()].filter(Boolean).join(" - ") || null,
-            creado_por: user.id,
-          });
+        if (errorVenta || !venta) {
+          avisoParcial("venta del cliente", errorVenta?.message || "sin respuesta");
+          return;
         }
-      } catch {
-        // Si todavía no existen las tablas de ventas, no pasa nada
+        paso.ventaId = venta.id;
+      }
+
+      const senaNum = parseFloat(senaPesos) || 0;
+      if (senaNum > 0 && !paso.pagoOk) {
+        const { error: errorPago } = await supabase.from("pagos").insert({
+          venta_id: paso.ventaId,
+          monto: senaNum,
+          fecha: new Date().toISOString().slice(0, 10),
+          medio: [medioPago, aclaracionPago.trim()].filter(Boolean).join(" - ") || null,
+          creado_por: user.id,
+        });
+        if (errorPago) {
+          avisoParcial("seña", errorPago.message);
+          return;
+        }
+        paso.pagoOk = true;
       }
     }
 
@@ -665,4 +720,4 @@ export default function SolicitudFabricaPage() {
     </main>
     </div>
   );
-                }
+}
