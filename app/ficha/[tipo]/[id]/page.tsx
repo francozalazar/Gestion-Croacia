@@ -268,7 +268,7 @@ export default async function FichaPage({
       estado: "hecha",
       fecha: remito.created_at,
       responsable: remito.creado_por ? nombres[remito.creado_por] : null,
-      detalle: `Remito #${remito.numero_remito || remito.id}`,
+      detalle: `Pedido #${remito.numero_remito || remito.id}`,
     });
 
     etapas.push({
@@ -416,7 +416,7 @@ export default async function FichaPage({
 
   const estadoActualTexto = (estadoFab || estadoSol || "").replaceAll("_", " ");
   const numeroMostrar = remito
-    ? `Remito #${remito.numero_remito || remito.id}`
+    ? `Pedido #${remito.numero_remito || remito.id}`
     : `Visita #${solicitud.numero || solicitud.id}`;
 
   return (
@@ -662,7 +662,7 @@ export default async function FichaPage({
                 className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white hover:bg-slate-700"
               >
                 <FileText size={14} />
-                Ver remito PDF
+                Ver pedido PDF
               </Link>
             )}
             {remito && ["ADMIN"].includes(perfil?.rol || "") && (
