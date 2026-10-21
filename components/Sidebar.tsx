@@ -287,6 +287,30 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                     >
                       • Mis clientes
                     </Link>
+                    {rol === "ADMIN" && (
+                      <>
+                        <Link
+                          href="/saldos-pendientes"
+                          className={`block py-2 text-xs font-medium transition ${
+                            pathname === "/saldos-pendientes"
+                              ? "text-violet-400 font-bold"
+                              : "text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          • Saldos pendientes
+                        </Link>
+                        <Link
+                          href="/estadisticas"
+                          className={`block py-2 text-xs font-medium transition ${
+                            pathname === "/estadisticas"
+                              ? "text-violet-400 font-bold"
+                              : "text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          • Estadísticas
+                        </Link>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
