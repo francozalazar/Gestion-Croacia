@@ -106,3 +106,14 @@ revoke truncate, references, trigger on all tables in schema public from authent
 --   return new;
 -- end $$;
 -- create trigger aa_sol_restringir_tecnico before update on public.solicitudes for each row execute function public.sol_restringir_tecnico();
+
+-- ============================================================
+-- APLICADO 16:15: funcion asignar_solicitud sin acceso anonimo
+-- ============================================================
+-- asignar_solicitud (security definer, sin chequeo de rol) borra y recrea la asignacion y cambia estado/fecha de la solicitud.
+-- Era ejecutable por anon y PUBLIC. El codigo de la app no la llama (grep en app/ y components/). Se quita anon/PUBLIC y se deja authenticated.
+-- Las otras 5 funciones publicas ejecutables por anon son de trigger (no se pueden llamar directo) o get_my_role (devuelve null sin sesion); no se tocaron.
+-- Pendiente: asignar_solicitud sigue sin chequear rol para usuarios logueados.
+-- Reversion: grant execute on function public.asignar_solicitud(bigint, uuid, text, date, integer) to public, anon;
+-- revoke execute on function public.asignar_solicitud(bigint, uuid, text, date, integer) from public, anon;
+-- grant execute on function public.asignar_solicitud(bigint, uuid, text, date, integer) to authenticated;
