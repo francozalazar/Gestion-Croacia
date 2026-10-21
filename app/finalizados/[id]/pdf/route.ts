@@ -129,7 +129,7 @@ export async function GET(
   const anchoContenido = ancho - margen * 2;
   const negro = rgb(0.05, 0.05, 0.05);
 
-  const pagina = pdf.addPage([ancho, alto]);
+  let pagina = pdf.addPage([ancho, alto]);
   let y = alto - 40;
 
   function centrado(
@@ -210,6 +210,11 @@ export async function GET(
 
     let posicion = yInicial;
     for (const lineaTexto of lineas) {
+      // Si no entra, sigue en una pagina nueva en vez de pisar la firma o el pie.
+      if (posicion < 90) {
+        pagina = pdf.addPage([ancho, alto]);
+        posicion = alto - 60;
+      }
       pagina.drawText(lineaTexto, {
         x,
         y: posicion,
@@ -340,6 +345,10 @@ export async function GET(
   // =========================
 
   function seccion(titulo: string, contenido: string) {
+    if (y < 150) {
+      pagina = pdf.addPage([ancho, alto]);
+      y = alto - 60;
+    }
     pagina.drawText(titulo, {
       x: margen,
       y,
@@ -363,6 +372,11 @@ export async function GET(
   // FIRMA Y ACLARACIÓN
   // =========================
 
+  // La firma necesita ~130 pt libres sobre el pie; si no hay lugar, va en pagina nueva.
+  if (y - 30 < 130) {
+    pagina = pdf.addPage([ancho, alto]);
+    y = alto - 60;
+  }
   const zonaFirmaY = Math.min(y - 30, 190);
 
   if (
