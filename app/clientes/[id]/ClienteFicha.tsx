@@ -39,6 +39,8 @@ type Visita = {
   tipo_visita?: string | null;
   observaciones: string | null;
   created_at: string | null;
+  solicitud_fabrica_id?: number | null;
+  fecha_finalizacion?: string | null;
 };
 
 function plata(n: number) {
@@ -110,9 +112,29 @@ export default function ClienteFicha({
   }, [ventas, dirPorId]);
 
   const historial = useMemo(() => {
+    // La "visita" ASIGNADO FABRICA que se crea al mandar el pedido a cortar es
+    // el mismo trabajo (viene vinculada con solicitud_fabrica_id): se muestra
+    // dentro del pedido, no como una entrada repetida. Nada se borra ni se oculta:
+    // las visitas sin pedido vinculado siguen apareciendo solas.
+    const idsPedidos = new Set(remitos.map((r) => r.id));
+    const visitasDePedido: Record<number, Visita[]> = {};
+    const visitasSueltas: Visita[] = [];
+    solicitudes.forEach((s) => {
+      const pid = s.solicitud_fabrica_id;
+      if (pid && idsPedidos.has(pid)) {
+        (visitasDePedido[pid] = visitasDePedido[pid] || []).push(s);
+      } else {
+        visitasSueltas.push(s);
+      }
+    });
+
     const items = [
-      ...solicitudes.map((s) => ({ ...s, tipo: "visita" as const })),
-      ...remitos.map((r) => ({ ...r, tipo: "remito" as const })),
+      ...visitasSueltas.map((s) => ({ ...s, tipo: "visita" as const, vinculadas: [] as Visita[] })),
+      ...remitos.map((r) => ({
+        ...r,
+        tipo: "remito" as const,
+        vinculadas: visitasDePedido[r.id] || [],
+      })),
     ].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
 
     const grupos: Record<string, typeof items> = {};
@@ -616,6 +638,16 @@ export default function ClienteFicha({
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium">
                         {it.estado.replaceAll("_", " ")}
                       </span>
+                      {it.tipo === "remito" &&
+                        it.vinculadas.map((v) => (
+                          <span
+                            key={v.id}
+                            className="rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700"
+                            title={`Trabajo de fábrica #${v.numero || v.id}`}
+                          >
+                            Trabajo: {v.estado.replaceAll("_", " ")}
+                          </span>
+                        ))}
                     </div>
                   </Link>
                 ))}
