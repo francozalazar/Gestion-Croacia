@@ -117,3 +117,12 @@ revoke truncate, references, trigger on all tables in schema public from authent
 -- Reversion: grant execute on function public.asignar_solicitud(bigint, uuid, text, date, integer) to public, anon;
 -- revoke execute on function public.asignar_solicitud(bigint, uuid, text, date, integer) from public, anon;
 -- grant execute on function public.asignar_solicitud(bigint, uuid, text, date, integer) to authenticated;
+
+-- ============================================================
+-- APLICADO 16:19: asignar_solicitud con control de rol
+-- ============================================================
+-- Misma autoridad que las policies existentes de asignaciones (INSERT/UPDATE: ADMIN y COORDINACION) y que el codigo de asignacion.
+-- La funcion ahora rechaza (42501) a cualquier otro rol o sin sesion. Cuerpo igual al anterior + set search_path = public.
+-- Prueba rollback: OFICINA 42501, TECNICO 42501, ADMIN OK.
+-- Reversion: recrear la funcion sin el bloque "if ... raise exception 'Sin permiso para asignar'" (cuerpo anterior en el commit 2580dad).
+-- Pendiente (decision de negocio): asignaciones_delete_logueados permite borrar a cualquier logueado.
