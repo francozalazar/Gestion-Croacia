@@ -1,5 +1,6 @@
 "use client";
 
+import { requierePrecio } from "@/lib/tipoVisita";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
@@ -122,13 +123,7 @@ export default function InboxPresupuestoOficinaPage() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 max-w-5xl mx-auto">
             {presupuestos.map((p) => {
-              const tiposQueRequierenPrecio = ["presupuesto", "mantenimiento", "instalacion", "urgencia"];
-              const tipo = (p.tipo_visita || "")
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .toLowerCase()
-                .trim();
-              const requierePrecio = tiposQueRequierenPrecio.includes(tipo);
+              const requierePrecioTipo = requierePrecio(p.tipo_visita);
               const monto = p.subtotal || p.precio || 0;
 
               return (
@@ -168,7 +163,7 @@ export default function InboxPresupuestoOficinaPage() {
 
                   <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-xs font-bold text-slate-700">
                     <span className="text-slate-700 font-bold text-sm">
-                      {requierePrecio ? `Precio: $${monto.toLocaleString()}` : "No requiere tarifa"}
+                      {requierePrecioTipo ? `Precio: $${monto.toLocaleString()}` : "No requiere tarifa"}
                     </span>
                     <span className="text-blue-600">Ver detalles →</span>
                   </div>
@@ -214,9 +209,7 @@ export default function InboxPresupuestoOficinaPage() {
 
               <div className="mt-6 flex items-center justify-between p-4 bg-slate-100 rounded-xl">
                 <span className="text-xs uppercase font-bold text-slate-500">
-                  {["presupuesto", "mantenimiento", "instalacion", "urgencia"].includes(
-                    (modalPrincipal.tipo_visita || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
-                  ) ? "Precio asignado" : "Trabajo sin tarifa"}
+                  {requierePrecio(modalPrincipal.tipo_visita) ? "Precio asignado" : "Trabajo sin tarifa"}
                 </span>
                 <span className="text-xl font-bold text-emerald-700">
                   $ {(modalPrincipal.subtotal || modalPrincipal.precio || 0).toLocaleString()}
