@@ -272,22 +272,65 @@ export async function GET(
   campo("N° remito", String(numeroRemito), margen, y, 11.5);
   y -= 26;
 
-  campo("Fecha pactada", fechaVisita, margen, y);
-  campo("Finalización registrada", fechaFinalizacion, 260, y);
-  y -= 24;
+  // Cada dato tiene un ancho fijo y, si no entra, baja de linea dentro de su
+  // columna: nombres o direcciones largos no se pisan con el dato de al lado.
+  function filaDatos(items: { etiqueta: string; valor: string; x: number; w: number }[]) {
+    let maxLineas = 1;
+    for (const it of items) {
+      const prefijo = `${it.etiqueta}: `;
+      const offset = fuenteNegrita.widthOfTextAtSize(prefijo, 11);
+      const disponible = Math.max(it.w - offset, 40);
+      const lineas: string[] = [];
+      let actual = "";
+      for (const palabra of String(it.valor || "-").split(/\s+/)) {
+        let p = palabra;
+        // palabra sola mas ancha que la columna: se corta
+        while (fuente.widthOfTextAtSize(p, 11) > disponible && p.length > 1) {
+          let n = p.length - 1;
+          while (n > 1 && fuente.widthOfTextAtSize(p.slice(0, n), 11) > disponible) n--;
+          if (actual) {
+            lineas.push(actual);
+            actual = "";
+          }
+          lineas.push(p.slice(0, n));
+          p = p.slice(n);
+        }
+        const prueba = actual ? actual + " " + p : p;
+        if (fuente.widthOfTextAtSize(prueba, 11) > disponible && actual) {
+          lineas.push(actual);
+          actual = p;
+        } else {
+          actual = prueba;
+        }
+      }
+      if (actual) lineas.push(actual);
+      pagina.drawText(prefijo, { x: it.x, y, size: 11, font: fuenteNegrita, color: negro });
+      lineas.forEach((l, i) => {
+        pagina.drawText(l, { x: it.x + offset, y: y - i * 14, size: 11, font: fuente, color: negro });
+      });
+      maxLineas = Math.max(maxLineas, lineas.length);
+    }
+    y -= 10 + maxLineas * 14;
+  }
 
-  campo("Cliente", clienteNombre, margen, y);
-  campo("Contacto", contacto, 430, y);
-  y -= 24;
-
-  campo("Dirección", direccion, margen, y);
-  campo("Localidad", String(localidad).toUpperCase(), 350, y);
-  y -= 24;
-
-  campo("Técnico", tecnico, margen, y);
-  campo("Ayudante", ayudante, 195, y);
-  campo("Solicitud", tipoSolicitud, 360, y);
-  y -= 20;
+  filaDatos([
+    { etiqueta: "Fecha pactada", valor: fechaVisita, x: margen, w: 200 },
+    { etiqueta: "Finalización registrada", valor: fechaFinalizacion, x: 260, w: ancho - margen - 260 },
+  ]);
+  filaDatos([
+    { etiqueta: "Cliente", valor: clienteNombre, x: margen, w: 270 },
+    { etiqueta: "Contacto", valor: contacto, x: 330, w: ancho - margen - 330 },
+  ]);
+  filaDatos([
+    { etiqueta: "Dirección", valor: direccion, x: margen, w: 290 },
+    { etiqueta: "Localidad", valor: String(localidad).toUpperCase(), x: 350, w: ancho - margen - 350 },
+  ]);
+  filaDatos([
+    { etiqueta: "Técnico", valor: tecnico, x: margen, w: 160 },
+    { etiqueta: "Ayudante", valor: ayudante, x: 215, w: 140 },
+    { etiqueta: "Solicitud", valor: tipoSolicitud, x: 370, w: ancho - margen - 370 },
+  ]);
+  y += 4;
 
   regla(y, 1.4);
   y -= 28;
