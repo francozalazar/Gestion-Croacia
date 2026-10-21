@@ -99,19 +99,19 @@ export default function TrabajosFinalizadosLista({
                   #{x.pedido ?? "-"}
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate font-semibold text-slate-800">{x.cliente}</span>
+                  <span className="block break-words font-semibold text-slate-800">{x.cliente}</span>
                   {x.aviso && (
                     <span className="mt-1 block border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
                       Revisar: {x.aviso}
                     </span>
                   )}
                 </span>
-                <span className="truncate text-slate-700">{x.direccion || "-"}</span>
+                <span className="break-words text-slate-700">{x.direccion || "-"}</span>
                 <span className="text-slate-700">
                   <span className="text-xs text-slate-400 md:hidden">Finalización registrada: </span>
                   {diaLindo(x.fechaInstalacion)}
                 </span>
-                <span className="truncate text-slate-600">{x.tecnico || "-"}</span>
+                <span className="break-words text-slate-600">{x.tecnico || "-"}</span>
                 <span className="md:text-right">
                   <Link
                     href={`/finalizados/${x.id}`}
