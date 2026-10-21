@@ -151,7 +151,7 @@ export default function AprobacionFabricaPage() {
 
         if (errorSolicitud) {
           alert(
-            "El remito se envió a cortar pero hubo un error al crear la solicitud de oficina: " +
+            "El pedido se envió a cortar pero hubo un error al crear la solicitud de oficina: " +
               errorSolicitud.message
           );
         }
@@ -165,7 +165,7 @@ export default function AprobacionFabricaPage() {
 
   async function finalizarRemito(id: number) {
     if (perfil?.rol !== "ADMIN") return;
-    if (!confirm("¿Estás seguro de finalizar este remito de fábrica?")) return;
+    if (!confirm("¿Estás seguro de finalizar este pedido de fábrica?")) return;
     setProcesando(true);
 
     const { error } = await supabase
@@ -199,11 +199,11 @@ export default function AprobacionFabricaPage() {
         </p>
 
         {cargando ? (
-          <p className="text-center text-sm text-slate-400 py-10">Cargando remitos de fábrica...</p>
+          <p className="text-center text-sm text-slate-400 py-10">Cargando pedidos de fábrica...</p>
         ) : solicitudes.length === 0 ? (
           <div className="bg-white p-12 rounded-xl text-center max-w-md mx-auto shadow-sm border border-slate-100">
             <CheckCircle2 size={40} className="mx-auto text-emerald-500 mb-3" />
-            <p className="text-sm text-slate-600 font-medium">No hay remitos pendientes en este momento.</p>
+            <p className="text-sm text-slate-600 font-medium">No hay pedidos pendientes en este momento.</p>
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl">
@@ -223,7 +223,7 @@ export default function AprobacionFabricaPage() {
                   <div>
                     <div className="flex justify-between items-center mb-2 gap-2 flex-wrap">
                       <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
-                        Remito #{s.numero_remito || s.id}
+                        Pedido #{s.numero_remito || s.id}
                       </span>
                       
                       {/* ETIQUETAS DE ESTADO Y SALDO PENDIENTE */}
@@ -287,7 +287,7 @@ export default function AprobacionFabricaPage() {
 
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
-                  Remito #{modalRemito.numero_remito || modalRemito.id}
+                  Pedido #{modalRemito.numero_remito || modalRemito.id}
                 </span>
                 <span
                   className={`text-xs px-3 py-1 rounded-md font-semibold ${
@@ -404,7 +404,7 @@ export default function AprobacionFabricaPage() {
                       disabled={procesando}
                       className="rounded-xl bg-emerald-600 px-6 py-3 text-xs font-semibold text-white hover:bg-emerald-700 transition flex items-center gap-2 disabled:opacity-50 shadow-sm"
                     >
-                      <CheckCircle2 size={14} /> Finalizar remito
+                      <CheckCircle2 size={14} /> Finalizar pedido
                     </button>
                   )}
                 </div>
