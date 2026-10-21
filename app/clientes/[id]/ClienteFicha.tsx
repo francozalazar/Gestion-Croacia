@@ -483,7 +483,7 @@ export default function ClienteFicha({
                         >
                           <input type="hidden" name="ventaId" value={v.id} />
                           <input type="hidden" name="clienteId" value={cliente.id} />
-                          <div className="grid gap-3 md:grid-cols-3">
+                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                             <input
                               name="monto"
                               type="number"
