@@ -241,7 +241,7 @@ export default function DetalleAprobacionFabricaPage() {
 
     if (errorSolicitudPrincipal) {
       console.error("Error al pasar a la tabla de solicitudes:", errorSolicitudPrincipal);
-      setError("Se actualizó el remito pero hubo un error al enviarlo a fábrica: " + errorSolicitudPrincipal.message);
+      setError("Se actualizó el pedido pero hubo un error al enviarlo a fábrica: " + errorSolicitudPrincipal.message);
       setProcesando(false);
       return;
     }
