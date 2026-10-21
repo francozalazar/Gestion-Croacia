@@ -88,7 +88,7 @@ export default function ActualizarEstadoFabrica({
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Factory size={18} />
-          En fabricación
+          En producción
         </button>
 
         {/* FALTANTES */}
@@ -108,7 +108,7 @@ export default function ActualizarEstadoFabrica({
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <CheckCircle2 size={18} />
-          Listo para colocar
+          Terminado
         </button>
       </div>
 
