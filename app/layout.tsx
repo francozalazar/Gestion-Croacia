@@ -13,6 +13,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import NavTracker from "@/components/NavTracker";
+
 export const metadata: Metadata = {
   title: "Croacia",
   description: "Sistema de gestión de trabajos",
@@ -29,6 +31,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${plexSans.variable} ${geistMono.variable} min-h-full flex flex-col`}
       >
+        <NavTracker />
         {children}
       </body>
     </html>
