@@ -5,11 +5,6 @@ import EnviarACoordinacion from "@/components/EnviarACoordinacion";
 import Link from "next/link";
 import {
   Factory,
-  MapPin,
-  User,
-  Phone,
-  ClipboardList,
-  Calendar,
   ArrowLeft,
 } from "lucide-react";
 
@@ -111,162 +106,59 @@ export default async function ListosParaColocarPage() {
             </div>
           )}
 
-        <div className="space-y-5">
-          {solicitudes?.map((solicitud) => (
-            <div
-              key={solicitud.id}
-              className="rounded-xl bg-white p-6 shadow-sm"
-            >
-              {/* CABECERA */}
-              <div className="flex flex-col justify-between gap-4 border-b border-slate-100 pb-5 md:flex-row">
-                <div>
-                  <span className="text-lg font-bold text-slate-900">
-                    Pedido Nº {solicitud.numero_remito}
+        {solicitudes && solicitudes.length > 0 && (
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="hidden grid-cols-[90px_1.2fr_1.4fr_110px_auto] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase text-slate-500 md:grid">
+              <span>Pedido</span>
+              <span>Cliente</span>
+              <span>Dirección</span>
+              <span>Fecha</span>
+              <span className="text-right">Acción</span>
+            </div>
+            <ul className="divide-y divide-slate-100">
+              {solicitudes.map((solicitud) => (
+                <li
+                  key={solicitud.id}
+                  className="grid gap-2 px-5 py-4 text-sm md:grid-cols-[90px_1.2fr_1.4fr_110px_auto] md:items-center md:gap-4"
+                >
+                  <span className="font-bold text-slate-900">
+                    <span className="md:hidden text-xs font-medium text-slate-400">Pedido </span>
+                    #{solicitud.numero_remito}
                   </span>
-
-                  <p className="mt-2 text-sm text-slate-500">
-                    {solicitud.tipo_visita ||
-                      "Sin tipo especificado"}
-                  </p>
-                </div>
-
-                <span className="inline-flex h-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  ✓ Listo para colocar
-                </span>
-              </div>
-
-              {/* DATOS */}
-              <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {/* CLIENTE */}
-                <div className="flex gap-3">
-                  <User
-                    size={18}
-                    className="mt-0.5 text-slate-400 flex-shrink-0"
-                  />
-
-                  <div>
-                    <p className="text-xs font-medium uppercase text-slate-400">
-                      Cliente
-                    </p>
-
-                    <p className="mt-1 text-sm font-semibold text-slate-800">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-slate-800">
                       {solicitud.cliente_nombre || "-"}
                     </p>
-                  </div>
-                </div>
-
-                {/* TELÉFONO */}
-                <div className="flex gap-3">
-                  <Phone
-                    size={18}
-                    className="mt-0.5 text-slate-400 flex-shrink-0"
-                  />
-
-                  <div>
-                    <p className="text-xs font-medium uppercase text-slate-400">
-                      Teléfono
-                    </p>
-
-                    <p className="mt-1 text-sm text-slate-700">
-                      {solicitud.cliente_telefono || "-"}
+                    <p className="truncate text-xs text-slate-500">
+                      {solicitud.tipo_visita || "Sin tipo especificado"}
+                      {solicitud.cliente_telefono ? ` - ${solicitud.cliente_telefono}` : ""}
                     </p>
                   </div>
-                </div>
-
-                {/* DIRECCIÓN */}
-                <div className="flex gap-3">
-                  <MapPin
-                    size={18}
-                    className="mt-0.5 text-slate-400 flex-shrink-0"
-                  />
-
-                  <div>
-                    <p className="text-xs font-medium uppercase text-slate-400">
-                      Dirección
-                    </p>
-
-                    <p className="mt-1 text-sm font-semibold text-slate-800">
+                  <div className="min-w-0">
+                    <p className="truncate text-slate-700">
                       {solicitud.direccion || "-"}
+                      {solicitud.localidad ? ` - ${solicitud.localidad}` : ""}
                     </p>
-
-                    {solicitud.localidad && (
-                      <p className="text-sm text-slate-500">
-                        {solicitud.localidad}
+                    {solicitud.observaciones && (
+                      <p className="line-clamp-2 text-xs text-slate-500">
+                        {solicitud.observaciones}
                       </p>
                     )}
                   </div>
-                </div>
-
-                {/* FECHA */}
-                <div className="flex gap-3">
-                  <Calendar
-                    size={18}
-                    className="mt-0.5 text-slate-400 flex-shrink-0"
-                  />
-
-                  <div>
-                    <p className="text-xs font-medium uppercase text-slate-400">
-                      Fecha solicitada
-                    </p>
-
-                    <p className="mt-1 text-sm text-slate-700">
-                      {solicitud.fecha
-                        ? new Date(
-                            `${solicitud.fecha}T12:00:00`
-                          ).toLocaleDateString("es-AR")
-                        : "-"}
-                    </p>
+                  <span className="text-slate-700">
+                    <span className="md:hidden text-xs text-slate-400">Fecha solicitada: </span>
+                    {solicitud.fecha
+                      ? new Date(`${solicitud.fecha}T12:00:00`).toLocaleDateString("es-AR")
+                      : "-"}
+                  </span>
+                  <div className="md:text-right">
+                    <EnviarACoordinacion solicitud={solicitud} />
                   </div>
-                </div>
-              </div>
-
-              {/* DETALLE */}
-              <div className="mt-6 rounded-xl bg-slate-50 p-5">
-                <div className="flex items-start gap-3">
-                  <ClipboardList
-                    size={19}
-                    className="mt-0.5 text-slate-500 flex-shrink-0"
-                  />
-
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      Detalle de las cortinas / Observaciones
-                    </p>
-
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                      {solicitud.observaciones ||
-                        "No se agregaron observaciones."}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* DATOS ECONÓMICOS Y BOTÓN DE ACCIÓN */}
-              <div className="mt-5 border-t border-slate-100 pt-4 flex flex-wrap items-center justify-between gap-4 text-sm text-slate-700">
-                <div className="flex flex-wrap gap-6">
-                  <div>
-                    <span className="font-medium text-slate-400">Total: </span>
-                    <span className="font-bold">${solicitud.total_pesos ?? "-"}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-400">Saldo: </span>
-                    <span className="font-bold">${solicitud.saldo_restante ?? "-"}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-400">Pago: </span>
-                    <span>{solicitud.medio_pago ?? "-"}</span>
-                  </div>
-                </div>
-
-                {/* BOTÓN / MODAL ENVIAR A COORDINACIÓN */}
-                <div>
-                  <EnviarACoordinacion solicitud={solicitud} />
-                </div>
-              </div>
-
-            </div>
-          ))}
-        </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </main>
     </div>
   );
