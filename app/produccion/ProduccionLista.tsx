@@ -23,22 +23,20 @@ type Trabajo = {
 
 function textoEstado(estado: string) {
   const estados: Record<string, string> = {
-    ENVIADO_A_CORTAR: "Pendiente de producción",
-    EN_CORTE: "En corte",
-    EN_FABRICACION: "En proceso",
-    EN_FABRICA: "En proceso",
+    ENVIADO_A_CORTAR: "En producción",
+    EN_CORTE: "En producción",
+    EN_FABRICACION: "En producción",
+    EN_FABRICA: "En producción",
     FALTANTES: "Faltantes",
-    LISTO_PARA_COLOCAR: "Listo para colocar",
+    LISTO_PARA_COLOCAR: "Terminado",
   };
   return estados[estado] || estado;
 }
 
 const opcionesEstado = [
-  { value: "ENVIADO_A_CORTAR", label: "Pendiente de producción" },
-  { value: "EN_CORTE", label: "En corte" },
-  { value: "EN_FABRICACION", label: "En proceso" },
+  { value: "EN_FABRICACION", label: "En producción" },
   { value: "FALTANTES", label: "Faltantes" },
-  { value: "LISTO_PARA_COLOCAR", label: "Terminado (listo para colocar)" },
+  { value: "LISTO_PARA_COLOCAR", label: "Terminado" },
 ];
 
 export default function ProduccionLista({
