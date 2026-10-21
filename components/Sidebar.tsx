@@ -29,7 +29,7 @@ function seccionDeRuta(path: string | null): string | null {
   if (!path) return null;
   const en = (...bases: string[]) =>
     bases.some((b) => path === b || path.startsWith(b + "/"));
-  if (en("/solicitudes-fabrica", "/aprobacion-fabrica", "/produccion", "/listos-para-colocar")) return "fabrica";
+  if (en("/solicitudes-fabrica", "/aprobacion-fabrica", "/produccion", "/listos-para-colocar", "/trabajos-finalizados")) return "fabrica";
   if (en("/solicitudes", "/coordinacion", "/recorrido-camiones", "/visitas-finalizadas")) return "visitas";
   if (en("/presupuestos")) return "presupuestos";
   if (en("/clientes")) return "clientes";
@@ -413,6 +413,17 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                       }`}
                     >
                       • Listos para colocar
+                    </Link>
+
+                    <Link
+                      href="/trabajos-finalizados"
+                      className={`block py-2 text-xs font-medium transition ${
+                        pathname === "/trabajos-finalizados"
+                          ? "text-amber-400 font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      • Trabajos finalizados
                     </Link>
                   </div>
                 )}
