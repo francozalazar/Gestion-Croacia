@@ -81,3 +81,28 @@ revoke truncate, references, trigger on all tables in schema public from authent
 -- create policy "sol_select_fabrica_vinculada" on public.solicitudes for select to authenticated using (public.get_my_role() = 'FABRICA' and solicitud_fabrica_id is not null);
 -- create policy "sol_update_fabrica_vinculada" on public.solicitudes for update to authenticated using (public.get_my_role() = 'FABRICA' and solicitud_fabrica_id is not null) with check (public.get_my_role() = 'FABRICA' and solicitud_fabrica_id is not null);
 -- create policy "sol_update_oficina_vinculada" on public.solicitudes for update to authenticated using (public.get_my_role() = 'OFICINA' and solicitud_fabrica_id is not null) with check (public.get_my_role() = 'OFICINA' and solicitud_fabrica_id is not null);
+
+-- ============================================================
+-- APLICADO 16:13 en public.solicitudes: el TECNICO solo puede cambiar lo que la app ya le hace cambiar
+-- ============================================================
+-- La policy "Tecnico puede actualizar trabajo asignado" (update de lo asignado) no limitaba columnas.
+-- Segun el codigo (components/CompletarTrabajo.tsx) el tecnico solo escribe: trabajo_realizado, observaciones_tecnico,
+-- firma_cliente, aclaracion_cliente, estado y fecha_finalizacion. El trigger bloquea cualquier otra columna para rol TECNICO.
+-- Otros roles no cambian. No agrega reglas de negocio nuevas (no valida valores de estado).
+-- Prueba con rollback (tecnico con asignacion de prueba solo dentro de la transaccion): columnas permitidas = 1 fila OK,
+-- otra columna (fecha) = error 42501, ADMIN puede cambiar otra columna (1 fila).
+-- Reversion:
+--   drop trigger aa_sol_restringir_tecnico on public.solicitudes;
+--   drop function public.sol_restringir_tecnico();
+-- Codigo aplicado:
+-- create or replace function public.sol_restringir_tecnico() returns trigger language plpgsql security definer set search_path = public as $$
+-- begin
+--   if public.get_my_role() = 'TECNICO' then
+--     if (to_jsonb(new) - array['trabajo_realizado','observaciones_tecnico','firma_cliente','aclaracion_cliente','estado','fecha_finalizacion'])
+--        is distinct from (to_jsonb(old) - array['trabajo_realizado','observaciones_tecnico','firma_cliente','aclaracion_cliente','estado','fecha_finalizacion']) then
+--       raise exception 'El tecnico solo puede completar el trabajo (...)' using errcode = '42501';
+--     end if;
+--   end if;
+--   return new;
+-- end $$;
+-- create trigger aa_sol_restringir_tecnico before update on public.solicitudes for each row execute function public.sol_restringir_tecnico();
