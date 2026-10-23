@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { Package, ArrowLeft, AlertTriangle } from "lucide-react";
-import { FormularioModelo, FormularioMovimiento, FormularioMinimo } from "./StockForms";
+import { Package, ArrowLeft } from "lucide-react";
+import { FormularioModelo, CardStockMotor } from "./StockForms";
 
 type Motor = {
   id: number;
@@ -143,18 +143,18 @@ export default async function StockPage() {
         </div>
 
         {/* RESUMEN */}
-        <div className="mb-8 grid gap-5 md:grid-cols-3">
-          <div className="rounded-xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Modelos</p>
-            <p className="mt-2 text-3xl font-bold text-slate-900">{motores.length}</p>
+        <div className="mb-8 grid grid-cols-3 gap-3 md:gap-5">
+          <div className="rounded-xl bg-white p-3 shadow-sm md:p-5">
+            <p className="text-xs text-slate-500 md:text-sm">Modelos</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900 md:mt-2 md:text-3xl">{motores.length}</p>
           </div>
-          <div className="rounded-xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Unidades en total</p>
-            <p className="mt-2 text-3xl font-bold text-blue-600">{unidadesTotales}</p>
+          <div className="rounded-xl bg-white p-3 shadow-sm md:p-5">
+            <p className="text-xs text-slate-500 md:text-sm">Unidades en total</p>
+            <p className="mt-1 text-2xl font-bold text-blue-600 md:mt-2 md:text-3xl">{unidadesTotales}</p>
           </div>
-          <div className="rounded-xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Por agotarse</p>
-            <p className={`mt-2 text-3xl font-bold ${enMinimo > 0 ? "text-red-600" : "text-slate-900"}`}>
+          <div className="rounded-xl bg-white p-3 shadow-sm md:p-5">
+            <p className="text-xs text-slate-500 md:text-sm">Por agotarse</p>
+            <p className={`mt-1 text-2xl font-bold md:mt-2 md:text-3xl ${enMinimo > 0 ? "text-red-600" : "text-slate-900"}`}>
               {enMinimo}
             </p>
           </div>
@@ -167,41 +167,17 @@ export default async function StockPage() {
         )}
 
         {/* MODELOS */}
-        <div className="mb-8 space-y-4">
+        <div className="mb-8">
           {motores.length === 0 && !eMotores && (
             <div className="rounded-xl bg-white p-6 text-sm text-slate-600 shadow-sm">
               Todavía no hay modelos cargados. Agregá el primero abajo con el conteo inicial.
             </div>
           )}
-          {motores.map((m) => (
-            <div key={m.id} className="rounded-xl bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <p className="text-lg font-bold text-slate-900">{m.nombre}</p>
-                    {porAgotarse(m) && (
-                      <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">
-                        <AlertTriangle size={12} />
-                        Por agotarse
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <p className="text-xs text-slate-500">Quedan</p>
-                    <p className={`text-3xl font-bold ${porAgotarse(m) ? "text-red-600" : "text-slate-900"}`}>
-                      {m.cantidad}
-                    </p>
-                  </div>
-                  <FormularioMinimo motorId={m.id} minimo={m.minimo} />
-                </div>
-              </div>
-              <div className="mt-4 border-t border-slate-100 pt-4">
-                <FormularioMovimiento motorId={m.id} pedidos={pedidos} />
-              </div>
-            </div>
-          ))}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            {motores.map((m) => (
+              <CardStockMotor key={m.id} motor={m} pedidos={pedidos} />
+            ))}
+          </div>
         </div>
 
         {/* NUEVO MODELO */}
