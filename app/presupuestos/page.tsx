@@ -4,7 +4,7 @@ import { requierePrecio } from "@/lib/tipoVisita";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
-import { Info, Download, X, Wrench, User } from "lucide-react";
+import { Info, Download, X, Wrench, User, Archive, ArchiveRestore } from "lucide-react";
 
 export default function InboxPresupuestoOficinaPage() {
   const supabase = createClient();
@@ -14,12 +14,17 @@ export default function InboxPresupuestoOficinaPage() {
   const [cargando, setCargando] = useState(true);
   const [modalPrincipal, setModalPrincipal] = useState<any | null>(null);
 
+  const [verArchivados, setVerArchivados] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [errorArchivo, setErrorArchivo] = useState("");
+
   useEffect(() => {
     cargarDatos();
   }, []);
 
   async function cargarDatos() {
     setCargando(true);
+    setErrorArchivo("");
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -52,11 +57,21 @@ export default function InboxPresupuestoOficinaPage() {
     if (errSol) {
       alert("Error al cargar Inbox de presupuestos: " + errSol.message);
       console.error(errSol);
+      setErrorArchivo("No se pudieron cargar los presupuestos. Reintentá recargando la página.");
       setCargando(false);
       return;
     }
 
-    const lista = solData || [];
+    const { data: archivos, error: errArchivo } = await supabase
+      .from("presupuestos_archivados").select("solicitud_id");
+    if (errArchivo) {
+      setErrorArchivo("No se pudo consultar el archivo. Reintentá recargando la página.");
+      setCargando(false);
+      return;
+    }
+    setErrorArchivo("");
+    const archivados = new Set((archivos || []).map((a) => a.solicitud_id));
+    const lista = (solData || []).map((s) => ({ ...s, archivado: archivados.has(s.id) }));
 
     if (lista.length > 0) {
       const ids = lista.map((s) => s.id);
@@ -97,6 +112,30 @@ export default function InboxPresupuestoOficinaPage() {
     setCargando(false);
   }
 
+  async function cambiarArchivo(presupuesto: any) {
+    if (guardando || presupuesto.creado_por !== perfil?.id || !["OFICINA", "ADMIN"].includes(perfil?.rol)) return;
+    const restaurar = !!presupuesto.archivado;
+    if (!window.confirm(restaurar
+      ? "¿Volver a mostrar este presupuesto en Activos?"
+      : "¿Quitar este presupuesto de la lista activa? Se oculta de Activos, pero no se borra ni cambia el trabajo. Podés restaurarlo desde Archivados.")) return;
+    setGuardando(true);
+    try {
+      const resultado = restaurar
+        ? await supabase.from("presupuestos_archivados").delete().eq("solicitud_id", presupuesto.id).eq("vendedor_id", perfil.id).select("solicitud_id")
+        : await supabase.from("presupuestos_archivados").insert({ solicitud_id: presupuesto.id, vendedor_id: perfil.id }).select("solicitud_id");
+      if (resultado.error || !resultado.data?.length) {
+        alert("No se pudo guardar el cambio. Recargá la página y reintentá.");
+        return;
+      }
+      setModalPrincipal(null);
+      await cargarDatos();
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  const visibles = presupuestos.filter((p) => !!p.archivado === verArchivados);
+
   function descargarRemitoPDF(remito: any) {
     if (!remito?.id) return;
     window.open(`/finalizados/${remito.id}/pdf`, "_blank");
@@ -111,18 +150,28 @@ export default function InboxPresupuestoOficinaPage() {
 
         <div className="mx-auto max-w-4xl mb-8 flex items-center gap-2 bg-slate-100 p-3.5 rounded-xl text-xs text-slate-500 border border-slate-200">
           <Info size={16} className="text-blue-500 shrink-0" />
-          <p>Acá puedes consultar tus trabajos tarifados y finalizados listos para gestionar. Presiona en un trabajo para ver detalles.</p>
+          <p>Consultá tus presupuestos activos o archivados. Archivar solo los saca de esta lista: no borra el trabajo ni cambia su historial, ventas o estadísticas.</p>
         </div>
 
+        <div className="flex gap-2 mb-6" role="group" aria-label="Ver presupuestos">
+          {[false, true].map((archivo) => (
+            <button key={String(archivo)} onClick={() => { setVerArchivados(archivo); setModalPrincipal(null); }}
+              aria-pressed={verArchivados === archivo}
+              className={`rounded-md px-4 py-2 text-sm font-semibold border ${verArchivados === archivo ? "bg-blue-700 text-white border-blue-700" : "bg-white text-slate-700 border-slate-300"}`}>
+              {archivo ? "Archivados" : "Activos"} ({presupuestos.filter((p) => !!p.archivado === archivo).length})
+            </button>
+          ))}
+        </div>
+        {errorArchivo ? <p role="alert" className="text-red-700 mb-4">{errorArchivo}</p> : null}
         {cargando ? (
           <p className="text-center text-sm text-slate-400">Cargando presupuestos...</p>
-        ) : presupuestos.length === 0 ? (
+        ) : errorArchivo ? null : visibles.length === 0 ? (
           <div className="bg-white p-12 rounded-xl text-center max-w-md mx-auto shadow-sm border border-slate-100">
-            <p className="text-sm text-slate-500">No tenés trabajos en tu inbox por el momento.</p>
+            <p className="text-sm text-slate-500">{verArchivados ? "No tenés presupuestos archivados." : "No tenés presupuestos activos."}</p>
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 max-w-5xl mx-auto">
-            {presupuestos.map((p) => {
+            {visibles.map((p) => {
               const requierePrecioTipo = requierePrecio(p.tipo_visita);
               const monto = p.subtotal || p.precio || 0;
 
@@ -216,6 +265,13 @@ export default function InboxPresupuestoOficinaPage() {
                 </span>
               </div>
 
+              {modalPrincipal.creado_por === perfil?.id && ["OFICINA", "ADMIN"].includes(perfil?.rol) && (
+                <button disabled={guardando} onClick={() => cambiarArchivo(modalPrincipal)}
+                  className="mt-6 flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                  {modalPrincipal.archivado ? <ArchiveRestore size={16} /> : <Archive size={16} />}
+                  {guardando ? "Guardando..." : modalPrincipal.archivado ? "Restaurar presupuesto" : "Quitar de presupuestos"}
+                </button>
+              )}
               <div className="mt-6 flex items-center justify-between">
                 <button
                   onClick={() => descargarRemitoPDF(modalPrincipal)}
