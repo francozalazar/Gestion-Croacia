@@ -29,7 +29,6 @@ export async function crearUsuarioAction(
 
   // 2. Datos del formulario
   const nombre = String(formData.get("nombre") || "").trim();
-  const apellido = String(formData.get("apellido") || "").trim();
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const rol = String(formData.get("rol") || "").trim().toUpperCase();
   const password = String(formData.get("password") || "");
@@ -38,8 +37,8 @@ export async function crearUsuarioAction(
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
     return { ok: false, mensaje: "El email no es válido." };
   if (!ROLES.includes(rol)) return { ok: false, mensaje: "Elegí un rol." };
-  if (password.length < 8)
-    return { ok: false, mensaje: "La contraseña tiene que tener al menos 8 caracteres." };
+  if (password.length < 6)
+    return { ok: false, mensaje: "La contraseña tiene que tener al menos 6 caracteres." };
 
   // 3. Clave de servidor (nunca va al navegador)
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -55,12 +54,12 @@ export async function crearUsuarioAction(
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // 4. Crear el acceso. El trigger de la base crea el perfil con nombre y apellido.
+  // 4. Crear el acceso. El trigger de la base crea el perfil con el nombre.
   const { data: creado, error } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    user_metadata: { nombre, apellido: apellido || null },
+    user_metadata: { nombre },
   });
   if (error || !creado?.user) {
     const ya = /already|registered|exists/i.test(error?.message || "");
@@ -75,7 +74,7 @@ export async function crearUsuarioAction(
   // 5. Rol del perfil. Si falla, se deshace el alta completa para no dejar un usuario con rol equivocado.
   const { error: errPerfil } = await admin
     .from("profiles")
-    .update({ nombre, apellido: apellido || null, rol, activo: true })
+    .update({ nombre, rol, activo: true })
     .eq("id", creado.user.id);
   if (errPerfil) {
     await admin.auth.admin.deleteUser(creado.user.id);
@@ -87,6 +86,6 @@ export async function crearUsuarioAction(
 
   return {
     ok: true,
-    mensaje: `Usuario creado: ${nombre} ${apellido}`.trim() + ` (${rol}). Pasale el email y la contraseña para que entre.`,
+    mensaje: `Usuario creado: ${nombre} (${rol}). Pasale el email y la contraseña para que entre.`,
   };
 }
