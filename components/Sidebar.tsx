@@ -16,6 +16,7 @@ import {
   BarChart3,
   Menu,
   X,
+  Package,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/cliente";
 
@@ -30,7 +31,7 @@ function seccionDeRuta(path: string | null): string | null {
   if (!path) return null;
   const en = (...bases: string[]) =>
     bases.some((b) => path === b || path.startsWith(b + "/"));
-  if (en("/solicitudes-fabrica", "/aprobacion-fabrica", "/produccion", "/listos-para-colocar", "/trabajos-finalizados")) return "fabrica";
+  if (en("/solicitudes-fabrica", "/aprobacion-fabrica", "/produccion", "/listos-para-colocar", "/trabajos-finalizados", "/stock")) return "fabrica";
   if (en("/solicitudes", "/coordinacion", "/recorrido-camiones", "/visitas-finalizadas")) return "visitas";
   if (en("/presupuestos")) return "presupuestos";
   if (en("/saldos-pendientes", "/estadisticas", "/usuarios")) return "administracion";
@@ -152,6 +153,17 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
               >
                 <Factory size={18} className="text-amber-400" />
                 <span>Trabajos a realizar</span>
+              </Link>
+              <Link
+                href="/stock"
+                className={`mt-1 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                  pathname === "/stock"
+                    ? "bg-amber-600 text-white"
+                    : "hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                <Package size={18} className="text-amber-400" />
+                <span>Stock de motores</span>
               </Link>
             </div>
           ) : esTecnico ? (
@@ -472,6 +484,19 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                     >
                       • Trabajos finalizados
                     </Link>
+
+                    {rol === "ADMIN" && (
+                      <Link
+                        href="/stock"
+                        className={`block py-2 text-xs font-medium transition ${
+                          pathname === "/stock"
+                            ? "text-amber-400 font-bold"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        • Stock de motores
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
