@@ -243,6 +243,252 @@ export default function NuevaSolicitudPage() {
         }
       }
 
+
+import { FormEvent, useEffect, useState } from "react";
+import { resolverClienteYDireccion } from "@/lib/clientes";
+import { useRouter } from "next/navigation";
+import Sidebar from "@/components/Sidebar";
+import ProvinciaLocalidad from "@/components/ProvinciaLocalidad";
+import { createClient } from "@/lib/supabase/cliente";
+import {
+  ArrowLeft,
+  Save,
+  UserRound,
+  CalendarDays,
+  Clock,
+  ClipboardList,
+  BellRing,
+} from "lucide-react";
+
+const tiposVisita = [
+  "Presupuesto aceptado",
+  "Presupuesto",
+  "Reclamo",
+  "Trabajo pendiente",
+  "Guias para amurar",
+  "Verificar Medidas",
+  "Urgencia",
+  "Supervision",
+];
+
+export default function NuevaSolicitudPage() {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const [loading, setLoading] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  const [perfil, setPerfil] = useState<any>(null);
+
+  const [cliente, setCliente] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [localidad, setLocalidad] = useState("");
+  const [provincia, setProvincia] = useState("");
+
+  const [clientes, setClientes] = useState<
+    { id: number; nombre: string; telefono: string | null }[]
+  >([]);
+  const [clienteIdSel, setClienteIdSel] = useState<number | null>(null);
+  const [modoClienteNuevo, setModoClienteNuevo] = useState(false);
+  const [contacto, setContacto] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [direccionesCliente, setDireccionesCliente] = useState<
+    { id: number; direccion: string; localidad: string | null }[]
+  >([]);
+
+  const [fecha, setFecha] = useState("");
+  const [tipoVisita, setTipoVisita] = useState("");
+  
+  const [franjaHoraria, setFranjaHoraria] = useState("");
+  const [preferencia, setPreferencia] = useState("");
+  
+  const [observaciones, setObservaciones] = useState("");
+
+  useEffect(() => {
+    async function verificarUsuario() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("nombre, apellido, rol")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile || !["ADMIN", "OFICINA"].includes(profile.rol)) {
+        router.push("/dashboard");
+        return;
+      }
+
+      setPerfil(profile);
+
+      const { data: listaClientes } = await supabase
+        .from("clientes")
+        .select("id, nombre, telefono")
+        .order("nombre");
+      setClientes(listaClientes || []);
+
+      setLoading(false);
+    }
+
+    verificarUsuario();
+  }, [router, supabase]);
+
+  async function cargarDirecciones(clienteId: number | null) {
+    if (!clienteId) {
+      setDireccionesCliente([]);
+      return;
+    }
+    try {
+      const { data } = await supabase
+        .from("direcciones")
+        .select("id, direccion, localidad")
+        .eq("cliente_id", clienteId)
+        .order("created_at", { ascending: false })
+        .limit(6);
+      setDireccionesCliente(data || []);
+    } catch {
+      setDireccionesCliente([]);
+    }
+  }
+
+  async function crearSolicitud(e: FormEvent) {
+    e.preventDefault();
+
+    setError("");
+    setGuardando(true);
+
+    try {
+      if (modoClienteNuevo) {
+        if (!cliente.trim())
+          throw new Error("Ingresá el nombre del cliente nuevo.");
+      } else if (!clienteIdSel) {
+        throw new Error("Elegí un cliente de la lista o creá uno nuevo.");
+      }
+      if (!direccion.trim()) throw new Error("Ingresá la dirección.");
+      if (!fecha) throw new Error("Seleccioná una fecha.");
+      if (!tipoVisita) throw new Error("Seleccioná el tipo de visita.");
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error("La sesión expiró.");
+      }
+
+      let hDesde = null;
+      let hHasta = null;
+      if (franjaHoraria === "mañana") {
+        hDesde = "08:00";
+        hHasta = "12:00";
+      } else if (franjaHoraria === "tarde") {
+        hDesde = "13:00";
+        hHasta = "17:00";
+      } else if (franjaHoraria === "completo") {
+        hDesde = "08:00";
+        hHasta = "17:00";
+      }
+
+      const observacionesFinales = preferencia.trim()
+        ? `[Aviso: ${preferencia.trim()}]\n${observaciones.trim()}`
+        : observaciones.trim() || null;
+
+      const { clienteId, direccionId } = await resolverClienteYDireccion(
+        supabase,
+        {
+          nombre: cliente,
+          direccion,
+          localidad,
+          userId: user.id,
+          telefono,
+        }
+      );
+
+      let clienteIdFinal = clienteId;
+
+      if (!clienteIdFinal) {
+        // Respaldo por si falla la búsqueda/creación automática
+        let { data: clienteCreado, error: clienteError } = await supabase
+          .from("clientes")
+          .insert({
+            nombre: cliente.trim(),
+            telefono: telefono.trim() || null,
+            direccion: direccion.trim(),
+            localidad: localidad.trim() || null,
+            creado_por: user.id,
+          })
+          .select("id")
+          .single();
+
+        if (clienteError) {
+          // Reintento sin creado_por por si falta correr el SQL nuevo
+          const reintento = await supabase
+            .from("clientes")
+            .insert({
+              nombre: cliente.trim(),
+              telefono: telefono.trim() || null,
+              direccion: direccion.trim(),
+              localidad: localidad.trim() || null,
+            })
+            .select("id")
+            .single();
+          clienteCreado = reintento.data;
+          clienteError = reintento.error;
+        }
+
+        if (clienteError || !clienteCreado) {
+          throw new Error(clienteError?.message || "No se pudo crear el cliente.");
+        }
+        clienteIdFinal = clienteCreado.id;
+      }
+
+      const { data: solicitud, error: solicitudError } = await supabase
+        .from("solicitudes")
+        .insert({
+          cliente_id: clienteIdFinal,
+          cliente_nombre: cliente.trim(),
+          cliente_telefono: telefono.trim() || null,
+          aclaracion_cliente: contacto.trim() || null,
+          direccion: direccion.trim(),
+          localidad: localidad.trim() || null,
+          provincia: provincia.trim() || null,
+          fecha,
+          horario_desde: hDesde,
+          horario_hasta: hHasta,
+          tipo_visita: tipoVisita,
+          observaciones: observacionesFinales,
+          estado: "PENDIENTE_COORDINACION",
+          creado_por: user.id,
+        })
+        .select("id, numero")
+        .single();
+
+      if (solicitudError || !solicitud) {
+        throw new Error(solicitudError?.message || "No se pudo crear la solicitud.");
+      }
+
+      if (tipoVisita === "Presupuesto aceptado" && clienteIdFinal) {
+        try {
+          await supabase.from("ventas").insert({
+            cliente_id: clienteIdFinal,
+            direccion_id: direccionId,
+            descripcion: `Solicitud #${solicitud.numero} (Presupuesto aceptado)`,
+            total: 0,
+            solicitud_id: solicitud.id,
+            creado_por: user.id,
+          });
+        } catch {
+          // Si todavía no existe la tabla ventas, no pasa nada
+        }
+      }
+
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
@@ -430,6 +676,7 @@ export default function NuevaSolicitudPage() {
               <ProvinciaLocalidad
                 localidad={localidad}
                 setLocalidad={setLocalidad}
+                onProvinciaChange={setProvincia}
                 inputClassName={inputClassName}
               />
             </div>
