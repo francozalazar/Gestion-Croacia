@@ -40,17 +40,13 @@ export default function InboxPresupuestoOficinaPage() {
 
     setPerfil(profile);
 
-    // CORRECCIÓN AQUÍ: cambiamos "updated_at" por "id"
-    let query = supabase
+    // Presupuestos es una bandeja personal para todos los roles, incluido ADMIN.
+    const query = supabase
       .from("solicitudes")
       .select("*, creador:profiles!creado_por(nombre, apellido)")
+      .eq("creado_por", user.id)
       .in("estado", ["PENDIENTE_PRECIO", "PRESUPUESTADO"])
       .order("id", { ascending: false });
-
-    // Filtramos para que la oficina solo vea lo suyo
-    if (profile?.rol === "OFICINA") {
-      query = query.eq("creado_por", user.id);
-    }
 
     const { data: solData, error: errSol } = await query;
 
@@ -63,7 +59,7 @@ export default function InboxPresupuestoOficinaPage() {
     }
 
     const { data: archivos, error: errArchivo } = await supabase
-      .from("presupuestos_archivados").select("solicitud_id");
+      .from("presupuestos_archivados").select("solicitud_id").eq("vendedor_id", user.id);
     if (errArchivo) {
       setErrorArchivo("No se pudo consultar el archivo. Reintentá recargando la página.");
       setCargando(false);
@@ -71,7 +67,9 @@ export default function InboxPresupuestoOficinaPage() {
     }
     setErrorArchivo("");
     const archivados = new Set((archivos || []).map((a) => a.solicitud_id));
-    const lista = (solData || []).map((s) => ({ ...s, archivado: archivados.has(s.id) }));
+    // Defensa adicional: listas, conteos y detalles parten solo de registros propios.
+    const lista = (solData || []).filter((s) => s.creado_por === user.id)
+      .map((s) => ({ ...s, archivado: archivados.has(s.id) }));
 
     if (lista.length > 0) {
       const ids = lista.map((s) => s.id);
