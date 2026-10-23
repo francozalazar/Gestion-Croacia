@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/cliente";
+import ProvinciaLocalidad from "@/components/ProvinciaLocalidad";
 
 type ClienteSugerido = { id: number; nombre: string };
 type DireccionSugerida = { id: number; direccion: string; localidad: string | null };
@@ -140,17 +141,11 @@ export default function ClienteAutocomplete({
         )}
       </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">
-          Localidad
-        </label>
-        <input
-          value={localidad}
-          onChange={(e) => setLocalidad(e.target.value)}
-          placeholder="Ej: Quilmes"
-          className={inputClassName}
-        />
-      </div>
+      <ProvinciaLocalidad
+        localidad={localidad}
+        setLocalidad={setLocalidad}
+        inputClassName={inputClassName}
+      />
     </>
   );
 }
