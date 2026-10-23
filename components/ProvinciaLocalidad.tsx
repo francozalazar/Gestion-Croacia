@@ -69,6 +69,78 @@ export default function ProvinciaLocalidad({
 }: {
   localidad: string;
   setLocalidad: (v: string) => void;
+
+import { useMemo, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { CABA, PROVINCIAS, LOCALIDADES_POR_PROVINCIA } from "@/lib/geo";
+
+// Normaliza para buscar: sin mayúsculas, sin acentos y ñ -> n.
+function normalizar(s: string) {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+// Alias para encontrar CABA escribiendo "caba" o "capital".
+const ALIAS_PROVINCIA: Record<string, string> = {
+  caba: CABA,
+  capital: CABA,
+  "capital federal": CABA,
+};
+
+const MAX_VISIBLES = 60;
+
+function Opciones({
+  opciones,
+  onElegir,
+  notaVacia,
+}: {
+  opciones: string[];
+  onElegir: (v: string) => void;
+  notaVacia: string;
+}) {
+  if (opciones.length === 0) {
+    return (
+      <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-400 shadow-lg">
+        {notaVacia}
+      </div>
+    );
+  }
+  return (
+    <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+      {opciones.slice(0, MAX_VISIBLES).map((o) => (
+        <button
+          key={o}
+          type="button"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            onElegir(o);
+          }}
+          className="block w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+        >
+          {o}
+        </button>
+      ))}
+      {opciones.length > MAX_VISIBLES && (
+        <p className="px-4 py-2 text-xs text-slate-400">
+          y {opciones.length - MAX_VISIBLES} más... seguí escribiendo para
+          filtrar
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function ProvinciaLocalidad({
+  localidad,
+  setLocalidad,
+  onProvinciaChange,
+  inputClassName,
+}: {
+  localidad: string;
+  setLocalidad: (v: string) => void;
+  onProvinciaChange?: (p: string) => void;
   inputClassName: string;
 }) {
   const [provincia, setProvincia] = useState("");
@@ -102,6 +174,7 @@ export default function ProvinciaLocalidad({
     const anterior = provincia;
     setProvincia(p);
     setTextoProvincia(p);
+    onProvinciaChange?.(p);
     setProvAbierto(false);
     // Si la localidad cargada venía del catálogo de la provincia anterior,
     // se limpia para no mezclar provincias. El texto libre se conserva.
@@ -127,6 +200,7 @@ export default function ProvinciaLocalidad({
           onChange={(e) => {
             setTextoProvincia(e.target.value);
             setProvincia("");
+            onProvinciaChange?.("");
             setProvAbierto(true);
           }}
           onFocus={() => setProvAbierto(true)}
