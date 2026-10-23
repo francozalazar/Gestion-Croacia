@@ -1,13 +1,15 @@
 "use client";
 
-import { requierePrecio } from "@/lib/tipoVisita";
-import { useRef, useState } from "react";
+import { prepararFotoTrabajo } from "@/lib/fotoTrabajo";
+import FotoTrabajo from "@/components/FotoTrabajo";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { useRouter } from "next/navigation";
 
 interface Props {
   solicitudId: number;
   estado: string;
+  solicitudPrincipalId: number | null;
   trabajoRealizado: string | null;
   observacionesTecnico: string | null;
   firmaCliente: string | null;
@@ -18,6 +20,7 @@ interface Props {
 
 export default function CompletarTrabajo({
   solicitudId,
+  solicitudPrincipalId,
   estado,
   trabajoRealizado,
   observacionesTecnico,
@@ -38,6 +41,24 @@ export default function CompletarTrabajo({
   const [aclaracion, setAclaracion] = useState(aclaracionCliente || "");
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [foto, setFoto] = useState<Blob | null>(null);
+  const [preview, setPreview] = useState("");
+  const [procesandoFoto, setProcesandoFoto] = useState(false);
+  const guardandoRef = useRef(false);
+  const rutaFoto = useRef<string | null>(null);
+  useEffect(() => {
+    if (!foto) { setPreview(""); return; }
+    const url = URL.createObjectURL(foto); setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [foto]);
+  async function elegirFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProcesandoFoto(true); setMensaje(""); setFoto(null); rutaFoto.current = null;
+    try { setFoto(await prepararFotoTrabajo(file)); }
+    catch (error) { setMensaje(error instanceof Error ? error.message : "No se pudo procesar la foto."); }
+    finally { setProcesandoFoto(false); e.target.value = ""; }
+  }
 
   const finalizado =
     estado === "FINALIZADO" ||
@@ -104,6 +125,10 @@ export default function CompletarTrabajo({
   }
 
   async function finalizarTrabajo() {
+    if (guardandoRef.current || procesandoFoto) return;
+    if (!foto || !solicitudPrincipalId) {
+      setMensaje("Subí una foto del trabajo finalizado antes de continuar."); return;
+    }
     if (!trabajo.trim()) {
       setMensaje("Completá el campo 'Trabajo realizado'.");
       return;
@@ -129,54 +154,26 @@ export default function CompletarTrabajo({
       firmaFinal = canvas.toDataURL("image/png");
     }
 
-    // Regla: PENDIENTE_PRECIO solo para Presupuesto y Urgencia (lib/tipoVisita).
-    // Todo lo demas va a PRESUPUESTADO (bandeja /presupuestos, remito descargable).
-    const nuevoEstado = requierePrecio(tipoVisita)
-      ? "PENDIENTE_PRECIO"
-      : "PRESUPUESTADO";
-
-    const datosActualizacion: any = {
-      trabajo_realizado: trabajo,
-      observaciones_tecnico: observaciones,
-      firma_cliente: firmaFinal,
-      aclaracion_cliente: aclaracion,
-      estado: nuevoEstado,
-      fecha_finalizacion: new Date().toISOString(),
-    };
-
-    let error = null;
-
-    if (esFabrica) {
-      // Trabajo de fabrica: el remito cambia de estado y los datos del
-      // trabajo se guardan en la solicitud principal vinculada.
-      const { error: errorFab } = await supabase
-        .from("solicitudes_fabrica")
-        .update({ estado: nuevoEstado })
-        .eq("id", solicitudId);
-
-      if (errorFab) {
-        error = errorFab;
-      } else {
-        const { error: errorSol } = await supabase
-          .from("solicitudes")
-          .update(datosActualizacion)
-          .eq("solicitud_fabrica_id", solicitudId);
-        error = errorSol;
+    guardandoRef.current = true;
+    try {
+      const path = rutaFoto.current || `solicitudes/${solicitudPrincipalId}/${crypto.randomUUID()}.jpg`;
+      if (!rutaFoto.current) {
+        const { error } = await supabase.storage.from("fotos-trabajos").upload(path, foto,
+          { contentType: "image/jpeg", upsert: false });
+        if (error) throw new Error("No se pudo subir la foto: " + error.message);
+        rutaFoto.current = path;
       }
-    } else {
-      const { error: errorSol } = await supabase
-        .from("solicitudes")
-        .update(datosActualizacion)
-        .eq("id", solicitudId);
-      error = errorSol;
+      const { error } = await supabase.rpc("finalizar_trabajo_con_foto", {
+        p_solicitud_id: solicitudPrincipalId, p_es_fabrica: esFabrica,
+        p_path: path, p_trabajo: trabajo.trim(), p_observaciones: observaciones,
+        p_firma: firmaFinal, p_aclaracion: aclaracion.trim(),
+      });
+      if (error) throw new Error(error.message);
+    } catch (error) {
+      setMensaje(`Error al finalizar: ${error instanceof Error ? error.message : "Reintentá en unos minutos."}`);
+      setGuardando(false); guardandoRef.current = false; return;
     }
-
-    if (error) {
-      console.error(error);
-      setMensaje(`Error al finalizar: ${error.message}`);
-      setGuardando(false);
-      return;
-    }
+    guardandoRef.current = false;
 
     setMensaje("Trabajo finalizado correctamente.");
     setGuardando(false);
@@ -218,6 +215,17 @@ export default function CompletarTrabajo({
         />
       </div>
 
+      <div className="mb-6">
+        {finalizado && solicitudPrincipalId ? <FotoTrabajo solicitudId={solicitudPrincipalId} /> : <>
+          <label htmlFor="foto-final" className="mb-2 block text-sm font-semibold text-slate-700">Foto del trabajo finalizado (obligatoria)</label>
+          <input id="foto-final" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
+            disabled={guardando || procesandoFoto} onChange={elegirFoto} className="block w-full text-sm" />
+          <p className="mt-2 text-xs text-slate-500">Podés sacar una foto con el celular. Se reduce antes de subirla para gastar menos datos.</p>
+          {procesandoFoto && <p className="mt-2 text-sm">Preparando foto...</p>}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {preview && <img src={preview} alt="Vista previa de la foto a subir" className="mt-3 max-h-80 w-full rounded-md object-contain" />}
+        </>}
+      </div>
       <div className="border-t border-slate-200 pt-6">
         <h3 className="mb-4 text-lg font-bold text-slate-900">Conformidad del cliente</h3>
 
@@ -258,7 +266,7 @@ export default function CompletarTrabajo({
         <div className="mt-6">
           <button
             onClick={finalizarTrabajo}
-            disabled={guardando}
+            disabled={guardando || procesandoFoto}
             className="w-full rounded-xl bg-emerald-600 px-5 py-4 font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {guardando ? "Finalizando trabajo..." : "✓ Finalizar trabajo"}
