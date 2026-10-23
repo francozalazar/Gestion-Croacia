@@ -4,6 +4,7 @@ import { requierePrecio } from "@/lib/tipoVisita";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
+import FotoTrabajo from "@/components/FotoTrabajo";
 import { X, Lock, Wrench, User } from "lucide-react";
 
 export default function SeccionPreciosAdminPage() {
@@ -202,6 +203,7 @@ export default function SeccionPreciosAdminPage() {
                   <p><strong>Técnico responsable:</strong> {modalTrabajo.tecnico_real}</p>
                   <p><strong>Fecha finalizado:</strong> {modalTrabajo.fecha_finalizacion ? new Date(modalTrabajo.fecha_finalizacion).toLocaleDateString("es-AR") : "-"}</p>
                 </div>
+                <FotoTrabajo solicitudId={modalTrabajo.id} />
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Precio Asignado ($)</label>
