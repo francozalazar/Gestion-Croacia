@@ -41,6 +41,28 @@ export default function RecorridoCamionesPage() {
 
     setPerfil(profile);
 
+    const rol = (profile?.rol || "").toUpperCase();
+
+    // Fábrica no usa esta vista: su pantalla es Trabajos a realizar.
+    if (rol === "FABRICA") {
+      window.location.href = "/fabrica";
+      return;
+    }
+
+    // Cualquier otro rol fuera de los esperados vuelve al inicio.
+    if (!["ADMIN", "OFICINA", "COORDINACION", "TECNICO"].includes(rol)) {
+      window.location.href = "/dashboard";
+      return;
+    }
+
+    // El técnico solo consulta SU recorrido: no se carga la lista de
+    // camiones ni se muestran trabajos de otros.
+    if (rol === "TECNICO") {
+      setTecnicoSeleccionado(user.id);
+      ejecutarBusqueda(user.id, fecha);
+      return;
+    }
+
     // 2. Cargar TODOS los técnicos / camiones del sistema
     const { data } = await supabase
       .from("profiles")
@@ -66,6 +88,10 @@ export default function RecorridoCamionesPage() {
   }
 
   async function ejecutarBusqueda(tecId: string, fechaFiltro: string) {
+    // Un técnico solo puede ver su propio recorrido.
+    if (perfil?.rol?.toUpperCase() === "TECNICO" && tecId !== perfil.id) {
+      return;
+    }
     setCargando(true);
 
     const { data: asignaciones, error: errorAsignaciones } = await supabase
@@ -308,11 +334,14 @@ export default function RecorridoCamionesPage() {
 
       <main className="ml-0 md:ml-64 flex-1 p-6 pt-20 md:p-10">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-          Recorrido de camiones
+          {perfil?.rol?.toUpperCase() === "TECNICO"
+            ? "Mi recorrido"
+            : "Recorrido de camiones"}
         </h1>
 
         {/* FILTROS DE BÚSQUEDA */}
         <div className="mx-auto max-w-2xl bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between mb-10">
+          {perfil?.rol?.toUpperCase() !== "TECNICO" && (
           <div className="w-full">
             <label className="text-xs font-semibold text-slate-400 block mb-1 uppercase flex items-center gap-1.5">
               <Truck size={14} /> Seleccionar Camión / Técnico
@@ -330,6 +359,7 @@ export default function RecorridoCamionesPage() {
               ))}
             </select>
           </div>
+          )}
 
           <div className="w-full">
             <label className="text-xs font-semibold text-slate-400 block mb-1 uppercase flex items-center gap-1.5">
@@ -358,7 +388,9 @@ export default function RecorridoCamionesPage() {
         ) : trabajos.length === 0 ? (
           <div className="text-center bg-white p-10 rounded-xl max-w-md mx-auto shadow-sm border border-slate-100">
             <p className="text-sm text-slate-500">
-              {tecnicoSeleccionado
+              {perfil?.rol?.toUpperCase() === "TECNICO"
+                ? "No tenés trabajos asignados en la fecha seleccionada."
+                : tecnicoSeleccionado
                 ? "No hay trabajos asignados para este camión en la fecha seleccionada."
                 : "Seleccioná un camión y presioná Buscar para ver su recorrido."}
             </p>
@@ -450,7 +482,8 @@ export default function RecorridoCamionesPage() {
                 </p>
               </div>
 
-              {/* SELECTOR DE PRIORIDADES DEL 1 AL 5 */}
+              {/* SELECTOR DE PRIORIDADES DEL 1 AL 5 (no aplica al técnico) */}
+              {perfil?.rol?.toUpperCase() !== "TECNICO" && (
               <div className="mt-6">
                 <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
                   Cambiar prioridad
@@ -469,6 +502,7 @@ export default function RecorridoCamionesPage() {
                   <option value="">Sin prioridad</option>
                 </select>
               </div>
+              )}
 
               {/* BOTONES DE ACCIÓN */}
               <div className="mt-8 flex flex-wrap justify-end gap-3">
@@ -488,12 +522,14 @@ export default function RecorridoCamionesPage() {
                   Anular visita
                 </button>
                 )}
+                {perfil?.rol?.toUpperCase() !== "TECNICO" && (
                 <button
                   onClick={cambiarPrioridad}
                   className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-blue-700 transition"
                 >
                   Cambiar prioridad
                 </button>
+                )}
               </div>
             </div>
           </div>
