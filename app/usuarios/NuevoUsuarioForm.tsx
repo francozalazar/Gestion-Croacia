@@ -36,10 +36,6 @@ export default function NuevoUsuarioForm() {
           Nombre
           <input name="nombre" required className={campo} autoComplete="off" />
         </label>
-        <label className="text-sm font-medium text-slate-700">
-          Apellido
-          <input name="apellido" className={campo} autoComplete="off" />
-        </label>
       </div>
       <label className="block text-sm font-medium text-slate-700">
         Email (con este entra)
@@ -59,12 +55,12 @@ export default function NuevoUsuarioForm() {
         </select>
       </label>
       <label className="block text-sm font-medium text-slate-700">
-        Contraseña para el primer ingreso (mínimo 8 caracteres)
+        Contraseña para el primer ingreso (mínimo 6 caracteres)
         <input
           name="password"
           type="text"
           required
-          minLength={8}
+          minLength={6}
           className={campo}
           autoComplete="new-password"
         />
