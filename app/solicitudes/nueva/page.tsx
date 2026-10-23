@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { resolverClienteYDireccion } from "@/lib/clientes";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import ProvinciaLocalidad from "@/components/ProvinciaLocalidad";
 import { createClient } from "@/lib/supabase/cliente";
 import {
   ArrowLeft,
@@ -426,17 +427,11 @@ export default function NuevaSolicitudPage() {
                 />
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Localidad
-                </label>
-                <input
-                  value={localidad}
-                  onChange={(e) => setLocalidad(e.target.value)}
-                  placeholder="Ej: Quilmes"
-                  className={inputClassName}
-                />
-              </div>
+              <ProvinciaLocalidad
+                localidad={localidad}
+                setLocalidad={setLocalidad}
+                inputClassName={inputClassName}
+              />
             </div>
           </section>
 
