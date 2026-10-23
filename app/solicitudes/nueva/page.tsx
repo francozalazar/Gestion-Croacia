@@ -1,0 +1,572 @@
+"use client";
+
+import { FormEvent, useEffect, useState } from "react";
+import { resolverClienteYDireccion } from "@/lib/clientes";
+import { useRouter } from "next/navigation";
+import Sidebar from "@/components/Sidebar";
+import ProvinciaLocalidad from "@/components/ProvinciaLocalidad";
+import { createClient } from "@/lib/supabase/cliente";
+import {
+  ArrowLeft,
+  Save,
+  UserRound,
+  CalendarDays,
+  Clock,
+  ClipboardList,
+  BellRing,
+} from "lucide-react";
+
+const tiposVisita = [
+  "Presupuesto aceptado",
+  "Presupuesto",
+  "Reclamo",
+  "Trabajo pendiente",
+  "Guias para amurar",
+  "Verificar Medidas",
+  "Urgencia",
+  "Supervision",
+  "Reparación",
+];
+
+export default function NuevaSolicitudPage() {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const [loading, setLoading] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  const [perfil, setPerfil] = useState<any>(null);
+
+  const [cliente, setCliente] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [localidad, setLocalidad] = useState("");
+  const [provincia, setProvincia] = useState("");
+
+  const [clientes, setClientes] = useState<
+    { id: number; nombre: string; telefono: string | null }[]
+  >([]);
+  const [clienteIdSel, setClienteIdSel] = useState<number | null>(null);
+  const [modoClienteNuevo, setModoClienteNuevo] = useState(false);
+  const [contacto, setContacto] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [direccionesCliente, setDireccionesCliente] = useState<
+    { id: number; direccion: string; localidad: string | null }[]
+  >([]);
+
+  const [fecha, setFecha] = useState("");
+  const [tipoVisita, setTipoVisita] = useState("");
+  
+  const [franjaHoraria, setFranjaHoraria] = useState("");
+  const [preferencia, setPreferencia] = useState("");
+  
+  const [observaciones, setObservaciones] = useState("");
+
+  useEffect(() => {
+    async function verificarUsuario() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("nombre, apellido, rol")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile || !["ADMIN", "OFICINA"].includes(profile.rol)) {
+        router.push("/dashboard");
+        return;
+      }
+
+      setPerfil(profile);
+
+      const { data: listaClientes } = await supabase
+        .from("clientes")
+        .select("id, nombre, telefono")
+        .order("nombre");
+      setClientes(listaClientes || []);
+
+      setLoading(false);
+    }
+
+    verificarUsuario();
+  }, [router, supabase]);
+
+  async function cargarDirecciones(clienteId: number | null) {
+    if (!clienteId) {
+      setDireccionesCliente([]);
+      return;
+    }
+    try {
+      const { data } = await supabase
+        .from("direcciones")
+        .select("id, direccion, localidad")
+        .eq("cliente_id", clienteId)
+        .order("created_at", { ascending: false })
+        .limit(6);
+      setDireccionesCliente(data || []);
+    } catch {
+      setDireccionesCliente([]);
+    }
+  }
+
+  async function crearSolicitud(e: FormEvent) {
+    e.preventDefault();
+
+    setError("");
+    setGuardando(true);
+
+    try {
+      if (modoClienteNuevo) {
+        if (!cliente.trim())
+          throw new Error("Ingresá el nombre del cliente nuevo.");
+      } else if (!clienteIdSel) {
+        throw new Error("Elegí un cliente de la lista o creá uno nuevo.");
+      }
+      if (!direccion.trim()) throw new Error("Ingresá la dirección.");
+      if (!fecha) throw new Error("Seleccioná una fecha.");
+      if (!tipoVisita) throw new Error("Seleccioná el tipo de visita.");
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error("La sesión expiró.");
+      }
+
+      let hDesde = null;
+      let hHasta = null;
+      if (franjaHoraria === "mañana") {
+        hDesde = "08:00";
+        hHasta = "12:00";
+      } else if (franjaHoraria === "tarde") {
+        hDesde = "13:00";
+        hHasta = "17:00";
+      } else if (franjaHoraria === "completo") {
+        hDesde = "08:00";
+        hHasta = "17:00";
+      }
+
+      const observacionesFinales = preferencia.trim()
+        ? `[Aviso: ${preferencia.trim()}]\n${observaciones.trim()}`
+        : observaciones.trim() || null;
+
+      const { clienteId, direccionId } = await resolverClienteYDireccion(
+        supabase,
+        {
+          nombre: cliente,
+          direccion,
+          localidad,
+          userId: user.id,
+          telefono,
+        }
+      );
+
+      let clienteIdFinal = clienteId;
+
+      if (!clienteIdFinal) {
+        // Respaldo por si falla la búsqueda/creación automática
+        let { data: clienteCreado, error: clienteError } = await supabase
+          .from("clientes")
+          .insert({
+            nombre: cliente.trim(),
+            telefono: telefono.trim() || null,
+            direccion: direccion.trim(),
+            localidad: localidad.trim() || null,
+            creado_por: user.id,
+          })
+          .select("id")
+          .single();
+
+        if (clienteError) {
+          // Reintento sin creado_por por si falta correr el SQL nuevo
+          const reintento = await supabase
+            .from("clientes")
+            .insert({
+              nombre: cliente.trim(),
+              telefono: telefono.trim() || null,
+              direccion: direccion.trim(),
+              localidad: localidad.trim() || null,
+            })
+            .select("id")
+            .single();
+          clienteCreado = reintento.data;
+          clienteError = reintento.error;
+        }
+
+        if (clienteError || !clienteCreado) {
+          throw new Error(clienteError?.message || "No se pudo crear el cliente.");
+        }
+        clienteIdFinal = clienteCreado.id;
+      }
+
+      const { data: solicitud, error: solicitudError } = await supabase
+        .from("solicitudes")
+        .insert({
+          cliente_id: clienteIdFinal,
+          cliente_nombre: cliente.trim(),
+          cliente_telefono: telefono.trim() || null,
+          aclaracion_cliente: contacto.trim() || null,
+          direccion: direccion.trim(),
+          localidad: localidad.trim() || null,
+          provincia: provincia.trim() || null,
+          fecha,
+          horario_desde: hDesde,
+          horario_hasta: hHasta,
+          tipo_visita: tipoVisita,
+          observaciones: observacionesFinales,
+          estado: "PENDIENTE_COORDINACION",
+          creado_por: user.id,
+        })
+        .select("id, numero")
+        .single();
+
+      if (solicitudError || !solicitud) {
+        throw new Error(solicitudError?.message || "No se pudo crear la solicitud.");
+      }
+
+      if (tipoVisita === "Presupuesto aceptado" && clienteIdFinal) {
+        try {
+          await supabase.from("ventas").insert({
+            cliente_id: clienteIdFinal,
+            direccion_id: direccionId,
+            descripcion: `Solicitud #${solicitud.numero} (Presupuesto aceptado)`,
+            total: 0,
+            solicitud_id: solicitud.id,
+            creado_por: user.id,
+          });
+        } catch {
+          // Si todavía no existe la tabla ventas, no pasa nada
+        }
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ocurrió un error inesperado.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-100">
+        <p className="text-sm text-slate-500">Cargando...</p>
+      </div>
+    );
+  }
+
+  const inputClassName = "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
+
+  return (
+    <div className="min-h-screen bg-slate-100">
+      <Sidebar
+        nombre={perfil?.nombre || "Usuario"}
+        apellido={perfil?.apellido || ""}
+        rol={perfil?.rol || "OFICINA"}
+      />
+
+      <main className="ml-0 md:ml-64 min-h-screen bg-slate-100 p-6 md:p-8 pt-20 md:pt-8">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-8">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="mb-5 flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
+            >
+              <ArrowLeft size={18} />
+              Volver al Inicio
+            </button>
+
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Nueva solicitud</h1>
+            <p className="mt-1 text-slate-500">
+              Cargá los datos necesarios para solicitar un trabajo.
+            </p>
+          </div>
+
+          <form onSubmit={crearSolicitud} className="space-y-6">
+          {/* Cliente y Ubicación */}
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-xl bg-slate-100 p-3">
+                <UserRound size={20} />
+              </div>
+              <div>
+                <h2 className="font-semibold text-slate-900">Datos del cliente y ubicación</h2>
+                <p className="text-sm text-slate-500">Información principal del trabajo</p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              {modoClienteNuevo ? (
+                <>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Nombre / Razón social *
+                    </label>
+                    <input
+                      value={cliente}
+                      onChange={(e) => setCliente(e.target.value)}
+                      placeholder="Ej: Juan Pérez"
+                      className={inputClassName}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModoClienteNuevo(false);
+                        setCliente("");
+                        setContacto("");
+                        setTelefono("");
+                      }}
+                      className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                    >
+                      Elegir cliente existente
+                    </button>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Contacto
+                    </label>
+                    <input
+                      value={contacto}
+                      onChange={(e) => setContacto(e.target.value)}
+                      placeholder="Ej: María (encargada)"
+                      className={inputClassName}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Teléfono
+                    </label>
+                    <input
+                      value={telefono}
+                      onChange={(e) => setTelefono(e.target.value)}
+                      placeholder="Ej: 11 5555-5555"
+                      className={inputClassName}
+                      autoComplete="off"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Cliente *
+                  </label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <select
+                      value={clienteIdSel ?? ""}
+                      onChange={(e) => {
+                        const id = e.target.value ? Number(e.target.value) : null;
+                        setClienteIdSel(id);
+                        const elegido = clientes.find((c) => c.id === id);
+                        setCliente(elegido ? elegido.nombre : "");
+                        setTelefono(elegido?.telefono ?? "");
+                        cargarDirecciones(id);
+                      }}
+                      className={inputClassName}
+                    >
+                      <option value="">Elegir cliente...</option>
+                      {clientes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModoClienteNuevo(true);
+                        setClienteIdSel(null);
+                        setCliente("");
+                        setTelefono("");
+                        setDireccionesCliente([]);
+                      }}
+                      className="shrink-0 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+                    >
+                      + Cliente nuevo
+                    </button>
+                  </div>
+                  {direccionesCliente.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {direccionesCliente.map((d) => (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => {
+                            setDireccion(d.direccion);
+                            setLocalidad(d.localidad || "");
+                          }}
+                          className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                        >
+                          {d.direccion}
+                          {d.localidad ? ` (${d.localidad})` : ""}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Dirección *
+                </label>
+                <input
+                  value={direccion}
+                  onChange={(e) => setDireccion(e.target.value)}
+                  placeholder="Ej: Av. Mitre 1234"
+                  className={inputClassName}
+                  autoComplete="off"
+                />
+              </div>
+
+              <ProvinciaLocalidad
+                localidad={localidad}
+                setLocalidad={setLocalidad}
+                onProvinciaChange={setProvincia}
+                inputClassName={inputClassName}
+              />
+            </div>
+          </section>
+
+          {/* Visita */}
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-xl bg-slate-100 p-3">
+                <CalendarDays size={20} />
+              </div>
+              <div>
+                <h2 className="font-semibold text-slate-900">Datos de la visita</h2>
+                <p className="text-sm text-slate-500">
+                  Cuándo y qué trabajo se necesita
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Fecha *
+                </label>
+                <input
+                  type="date"
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                  className={inputClassName}
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Tipo de visita *
+                </label>
+                <select
+                  value={tipoVisita}
+                  onChange={(e) => setTipoVisita(e.target.value)}
+                  className={inputClassName}
+                >
+                  <option value="">Seleccionar...</option>
+                  {tiposVisita.map((tipo) => (
+                    <option key={tipo} value={tipo}>{tipo}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <Clock size={16} />
+                  Franja Horaria
+                </label>
+                <select
+                  value={franjaHoraria}
+                  onChange={(e) => setFranjaHoraria(e.target.value)}
+                  className={inputClassName}
+                >
+                  <option value="">Coordinar con cliente...</option>
+                  <option value="mañana">Por la mañana (08:00 a 12:00)</option>
+                  <option value="tarde">Por la tarde (13:00 a 17:00)</option>
+                  <option value="completo">Día completo (08:00 a 17:00)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <BellRing size={16} />
+                  Aviso / Preferencia
+                </label>
+                <input
+                  type="text"
+                  value={preferencia}
+                  onChange={(e) => setPreferencia(e.target.value)}
+                  placeholder="Ej: Avisar media hora antes..."
+                  className={inputClassName}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Observaciones */}
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-xl bg-slate-100 p-3">
+                <ClipboardList size={20} />
+              </div>
+              <div>
+                <h2 className="font-semibold text-slate-900">Observaciones</h2>
+                <p className="text-sm text-slate-500">
+                  Información adicional para coordinación y técnico
+                </p>
+              </div>
+            </div>
+
+            <textarea
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              rows={6}
+              placeholder="Escribí cualquier información importante para realizar el trabajo..."
+              className={`${inputClassName} resize-none`}
+            />
+          </section>
+
+          {/* Error */}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          {/* Botones */}
+          <div className="flex justify-end gap-3 pb-8">
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="submit"
+              disabled={guardando}
+              className="flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Save size={18} />
+              {guardando ? "Guardando..." : "Crear solicitud"}
+            </button>
+          </div>
+          </form>
+        </div>
+      </main>
+    </div>
+  );
+}
