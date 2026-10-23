@@ -50,6 +50,7 @@ export default async function TrabajoPage({
   let vista: {
     id: number;
     numero: string | number;
+    solicitudPrincipalId: number | null;
     estado: string;
     cliente_nombre: string | null;
     cliente_telefono: string | null;
@@ -101,6 +102,7 @@ export default async function TrabajoPage({
 
     vista = {
       id: remito.id,
+      solicitudPrincipalId: padre?.id || null,
       numero: remito.numero_remito || remito.id,
       estado: remito.estado,
       cliente_nombre: remito.cliente_nombre || null,
@@ -157,6 +159,7 @@ export default async function TrabajoPage({
 
     vista = {
       id: solicitud.id,
+      solicitudPrincipalId: solicitud.id,
       numero: solicitud.numero || solicitud.id,
       estado: solicitud.estado,
       cliente_nombre: cliente?.nombre || solicitud.cliente_nombre || null,
@@ -340,6 +343,7 @@ export default async function TrabajoPage({
 
         <CompletarTrabajo
           solicitudId={vista.id}
+          solicitudPrincipalId={vista.solicitudPrincipalId}
           estado={vista.estado}
           trabajoRealizado={vista.trabajo_realizado}
           observacionesTecnico={vista.observaciones_tecnico}
