@@ -1,5 +1,6 @@
 "use client";
 
+import FotoTrabajo from "@/components/FotoTrabajo";
 import { requierePrecio } from "@/lib/tipoVisita";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
@@ -253,6 +254,8 @@ export default function InboxPresupuestoOficinaPage() {
                 <p><strong>Técnico responsable:</strong> {modalPrincipal.tecnico_real}</p>
                 <p><strong>Adicionales del precio:</strong> {modalPrincipal.adicionales_visita || modalPrincipal.adicionales_precio || "Sin adicionales"}</p>
               </div>
+
+              <FotoTrabajo solicitudId={modalPrincipal.id} />
 
               <div className="mt-6 flex items-center justify-between p-4 bg-slate-100 rounded-xl">
                 <span className="text-xs uppercase font-bold text-slate-500">
