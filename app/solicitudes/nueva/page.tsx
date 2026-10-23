@@ -366,6 +366,129 @@ export default function NuevaSolicitudPage() {
 
     try {
       if (modoClienteNuevo) {
+
+import { FormEvent, useEffect, useState } from "react";
+import { resolverClienteYDireccion } from "@/lib/clientes";
+import { useRouter } from "next/navigation";
+import Sidebar from "@/components/Sidebar";
+import ProvinciaLocalidad from "@/components/ProvinciaLocalidad";
+import { createClient } from "@/lib/supabase/cliente";
+import {
+  ArrowLeft,
+  Save,
+  UserRound,
+  CalendarDays,
+  Clock,
+  ClipboardList,
+  BellRing,
+} from "lucide-react";
+
+const tiposVisita = [
+  "Presupuesto aceptado",
+  "Presupuesto",
+  "Reclamo",
+  "Trabajo pendiente",
+  "Guias para amurar",
+  "Verificar Medidas",
+  "Urgencia",
+  "Supervision",
+];
+
+export default function NuevaSolicitudPage() {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const [loading, setLoading] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  const [perfil, setPerfil] = useState<any>(null);
+
+  const [cliente, setCliente] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [localidad, setLocalidad] = useState("");
+  const [provincia, setProvincia] = useState("");
+
+  const [clientes, setClientes] = useState<
+    { id: number; nombre: string; telefono: string | null }[]
+  >([]);
+  const [clienteIdSel, setClienteIdSel] = useState<number | null>(null);
+  const [modoClienteNuevo, setModoClienteNuevo] = useState(false);
+  const [contacto, setContacto] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [direccionesCliente, setDireccionesCliente] = useState<
+    { id: number; direccion: string; localidad: string | null }[]
+  >([]);
+
+  const [fecha, setFecha] = useState("");
+  const [tipoVisita, setTipoVisita] = useState("");
+  
+  const [franjaHoraria, setFranjaHoraria] = useState("");
+  const [preferencia, setPreferencia] = useState("");
+  
+  const [observaciones, setObservaciones] = useState("");
+
+  useEffect(() => {
+    async function verificarUsuario() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("nombre, apellido, rol")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile || !["ADMIN", "OFICINA"].includes(profile.rol)) {
+        router.push("/dashboard");
+        return;
+      }
+
+      setPerfil(profile);
+
+      const { data: listaClientes } = await supabase
+        .from("clientes")
+        .select("id, nombre, telefono")
+        .order("nombre");
+      setClientes(listaClientes || []);
+
+      setLoading(false);
+    }
+
+    verificarUsuario();
+  }, [router, supabase]);
+
+  async function cargarDirecciones(clienteId: number | null) {
+    if (!clienteId) {
+      setDireccionesCliente([]);
+      return;
+    }
+    try {
+      const { data } = await supabase
+        .from("direcciones")
+        .select("id, direccion, localidad")
+        .eq("cliente_id", clienteId)
+        .order("created_at", { ascending: false })
+        .limit(6);
+      setDireccionesCliente(data || []);
+    } catch {
+      setDireccionesCliente([]);
+    }
+  }
+
+  async function crearSolicitud(e: FormEvent) {
+    e.preventDefault();
+
+    setError("");
+    setGuardando(true);
+
+    try {
+      if (modoClienteNuevo) {
         if (!cliente.trim())
           throw new Error("Ingresá el nombre del cliente nuevo.");
       } else if (!clienteIdSel) {
