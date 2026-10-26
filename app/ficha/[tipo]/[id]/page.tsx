@@ -163,10 +163,13 @@ export default async function FichaPage({
     if (!finalizacionComprobada) return evento;
     return { ...evento, etapa: esInstalacion ? "Instalación finalizada" : "Trabajo finalizado", detalle: null };
   });
-  // Los triggers de solicitudes y de solicitudes_fabrica registran el mismo cambio de
-  // estado dos veces (uno con solicitud_id y otro sólo con solicitud_fabrica_id). Sólo se
-  // oculta el segundo renglón cuando es idéntico: misma etapa, mismo responsable y misma
-  // transacción (created_at idéntico). Los datos originales no se tocan.
+  // Un mismo cambio de estado de un pedido de fabrica con visita vinculada dispara dos triggers
+  // (uno en solicitudes_fabrica, que guarda solo solicitud_fabrica_id, y otro en solicitudes,
+  // que guarda solicitud_id y solicitud_fabrica_id). Se ve como dos renglones con ids
+  // consecutivos, mismo responsable, mismo pedido, misma etapa y menos de 2 s de diferencia
+  // (en el pedido #1042: 83/84, 86/87, 89/90). Solo en ese caso se oculta el renglon sin
+  // solicitud_id. Una accion en una sola tabla o con otra etapa/responsable queda visible.
+  // Ventas y pagos nunca se ocultan. Los datos originales no se tocan.
   const normEtapa = (t: any) =>
     String(t || "").replace(/\(.*?\)/g, "").replace(/\s+/g, " ").trim().toLowerCase();
   eventos.sort(
@@ -183,7 +186,8 @@ export default async function FichaPage({
         b.solicitud_fabrica_id === a.solicitud_fabrica_id &&
         (b.responsable || null) === (a.responsable || null) &&
         normEtapa(b.etapa) === normEtapa(a.etapa) &&
-        b.created_at === a.created_at
+        Math.abs(new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) <= 2000 &&
+        Math.abs(Number(b.id) - Number(a.id)) <= 2
     );
     if (dup) {
       ocultos.add(dup);
