@@ -6,7 +6,7 @@
 --
 -- Que hace:
 --  * stock_movimientos: agrega solicitud_id (visitas/reparaciones), tecnico_id y operacion_id.
---    No modifica filas existentes (quedan sin tecnico; la pantalla lo toma de la asignacion).
+--    No modifica filas existentes (quedan sin tecnico; la pantalla muestra "Sin técnico registrado").
 --  * stock_operaciones: una fila por ENVIO del formulario (id generado en la pantalla). Evita
 --    descontar dos veces si se toca dos veces el boton o se reintenta el mismo envio, pero
 --    NO impide cargar motores adicionales despues en el mismo trabajo (otro envio, otro id).
@@ -14,7 +14,7 @@
 --    tecnico, junta lineas repetidas del mismo modelo y registra las SALIDAS en una transaccion
 --    (el trigger actual impide stock negativo; si falla una linea no cambia nada).
 -- No toca stock_consumos_pedido ni las salidas ya registradas ni el envio a Listos de Fabrica.
-
+-- Agrega enviar_a_listos(bigint) (sin stock ni motores) y deja stock solo para Admin.
 begin;
 alter table public.stock_movimientos
   add column if not exists solicitud_id bigint references public.solicitudes(id) on delete set null,
