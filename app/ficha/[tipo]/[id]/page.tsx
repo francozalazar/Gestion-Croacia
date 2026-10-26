@@ -475,7 +475,12 @@ export default async function FichaPage({
     presupuestoVence = fechaLinda(v.toISOString());
   }
 
-  const estadoActualTexto = (estadoFab || estadoSol || "").replaceAll("_", " ");
+  const estadoActual = estadoFab || estadoSol || "";
+  const finalizacionSinPrecio = sinPrecio && Boolean(solicitud?.fecha_finalizacion) &&
+    eventos.some((evento) => ["Instalación finalizada", "Trabajo finalizado"].includes(evento.etapa));
+  const estadoActualTexto = estadoActual === "PRESUPUESTADO" && finalizacionSinPrecio
+    ? (esInstalacion ? "Instalación finalizada" : "Trabajo finalizado")
+    : estadoActual.replaceAll("_", " ");
   const numeroMostrar = remito
     ? `Pedido #${remito.numero_remito || remito.id}`
     : `Visita #${solicitud.numero || solicitud.id}`;
