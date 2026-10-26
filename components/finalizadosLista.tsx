@@ -12,6 +12,7 @@ type Trabajo = {
   localidad: string;
   trabajoRealizado: string;
   fechaFinalizacion: string | null;
+  etiqueta?: string;
 };
 
 type Props = {
@@ -139,8 +140,16 @@ export default function FinalizadosLista({ trabajos }: Props) {
                       Trabajo #{trabajo.id}
                     </h2>
 
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      FINALIZADO
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        trabajo.etiqueta === "Presupuestado"
+                          ? "bg-blue-100 text-blue-800"
+                          : trabajo.etiqueta?.includes("pendiente de precio")
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-emerald-100 text-emerald-700"
+                      }`}
+                    >
+                      {trabajo.etiqueta || "Finalizado"}
                     </span>
                   </div>
 
