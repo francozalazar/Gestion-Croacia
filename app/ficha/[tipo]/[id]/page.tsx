@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
 import { requierePrecio } from "@/lib/tipoVisita";
+import { fechaLinda, fechaHoraLinda } from "@/lib/fechasFicha";
 import VolverLink from "@/components/VolverLink";
 import {
   ArrowLeft,
@@ -33,17 +34,6 @@ type Etapa = {
   detalle?: string | null;
   sinDato?: boolean;
 };
-
-function fechaLinda(fecha: string | null | undefined) {
-  if (!fecha) return null;
-  const d = new Date(fecha);
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
 
 function plata(valor: number | null | undefined) {
   if (valor === null || valor === undefined) return "-";
@@ -162,7 +152,7 @@ export default async function FichaPage({
   const tipoFinalizado = solicitud?.tipo_visita || remito?.tipo_visita;
   const sinPrecio = Boolean(String(tipoFinalizado || "").trim()) && !requierePrecio(tipoFinalizado);
   const esInstalacion = Boolean(remito || solicitud?.solicitud_fabrica_id);
-  const eventos: any[] = (resEventos.data || []).map((evento: any) => {
+  let eventos: any[] = (resEventos.data || []).map((evento: any) => {
     const etapa = String(evento.etapa || "").trim().toUpperCase();
     if (!sinPrecio || !["PRECIO ASIGNADO", "PRESUPUESTADO"].includes(etapa)) return evento;
     const momento = new Date(evento.created_at).getTime();
@@ -173,6 +163,34 @@ export default async function FichaPage({
     if (!finalizacionComprobada) return evento;
     return { ...evento, etapa: esInstalacion ? "Instalación finalizada" : "Trabajo finalizado", detalle: null };
   });
+  // Los triggers de solicitudes y de solicitudes_fabrica registran el mismo cambio de
+  // estado dos veces (uno con solicitud_id y otro sólo con solicitud_fabrica_id). Sólo se
+  // oculta el segundo renglón cuando es idéntico: misma etapa, mismo responsable y misma
+  // transacción (created_at idéntico). Los datos originales no se tocan.
+  const normEtapa = (t: any) =>
+    String(t || "").replace(/\(.*?\)/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+  eventos.sort(
+    (a, b) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime() ||
+      Number(a.id) - Number(b.id)
+  );
+  const ocultos = new Set<any>();
+  for (const a of eventos) {
+    if (!a.solicitud_id || !a.solicitud_fabrica_id || a.venta_id) continue;
+    const dup = eventos.find(
+      (b) =>
+        b !== a && !ocultos.has(b) && !b.solicitud_id && !b.venta_id &&
+        b.solicitud_fabrica_id === a.solicitud_fabrica_id &&
+        (b.responsable || null) === (a.responsable || null) &&
+        normEtapa(b.etapa) === normEtapa(a.etapa) &&
+        b.created_at === a.created_at
+    );
+    if (dup) {
+      ocultos.add(dup);
+      if (String(dup.etapa).length > String(a.etapa).length) a.etapa = dup.etapa;
+    }
+  }
+  eventos = eventos.filter((e) => !ocultos.has(e));
   const ventas: any[] = resVentas.data || [];
   const asignaciones: any[] = resAsig.data || [];
 
@@ -300,6 +318,8 @@ export default async function FichaPage({
   const evFinalizado = buscarEvento("trabajo finalizado", "finalizado");
   const evPago = buscarEvento("pago registrado", "venta registrada");
   const evAsignacion = buscarEvento("asignado a tecnico");
+  const evListo = buscarEvento("listo para colocar");
+  const evCoord = primerEvento("pendiente de coordinacion", "enviado a coordinacion", "en coordinacion");
 
   if (remito) {
     // CIRCUITO CORTINA NUEVA (remito de fabrica)
@@ -354,15 +374,31 @@ export default async function FichaPage({
 
     etapas.push({
       nombre: "Fabricacion",
-      estado: estadoFab && estadosPostFabrica.includes(estadoFab) ? "hecha" : "pendiente",
-      sinDato: fabricaSobrescrita,
-      fecha: evFabrica?.created_at || null,
+      estado: (estadoFab && estadosPostFabrica.includes(estadoFab)) || evListo ? "hecha" : "pendiente",
+      sinDato: fabricaSobrescrita && !evListo,
+      fecha: evListo?.created_at || evFabrica?.created_at || null,
+      responsable: (evListo || evFabrica)?.responsable ? nombres[(evListo || evFabrica).responsable] : null,
       detalle:
         estadoFab && estadosEnFabrica.includes(estadoFab)
           ? `Ahora: ${estadoFab.replaceAll("_", " ")}`
+          : evListo
+          ? "Terminado en fábrica (listo para colocar)"
           : fabricaSobrescrita
           ? "Sin dato: no quedó registrado cuándo terminó fábrica"
           : null,
+    });
+
+    etapas.push({
+      nombre: "Coordinacion y asignacion",
+      estado: ultimaAsignacion || evAsignacion ? "hecha" : "pendiente",
+      sinDato: !ultimaAsignacion && !evAsignacion && tecnicoFinalizo,
+      fecha: evAsignacion?.created_at || evCoord?.created_at || null,
+      responsable: (evAsignacion || evCoord)?.responsable ? nombres[(evAsignacion || evCoord).responsable] : null,
+      detalle: !ultimaAsignacion && !evAsignacion && tecnicoFinalizo
+        ? "Sin dato: no quedó registrado quién coordinó ni cuándo"
+        : ultimaAsignacion?.usuario_id
+        ? `Técnico: ${nombres[ultimaAsignacion.usuario_id] || "-"}${ultimaAsignacion.fecha ? ` - fecha ${fechaLinda(ultimaAsignacion.fecha)}` : ""}`
+        : null,
     });
 
     etapas.push({
@@ -412,23 +448,26 @@ export default async function FichaPage({
         estadoSol === "PRESUPUESTADO"
           ? "hecha"
           : "pendiente",
-      fecha: estadoSol !== "PENDIENTE" && estadoSol !== "ASIGNADO" ? evFinalizado?.created_at || null : null,
+      fecha: estadoSol !== "PENDIENTE" && estadoSol !== "ASIGNADO" ? evFinalizado?.created_at || solicitud.fecha_finalizacion || null : null,
       responsable: ultimaAsignacion?.usuario_id
         ? nombres[ultimaAsignacion.usuario_id]
         : null,
       detalle: solicitud.trabajo_realizado ? "Trabajo cargado por el tecnico" : null,
     });
 
-    etapas.push({
-      nombre: "Precio / presupuesto",
-      estado: estadoSol === "PRESUPUESTADO" ? "hecha" : "pendiente",
-      fecha: evPrecio?.created_at || solicitud.presupuesto_fecha || null,
-      responsable: evPrecio?.responsable ? nombres[evPrecio.responsable] : null,
-      detalle:
-        estadoSol === "PRESUPUESTADO"
-          ? `Monto: ${plata(solicitud.subtotal || solicitud.precio)}`
-          : null,
-    });
+    const eventoPrecioReal = eventos.some((e) => normEtapa(e.etapa) === "precio asignado");
+    if (requierePrecio(solicitud.tipo_visita) || Number(solicitud.subtotal || solicitud.precio || 0) > 0 || totalVenta > 0 || eventoPrecioReal) {
+      etapas.push({
+        nombre: "Precio / presupuesto",
+        estado: estadoSol === "PRESUPUESTADO" ? "hecha" : "pendiente",
+        fecha: evPrecio?.created_at || solicitud.presupuesto_fecha || null,
+        responsable: evPrecio?.responsable ? nombres[evPrecio.responsable] : null,
+        detalle:
+          estadoSol === "PRESUPUESTADO" && (solicitud.subtotal || solicitud.precio)
+            ? `Monto: ${plata(solicitud.subtotal || solicitud.precio)}`
+            : null,
+      });
+    }
 
     etapas.push({
       nombre: "Aceptacion y sena",
@@ -439,8 +478,8 @@ export default async function FichaPage({
 
     etapas.push({
       nombre: "Trabajo terminado",
-      estado: estadoSol === "FINALIZADO" ? "hecha" : "pendiente",
-      fecha: evFinalizado?.created_at || null,
+      estado: estadoSol === "FINALIZADO" || (sinPrecio && Boolean(solicitud.fecha_finalizacion) && estadoSol === "PRESUPUESTADO") ? "hecha" : "pendiente",
+      fecha: evFinalizado?.created_at || solicitud.fecha_finalizacion || null,
     });
   }
 
@@ -458,6 +497,8 @@ export default async function FichaPage({
         ? `Saldo: ${plata(base.saldo_restante)}`
         : hayPlata
         ? null
+        : ventas.length > 0
+        ? "Venta registrada sin importe"
         : "Sin venta registrada todavia",
   });
 
@@ -477,7 +518,7 @@ export default async function FichaPage({
 
   const estadoActual = estadoFab || estadoSol || "";
   const finalizacionSinPrecio = sinPrecio && Boolean(solicitud?.fecha_finalizacion) &&
-    eventos.some((evento) => ["Instalación finalizada", "Trabajo finalizado"].includes(evento.etapa));
+    !(Number(solicitud?.subtotal || solicitud?.precio || 0) > 0);
   const estadoActualTexto = estadoActual === "PRESUPUESTADO" && finalizacionSinPrecio
     ? (esInstalacion ? "Instalación finalizada" : "Trabajo finalizado")
     : estadoActual.replaceAll("_", " ");
@@ -651,6 +692,9 @@ export default async function FichaPage({
                       <p className="text-xs text-slate-400">{fechaLinda(etapa.fecha)}</p>
                     )}
                   </div>
+                  {etapa.estado === "hecha" && !etapa.fecha && !etapa.sinDato && (
+                    <p className="mt-0.5 text-xs italic text-slate-400">Sin fecha registrada</p>
+                  )}
                   {(etapa.responsable || etapa.detalle) && (
                     <p className="mt-0.5 text-xs text-slate-500">
                       {[etapa.responsable, etapa.detalle].filter(Boolean).join(" - ")}
@@ -748,7 +792,7 @@ export default async function FichaPage({
                       )}
                     </div>
                     <p className="shrink-0 text-xs text-slate-400">
-                      {fechaLinda(e.created_at)}
+                      {fechaHoraLinda(e.created_at) || fechaLinda(e.created_at)}
                     </p>
                   </div>
                 ))}
