@@ -67,6 +67,16 @@ export async function cambiarEstadoProduccionAction(formData: FormData) {
     throw new Error("Solo un administrador puede cambiar el estado desde producción");
   }
 
+  if (nuevoEstado === "LISTO_PARA_COLOCAR") {
+    // Un solo paso atomico (solicitudes_fabrica y solicitudes juntas), sin stock.
+    const { error: errListos } = await supabase.rpc("enviar_a_listos", { p_pedido: id });
+    if (errListos) throw new Error(errListos.message);
+    revalidatePath("/produccion");
+    revalidatePath("/fabrica");
+    revalidatePath("/listos-para-colocar");
+    return;
+  }
+
   const { error } = await supabase
     .from("solicitudes_fabrica")
     .update({ estado: nuevoEstado })

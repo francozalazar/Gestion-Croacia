@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Package, ArrowLeft } from "lucide-react";
 import { FormularioModelo, CardStockMotor } from "./StockForms";
 import CargaPorTecnico from "./CargaPorTecnico";
+import MovimientosLista from "./MovimientosLista";
 
 type Motor = {
   id: number;
@@ -96,13 +97,9 @@ export default async function StockPage() {
   const movsIni: Movimiento[] = movimientosData || [];
   const idsFab = [...new Set(movsIni.map((m) => m.solicitud_fabrica_id).filter(Boolean))] as number[];
   const idsSol = [...new Set(movsIni.map((m) => m.solicitud_id).filter(Boolean))] as number[];
-  const [{ data: fabMov }, { data: solMov }, { data: asigMov }] = await Promise.all([
+  const [{ data: fabMov }, { data: solMov }] = await Promise.all([
     idsFab.length ? supabase.from("solicitudes_fabrica").select("id, numero_remito, cliente_nombre").in("id", idsFab) : Promise.resolve({ data: [] as any[] }),
     idsSol.length ? supabase.from("solicitudes").select("id, numero, cliente_nombre").in("id", idsSol) : Promise.resolve({ data: [] as any[] }),
-    idsFab.length || idsSol.length
-      ? supabase.from("asignaciones").select("usuario_id, solicitud_id, solicitud_fabrica_id")
-          .or([idsFab.length ? `solicitud_fabrica_id.in.(${idsFab.join(",")})` : "", idsSol.length ? `solicitud_id.in.(${idsSol.join(",")})` : ""].filter(Boolean).join(","))
-      : Promise.resolve({ data: [] as any[] }),
   ]);
 
   const motores: Motor[] = motoresData || [];
@@ -117,8 +114,7 @@ export default async function StockPage() {
     return p ? `${p.nombre || ""} ${p.apellido || ""}`.trim() : "";
   };
   const motorDe = (id: number) => motores.find((m) => m.id === id)?.nombre || "—";
-  // Trabajo (remito + cliente) y tecnico de un movimiento. Los movimientos viejos no guardan
-  // tecnico: se toma de la asignacion actual del trabajo.
+  // Trabajo (remito + cliente) de un movimiento.
   const trabajoDe = (mov: Movimiento) => {
     if (mov.solicitud_fabrica_id) {
       const f = (fabMov || []).find((x: any) => x.id === mov.solicitud_fabrica_id);
@@ -130,13 +126,9 @@ export default async function StockPage() {
     }
     return "";
   };
-  const tecnicoDe = (mov: Movimiento) => {
-    if (mov.tecnico_id) return nombreDe(mov.tecnico_id);
-    const a = (asigMov || []).find((x: any) =>
-      (mov.solicitud_fabrica_id && x.solicitud_fabrica_id === mov.solicitud_fabrica_id) ||
-      (mov.solicitud_id && x.solicitud_id === mov.solicitud_id));
-    return a ? nombreDe(a.usuario_id) : "";
-  };
+  // Solo el tecnico guardado al cargar el movimiento. Los movimientos anteriores no lo guardaron y
+  // no se reconstruye desde la asignacion actual (el trabajo pudo reasignarse).
+  const tecnicoDe = (mov: Movimiento) => (mov.tecnico_id ? nombreDe(mov.tecnico_id) : "");
 
   const unidadesTotales = motores.reduce((acc, m) => acc + m.cantidad, 0);
   const enMinimo = motores.filter(porAgotarse).length;
@@ -228,54 +220,19 @@ export default async function StockPage() {
         {/* MOVIMIENTOS */}
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-bold text-slate-900">Últimos movimientos</h2>
-          {movimientos.length === 0 ? (
-            <p className="text-sm text-slate-600">Todavía no hay movimientos cargados.</p>
-          ) : (
-            <ul className="divide-y divide-slate-100">
-              {movimientos.map((mov) => {
-                const trabajo = trabajoDe(mov);
-                const tecnico = tecnicoDe(mov);
-                return (
-                  <li key={mov.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`inline-flex w-16 justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                          mov.tipo === "SALIDA"
-                            ? "bg-amber-100 text-amber-800"
-                            : mov.tipo === "ENTRADA"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-slate-200 text-slate-700"
-                        }`}
-                      >
-                        {mov.tipo === "SALIDA" ? `-${mov.cantidad}` : `+${mov.cantidad}`}
-                      </span>
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          {motorDe(mov.motor_id)}
-                          {mov.tipo === "INICIAL" && (
-                            <span className="ml-2 text-xs font-normal text-slate-500">(stock inicial)</span>
-                          )}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {mov.tipo === "SALIDA" ? (
-                            <>
-                              Técnico: {tecnico || "—"} · Trabajo: {trabajo || mov.detalle || "—"}
-                            </>
-                          ) : (
-                            mov.detalle || "Sin detalle"
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      {fmtFecha(mov.created_at)}
-                      {nombreDe(mov.creado_por) && ` · ${nombreDe(mov.creado_por)}`}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <MovimientosLista
+            movimientos={movimientos.map((mov) => ({
+              id: mov.id,
+              tipo: mov.tipo,
+              cantidad: mov.cantidad,
+              modelo: motorDe(mov.motor_id),
+              tecnico: tecnicoDe(mov),
+              trabajo: trabajoDe(mov),
+              detalle: mov.detalle,
+              fecha: fmtFecha(mov.created_at),
+              cargadoPor: nombreDe(mov.creado_por),
+            }))}
+          />
         </div>
       </main>
     </div>

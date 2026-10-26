@@ -55,10 +55,22 @@ export default function CargaPorTecnico({ tecnicos, motores }: { tecnicos: Tecni
       return;
     }
     const lista = asigs || [];
-    const idsSol = lista.map((a) => a.solicitud_id).filter(Boolean) as number[];
-    const idsFab = lista.map((a) => a.solicitud_fabrica_id).filter(Boolean) as number[];
-    const [sol, fab, movSol, movFab] = await Promise.all([
-      idsSol.length ? supabase.from("solicitudes").select("*").in("id", idsSol) : Promise.resolve({ data: [] as any[] }),
+    // Un trabajo con pedido de fabrica puede estar asignado por el pedido o por la solicitud
+    // vinculada: se junta todo en una sola fila por pedido (sin duplicar).
+    const idsSolAsig = lista.map((a) => a.solicitud_id).filter(Boolean) as number[];
+    const { data: solAsig } = idsSolAsig.length
+      ? await supabase.from("solicitudes").select("*").in("id", idsSolAsig)
+      : { data: [] as any[] };
+    const solicitudesAsig = solAsig || [];
+    const idsSol = solicitudesAsig.filter((s: any) => !s.solicitud_fabrica_id).map((s: any) => s.id) as number[];
+    const idsFab = [
+      ...new Set([
+        ...(lista.map((a) => a.solicitud_fabrica_id).filter(Boolean) as number[]),
+        ...(solicitudesAsig.filter((s: any) => s.solicitud_fabrica_id).map((s: any) => s.solicitud_fabrica_id) as number[]),
+      ]),
+    ];
+    const sol = { data: solicitudesAsig.filter((s: any) => !s.solicitud_fabrica_id) };
+    const [fab, movSol, movFab] = await Promise.all([
       idsFab.length ? supabase.from("solicitudes_fabrica").select("*").in("id", idsFab) : Promise.resolve({ data: [] as any[] }),
       idsSol.length
         ? supabase.from("stock_movimientos").select("motor_id, cantidad, solicitud_id").eq("tipo", "SALIDA").in("solicitud_id", idsSol)
@@ -93,7 +105,10 @@ export default function CargaPorTecnico({ tecnicos, motores }: { tecnicos: Tecni
       cliente: s.cliente_nombre || "Cliente sin nombre",
       direccion: s.direccion || "",
       estado: s.estado || "",
-      prioridad: prio(lista.find((a) => String(a.solicitud_fabrica_id) === String(s.id))),
+      prioridad: prio(
+        lista.find((a) => String(a.solicitud_fabrica_id) === String(s.id)) ||
+          lista.find((a) => solicitudesAsig.some((x: any) => x.id === a.solicitud_id && String(x.solicitud_fabrica_id) === String(s.id)))
+      ),
       descontados: resumen((movFab.data || []).filter((m: any) => m.solicitud_fabrica_id === s.id)),
     }));
     const todos = [...normales, ...deFabrica]

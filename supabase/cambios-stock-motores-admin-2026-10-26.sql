@@ -15,6 +15,7 @@
 --    (el trigger actual impide stock negativo; si falla una linea no cambia nada).
 -- No toca stock_consumos_pedido ni las salidas ya registradas ni el envio a Listos de Fabrica.
 
+begin;
 alter table public.stock_movimientos
   add column if not exists solicitud_id bigint references public.solicitudes(id) on delete set null,
   add column if not exists tecnico_id uuid references public.profiles(id) on delete set null,
@@ -46,11 +47,20 @@ begin
   if (p_solicitud is null) = (p_pedido is null) then
     raise exception 'Indicá un trabajo (visita o pedido de fábrica).' using errcode = 'P0001';
   end if;
+  -- Un trabajo con pedido de fabrica se carga siempre por el pedido (no por la visita vinculada),
+  -- para que no figure dos veces.
+  if p_solicitud is not null and exists (
+    select 1 from public.solicitudes where id = p_solicitud and solicitud_fabrica_id is not null
+  ) then
+    raise exception 'Ese trabajo tiene pedido de fábrica: cargalo por el pedido.' using errcode = 'P0001';
+  end if;
+  -- La asignacion puede estar guardada por el pedido o por la solicitud vinculada a ese pedido.
   if not exists (
     select 1 from public.asignaciones a
     where a.usuario_id = p_tecnico
       and ((p_solicitud is not null and a.solicitud_id = p_solicitud)
-        or (p_pedido is not null and a.solicitud_fabrica_id = p_pedido))
+        or (p_pedido is not null and (a.solicitud_fabrica_id = p_pedido
+            or a.solicitud_id in (select id from public.solicitudes where solicitud_fabrica_id = p_pedido))))
   ) then
     raise exception 'Ese trabajo no está asignado a ese técnico.' using errcode = 'P0001';
   end if;
@@ -97,36 +107,86 @@ revoke all on function public.stock_cargar_motores_trabajo(uuid, uuid, bigint, b
 grant execute on function public.stock_cargar_motores_trabajo(uuid, uuid, bigint, bigint, jsonb) to authenticated;
 
 -- ---------------------------------------------------------------------------------------
--- Fabrica ya no ve ni toca el stock (pedido de Franco 26/10: "en fabrica no tiene q aparecer mas").
--- Efecto real en la base, no solo en el menu: lectura/escritura de stock solo ADMIN, y se quita la
--- pregunta de motores al enviar a Listos (el paso a Listos vuelve a ser solo cambio de estado).
--- Los registros existentes (stock_motores, stock_movimientos, stock_consumos_pedido) se conservan.
-drop policy if exists "stock_motores_select" on public.stock_motores;
+-- Pasar a Listos para colocar SIN stock ni pregunta de motores (Franco 26/10: "en fabrica no tiene
+-- q aparecer mas"). enviar_a_listos: un solo paso atomico (bloquea el pedido, actualiza
+-- solicitudes_fabrica y solicitudes juntas), solo ADMIN/FABRICA, solo desde estados de produccion.
+-- Si ya esta en Listos devuelve sin_cambios (no pisa estados posteriores como coordinado/instalado).
+create or replace function public.enviar_a_listos(p_pedido bigint)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_estado text;
+begin
+  if coalesce(public.get_my_role(), '') not in ('ADMIN','FABRICA') then
+    raise exception 'Solo Administración y Fábrica pueden enviar a Listos para colocar.' using errcode = '42501';
+  end if;
+  select estado into v_estado from public.solicitudes_fabrica where id = p_pedido for update;
+  if not found then
+    raise exception 'No se encontró el pedido.' using errcode = 'P0001';
+  end if;
+  if v_estado = 'LISTO_PARA_COLOCAR' then
+    return jsonb_build_object('ok', true, 'sin_cambios', true);
+  end if;
+  if v_estado is null or v_estado not in ('ENVIADO_A_CORTAR','EN_CORTE','EN_FABRICACION','EN_FABRICA','FALTANTES') then
+    raise exception 'El pedido no está en producción (estado actual: %).', coalesce(v_estado, 'sin estado') using errcode = 'P0001';
+  end if;
+  update public.solicitudes_fabrica set estado = 'LISTO_PARA_COLOCAR' where id = p_pedido;
+  update public.solicitudes set estado = 'LISTO_PARA_COLOCAR' where solicitud_fabrica_id = p_pedido;
+  return jsonb_build_object('ok', true, 'sin_cambios', false);
+end $$;
+revoke all on function public.enviar_a_listos(bigint) from public, anon;
+grant execute on function public.enviar_a_listos(bigint) to authenticated;
+
+-- Compatibilidad con la pantalla vieja durante el deploy: misma firma que antes. Sin motores pasa
+-- a Listos igual que enviar_a_listos; con motores NO descuenta ni cambia nada y avisa (los motores
+-- ahora los carga Administracion). Se puede borrar cuando ya este publicada la app nueva.
+create or replace function public.enviar_a_listos_con_motores(p_pedido bigint, p_items jsonb)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  if jsonb_array_length(coalesce(p_items, '[]'::jsonb)) > 0 then
+    raise exception 'Los motores ahora los carga Administración desde Stock. No se descontó nada ni se cambió el trabajo.' using errcode = 'P0001';
+  end if;
+  return public.enviar_a_listos(p_pedido);
+end $$;
+revoke all on function public.enviar_a_listos_con_motores(bigint, jsonb) from public, anon;
+grant execute on function public.enviar_a_listos_con_motores(bigint, jsonb) to authenticated;
+
+-- ---------------------------------------------------------------------------------------
+-- Fabrica ya no ve ni toca el stock, en la base (no solo el menu). Se borran TODAS las policies
+-- de estas tablas (cualquiera sea su nombre) y se dejan solo las de ADMIN. TECNICO/OFICINA/
+-- COORDINACION/anon: sin policy = sin acceso. Los registros existentes se conservan.
+do $$
+declare p record; t text;
+begin
+  foreach t in array array['stock_motores','stock_movimientos','stock_consumos_pedido'] loop
+    if to_regclass('public.' || t) is not null then
+      for p in select policyname from pg_policies where schemaname = 'public' and tablename = t loop
+        execute format('drop policy %I on public.%I', p.policyname, t);
+      end loop;
+    end if;
+  end loop;
+end $$;
 create policy "stock_motores_select" on public.stock_motores for select to authenticated
-  using (public.get_my_role() = 'ADMIN');
-drop policy if exists "stock_motores_insert" on public.stock_motores;
+  using (coalesce(public.get_my_role(), '') = 'ADMIN');
 create policy "stock_motores_insert" on public.stock_motores for insert to authenticated
-  with check (public.get_my_role() = 'ADMIN');
-drop policy if exists "stock_motores_update" on public.stock_motores;
+  with check (coalesce(public.get_my_role(), '') = 'ADMIN');
 create policy "stock_motores_update" on public.stock_motores for update to authenticated
-  using (public.get_my_role() = 'ADMIN') with check (public.get_my_role() = 'ADMIN');
-drop policy if exists "stock_mov_select" on public.stock_movimientos;
+  using (coalesce(public.get_my_role(), '') = 'ADMIN') with check (coalesce(public.get_my_role(), '') = 'ADMIN');
 create policy "stock_mov_select" on public.stock_movimientos for select to authenticated
-  using (public.get_my_role() = 'ADMIN');
-drop policy if exists "stock_mov_insert" on public.stock_movimientos;
+  using (coalesce(public.get_my_role(), '') = 'ADMIN');
 create policy "stock_mov_insert" on public.stock_movimientos for insert to authenticated
-  with check (public.get_my_role() = 'ADMIN');
+  with check (coalesce(public.get_my_role(), '') = 'ADMIN');
 do $$ begin
   if to_regclass('public.stock_consumos_pedido') is not null then
-    drop policy if exists "stock_consumos_select" on public.stock_consumos_pedido;
     create policy "stock_consumos_select" on public.stock_consumos_pedido for select to authenticated
-      using (public.get_my_role() = 'ADMIN');
+      using (coalesce(public.get_my_role(), '') = 'ADMIN');
   end if;
 end $$;
-drop function if exists public.enviar_a_listos_con_motores(bigint, jsonb);
+commit;
 
 -- REVERTIR (no borra movimientos ya cargados):
 -- (Para devolver stock a Fabrica: recrear las policies con role in ('ADMIN','FABRICA') del archivo 2026-10-23.)
+-- drop function if exists public.enviar_a_listos(bigint); (solo si se revierte todo; la pantalla vieja usa enviar_a_listos_con_motores)
 -- drop function if exists public.stock_cargar_motores_trabajo(uuid, uuid, bigint, bigint, jsonb);
 -- drop table if exists public.stock_operaciones;
 -- alter table public.stock_movimientos drop column if exists operacion_id, drop column if exists tecnico_id, drop column if exists solicitud_id;
