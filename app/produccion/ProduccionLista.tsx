@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
+import { fechaLinda } from "@/lib/fechasFicha";
 import {
   anularProduccionAction,
   cambiarEstadoProduccionAction,
@@ -87,11 +88,11 @@ export default function ProduccionLista({
               <p>
                 <strong>Solicitud creada:</strong>{" "}
                 {trabajo.created_at
-                  ? new Date(trabajo.created_at).toLocaleDateString("es-AR")
+                  ? fechaLinda(trabajo.created_at)
                   : "-"}
               </p>
               <p>
-                <strong>Finalización estimada:</strong> {trabajo.fecha || "-"}
+                <strong>Finalización estimada:</strong> {fechaLinda(trabajo.fecha) || "-"}
               </p>
               <p>
                 <strong>Dirección:</strong> {trabajo.direccion || "-"}
