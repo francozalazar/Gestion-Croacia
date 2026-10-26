@@ -7,6 +7,7 @@ import {
   anularProduccionAction,
   cambiarEstadoProduccionAction,
 } from "./actions";
+import EnviarListosModal from "@/components/EnviarListosModal";
 
 type Trabajo = {
   id: number;
@@ -48,6 +49,7 @@ export default function ProduccionLista({
 }) {
   const [seleccionado, setSeleccionado] = useState<Trabajo | null>(null);
   const [nuevoEstado, setNuevoEstado] = useState("");
+  const [listosId, setListosId] = useState<number | null>(null);
 
   function abrir(trabajo: Trabajo) {
     setNuevoEstado("");
@@ -176,7 +178,15 @@ export default function ProduccionLista({
               <form
                 action={cambiarEstadoProduccionAction}
                 className="mt-8"
-                onSubmit={cerrar}
+                onSubmit={(e) => {
+                  if (nuevoEstado === "LISTO_PARA_COLOCAR") {
+                    e.preventDefault();
+                    setListosId(seleccionado.id);
+                    cerrar();
+                    return;
+                  }
+                  cerrar();
+                }}
               >
                 <input type="hidden" name="id" value={seleccionado.id} />
                 <select
@@ -208,6 +218,9 @@ export default function ProduccionLista({
             )}
           </div>
         </div>
+      )}
+      {listosId !== null && (
+        <EnviarListosModal pedidoId={listosId} onCerrar={() => setListosId(null)} />
       )}
     </>
   );

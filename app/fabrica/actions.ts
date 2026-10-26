@@ -8,6 +8,8 @@ export async function actualizarEstadoAction(formData: FormData) {
   const nuevoEstado = formData.get("nuevoEstado") as string;
 
   if (!id || !nuevoEstado) return;
+  // Terminado solo se confirma con la pregunta de motores (enviar_a_listos_con_motores).
+  if (nuevoEstado === "LISTO_PARA_COLOCAR") return;
 
   const supabase = await createClient();
 

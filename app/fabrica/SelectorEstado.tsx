@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { actualizarEstadoAction } from "./actions";
+import EnviarListosModal from "@/components/EnviarListosModal";
 
 const OPCIONES = [
   { value: "EN_FABRICACION", label: "En producción" },
@@ -25,6 +26,7 @@ export default function SelectorEstado({
   const guardado = valorGuardado(estadoActual);
   const [elegido, setElegido] = useState(guardado);
   const [cambiando, startCambio] = useTransition();
+  const [modal, setModal] = useState(false);
 
   function cambiar(nuevo: string) {
     setElegido(nuevo);
@@ -41,12 +43,7 @@ export default function SelectorEstado({
   }
 
   function confirmarTerminado() {
-    const fd = new FormData();
-    fd.set("id", String(id));
-    fd.set("nuevoEstado", "LISTO_PARA_COLOCAR");
-    startCambio(async () => {
-      await actualizarEstadoAction(fd);
-    });
+    setModal(true);
   }
 
   return (
@@ -74,6 +71,7 @@ export default function SelectorEstado({
           {cambiando ? "Enviando..." : "Enviar a Listos para colocar"}
         </button>
       )}
+      {modal && <EnviarListosModal pedidoId={id} onCerrar={() => setModal(false)} />}
     </div>
   );
 }
