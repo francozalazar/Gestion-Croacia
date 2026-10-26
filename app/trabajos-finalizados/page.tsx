@@ -40,7 +40,7 @@ export default async function TrabajosFinalizadosPage() {
   // Visitas ligadas a un pedido de fabrica que el tecnico ya finalizo.
   const { data: visitas } = await supabase
     .from("solicitudes")
-    .select("id, solicitud_fabrica_id, tipo_visita, cliente_nombre, direccion, localidad, estado, fecha_finalizacion")
+    .select("id, solicitud_fabrica_id, tipo_visita, cliente_nombre, direccion, localidad, estado, fecha_finalizacion, tecnico_remito")
     .not("solicitud_fabrica_id", "is", null)
     .not("fecha_finalizacion", "is", null)
     .in("estado", ["FINALIZADO", "PENDIENTE_PRECIO", "PRESUPUESTADO"])
@@ -64,12 +64,48 @@ export default async function TrabajosFinalizadosPage() {
 
   const solicitudIds = lista.map((v) => v.id);
   let asignaciones: any[] = [];
-  if (solicitudIds.length > 0) {
+  const filtrosAsig: string[] = [];
+  if (solicitudIds.length > 0) filtrosAsig.push(`solicitud_id.in.(${solicitudIds.join(",")})`);
+  if (pedidoIds.length > 0) filtrosAsig.push(`solicitud_fabrica_id.in.(${pedidoIds.join(",")})`);
+  if (filtrosAsig.length > 0) {
+    // La asignacion puede estar ligada a la visita o solo al pedido de fabrica.
     const { data } = await supabase
       .from("asignaciones")
-      .select("solicitud_id, profiles(nombre, apellido)")
-      .in("solicitud_id", solicitudIds);
+      .select("solicitud_id, solicitud_fabrica_id, usuario_id")
+      .or(filtrosAsig.join(","));
     asignaciones = data || [];
+  }
+  // Quien finalizo: autor de la foto guardada en la misma transaccion que fecha_finalizacion.
+  let fotos: any[] = [];
+  if (solicitudIds.length > 0) {
+    const { data } = await supabase
+      .from("fotos_trabajos")
+      .select("solicitud_id, creado_por, created_at")
+      .in("solicitud_id", solicitudIds);
+    fotos = data || [];
+  }
+  const autorFinalizacion = (v: any): string | null => {
+    const autores = [
+      ...new Set(
+        fotos
+          .filter((f) => f.solicitud_id === v.id && f.created_at === v.fecha_finalizacion && f.creado_por)
+          .map((f) => f.creado_por as string)
+      ),
+    ];
+    return autores.length === 1 ? autores[0] : null;
+  };
+  const nombresTecnicos: Record<string, string> = {};
+  const idsTec = [
+    ...new Set([
+      ...asignaciones.map((a) => a.usuario_id).filter(Boolean),
+      ...lista.map(autorFinalizacion).filter(Boolean),
+    ]),
+  ] as string[];
+  if (idsTec.length > 0) {
+    const { data } = await supabase.from("profiles").select("id, nombre, apellido").in("id", idsTec);
+    (data || []).forEach((p: any) => {
+      nombresTecnicos[p.id] = [p.nombre, p.apellido].filter(Boolean).join(" ");
+    });
   }
 
   // OFICINA ve solo los pedidos que cargo ella (creado_por del pedido de fabrica,
@@ -77,15 +113,33 @@ export default async function TrabajosFinalizadosPage() {
   const trabajos: TrabajoInstalado[] = lista
     .map((v) => {
       const pedido = pedidos.find((p) => p.id === v.solicitud_fabrica_id);
-      const asig = asignaciones.find((a) => a.solicitud_id === v.id);
-      const tec = asig?.profiles as any;
+      // Tecnico que realizo: autor comprobado de la finalizacion, o el nombre que cargo en el
+      // remito. Si no hay prueba, se rotula "Asignado" solo con una asignacion unica; con
+      // varias o ninguna no se elige una.
+      const autor = autorFinalizacion(v);
+      const asignados = [
+        ...new Set(
+          asignaciones
+            .filter((a) => a.solicitud_id === v.id || a.solicitud_fabrica_id === v.solicitud_fabrica_id)
+            .map((a) => a.usuario_id)
+            .filter(Boolean)
+        ),
+      ] as string[];
+      const tecnicoTexto =
+        autor && nombresTecnicos[autor]
+          ? nombresTecnicos[autor]
+          : String(v.tecnico_remito || "").trim()
+          ? String(v.tecnico_remito).trim()
+          : asignados.length === 1 && nombresTecnicos[asignados[0]]
+          ? `Asignado: ${nombresTecnicos[asignados[0]]}`
+          : "";
       return {
         id: v.id,
         pedido: pedido?.numero_remito ?? v.solicitud_fabrica_id,
         cliente: pedido?.cliente_nombre || v.cliente_nombre || "Sin cliente",
         direccion: [v.direccion, v.localidad].filter(Boolean).join(" - "),
         fechaInstalacion: v.fecha_finalizacion as string | null,
-        tecnico: tec ? [tec.nombre, tec.apellido].filter(Boolean).join(" ") : "",
+        tecnico: tecnicoTexto,
         aviso: ENTRE_ETAPAS_FABRICA.includes(pedido?.estado)
           ? "Fábrica no marcó este pedido como Terminado"
           : "",
