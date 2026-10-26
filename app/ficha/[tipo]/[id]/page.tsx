@@ -1,3 +1,4 @@
+import { unirParesTrigger } from "@/lib/unirParesTrigger";
 import { createClient } from "@/lib/supabase/server";
 import { textoFranja } from "@/lib/franjas";
 import { redirect, notFound } from "next/navigation";
@@ -163,38 +164,10 @@ export default async function FichaPage({
     if (!finalizacionComprobada) return evento;
     return { ...evento, etapa: esInstalacion ? "Instalación finalizada" : "Trabajo finalizado", detalle: null };
   });
-  // Un mismo cambio de estado de un pedido de fabrica con visita vinculada dispara dos triggers
-  // (uno en solicitudes_fabrica, que guarda solo solicitud_fabrica_id, y otro en solicitudes,
-  // que guarda solicitud_id y solicitud_fabrica_id). Se ve como dos renglones con ids
-  // consecutivos, mismo responsable, mismo pedido, misma etapa y menos de 2 s de diferencia
-  // (en el pedido #1042: 83/84, 86/87, 89/90). Solo en ese caso se oculta el renglon sin
-  // solicitud_id. Una accion en una sola tabla o con otra etapa/responsable queda visible.
-  // Ventas y pagos nunca se ocultan. Los datos originales no se tocan.
+  // Pares de triggers del mismo hecho: ver lib/unirParesTrigger.ts (con tests).
+  eventos = unirParesTrigger(eventos);
   const normEtapa = (t: any) =>
     String(t || "").replace(/\(.*?\)/g, "").replace(/\s+/g, " ").trim().toLowerCase();
-  eventos.sort(
-    (a, b) =>
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime() ||
-      Number(a.id) - Number(b.id)
-  );
-  const ocultos = new Set<any>();
-  for (const a of eventos) {
-    if (!a.solicitud_id || !a.solicitud_fabrica_id || a.venta_id) continue;
-    const dup = eventos.find(
-      (b) =>
-        b !== a && !ocultos.has(b) && !b.solicitud_id && !b.venta_id &&
-        b.solicitud_fabrica_id === a.solicitud_fabrica_id &&
-        (b.responsable || null) === (a.responsable || null) &&
-        normEtapa(b.etapa) === normEtapa(a.etapa) &&
-        Math.abs(new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) <= 2000 &&
-        Math.abs(Number(b.id) - Number(a.id)) <= 2
-    );
-    if (dup) {
-      ocultos.add(dup);
-      if (String(dup.etapa).length > String(a.etapa).length) a.etapa = dup.etapa;
-    }
-  }
-  eventos = eventos.filter((e) => !ocultos.has(e));
   const ventas: any[] = resVentas.data || [];
   const asignaciones: any[] = resAsig.data || [];
 
