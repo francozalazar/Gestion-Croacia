@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
 import FotoTrabajo from "@/components/FotoTrabajo";
+import PortadaFotoTrabajo from "@/components/PortadaFotoTrabajo";
 import { X, Lock, Wrench, User } from "lucide-react";
 
 export default function SeccionPreciosAdminPage() {
@@ -151,6 +152,7 @@ export default function SeccionPreciosAdminPage() {
                 onClick={() => abrirModalAdmin(p)}
                 className="cursor-pointer rounded-xl bg-white p-6 shadow-sm border border-slate-200 transition hover:shadow-md hover:border-amber-400"
               >
+                <PortadaFotoTrabajo solicitudId={p.id} />
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">Remito #{p.numero || p.id}</span>
                   <span className="text-xs px-2.5 py-0.5 rounded-md font-semibold bg-amber-100 text-amber-800">Pendiente de Tarifar</span>

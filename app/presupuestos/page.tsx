@@ -1,6 +1,7 @@
 "use client";
 
 import FotoTrabajo from "@/components/FotoTrabajo";
+import PortadaFotoTrabajo from "@/components/PortadaFotoTrabajo";
 import { requierePrecio } from "@/lib/tipoVisita";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
@@ -180,6 +181,7 @@ export default function InboxPresupuestoOficinaPage() {
                   onClick={() => setModalPrincipal(p)}
                   className="cursor-pointer rounded-xl bg-white p-6 shadow-sm border border-slate-200 transition hover:shadow-md hover:border-emerald-400"
                 >
+                  <PortadaFotoTrabajo solicitudId={p.id} />
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
                       Remito #{p.numero || p.id}

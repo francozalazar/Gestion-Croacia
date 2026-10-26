@@ -1,7 +1,6 @@
 "use client";
 
 import { prepararFotoTrabajo } from "@/lib/fotoTrabajo";
-import FotoTrabajo from "@/components/FotoTrabajo";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { useRouter } from "next/navigation";
@@ -236,7 +235,7 @@ export default function CompletarTrabajo({
       </div>
 
       <div className="mb-6">
-        {finalizado && solicitudPrincipalId ? <FotoTrabajo solicitudId={solicitudPrincipalId} /> : <>
+        {finalizado ? null : <>
           <label htmlFor="foto-final" className="mb-2 block text-sm font-semibold text-slate-700">Foto del trabajo finalizado (obligatoria)</label>
           <input id="foto-final" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
             disabled={guardando || procesandoFoto} onChange={elegirFoto} className="block w-full text-sm" />
