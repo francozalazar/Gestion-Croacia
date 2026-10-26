@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { fechaHoraLinda } from "@/lib/fechasFicha";
 import { Search, X } from "lucide-react";
 
 type Trabajo = {
@@ -196,9 +197,7 @@ export default function FinalizadosLista({ trabajos }: Props) {
                   {trabajo.fechaFinalizacion && (
                     <p className="text-xs text-slate-500">
                       Finalizado:{" "}
-                      {new Date(
-                        trabajo.fechaFinalizacion
-                      ).toLocaleString("es-AR")}
+                      {fechaHoraLinda(trabajo.fechaFinalizacion)}
                     </p>
                   )}
                 </div>
@@ -206,7 +205,7 @@ export default function FinalizadosLista({ trabajos }: Props) {
                 {/* BOTONES */}
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Link
-                    href={`/mis-trabajos/${trabajo.id}`}
+                    href={`/ficha/visita/${trabajo.id}`}
                     className="rounded-xl border border-slate-300 px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
                     Ver trabajo
