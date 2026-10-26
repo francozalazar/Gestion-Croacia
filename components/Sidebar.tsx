@@ -58,6 +58,16 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
   }, [pathname]);
 
   async function handleLogout() {
+    // Un celular compartido no debe conservar avisos del usuario anterior.
+    if ("serviceWorker" in navigator && "PushManager" in window) {
+      const reg = await navigator.serviceWorker.getRegistration("/");
+      const sub = await reg?.pushManager.getSubscription();
+      if (sub) {
+        const r = await fetch("/api/push/suscripcion", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: sub.endpoint }) });
+        if (!r.ok) { alert("No se pudieron desactivar los avisos de este celular. Probá cerrar sesión otra vez."); return; }
+        await sub.unsubscribe();
+      }
+    }
     await supabase.auth.signOut();
     window.location.href = "/";
   }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
+import AvisosAndroid from "@/components/AvisosAndroid";
 import { requierePrecio } from "@/lib/tipoVisita";
 import Link from "next/link";
 import {
@@ -456,6 +457,8 @@ export default function DashboardPage() {
             <Link href="/stock" className="mt-3 inline-flex text-sm font-semibold text-red-800 underline">Ver stock de motores</Link>
           </section>
         )}
+
+        {esTecnico && <AvisosAndroid />}
 
         {/* LO URGENTE DE HOY */}
         <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
