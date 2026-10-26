@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,13 +30,11 @@ export async function crearUsuarioAction(
 
   // 2. Datos del formulario
   const nombre = String(formData.get("nombre") || "").trim();
-  const email = String(formData.get("email") || "").trim().toLowerCase();
   const rol = String(formData.get("rol") || "").trim().toUpperCase();
   const password = String(formData.get("password") || "");
 
-  if (!nombre) return { ok: false, mensaje: "Falta el nombre." };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    return { ok: false, mensaje: "El email no es válido." };
+  if (!nombre || nombre.length > 80 || nombre.includes("@"))
+    return { ok: false, mensaje: "Escribí un nombre de hasta 80 caracteres, sin @." };
   if (!ROLES.includes(rol)) return { ok: false, mensaje: "Elegí un rol." };
   if (password.length < 6)
     return { ok: false, mensaje: "La contraseña tiene que tener al menos 6 caracteres." };
@@ -54,6 +53,16 @@ export async function crearUsuarioAction(
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // El nombre es el acceso visible. No aceptar nombres que el login resolvería
+  // a más de una cuenta (también se consideran los apellidos de cuentas previas).
+  const normalizar = (texto: string) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+  const { data: perfiles, error: errLista } = await admin.from("profiles").select("id, nombre, apellido");
+  if (errLista || !perfiles) return { ok: false, mensaje: "No se pudo verificar el nombre. No se creó nada." };
+  const repetido = (p: { nombre: string | null; apellido: string | null }) => normalizar(p.nombre || "") === normalizar(nombre) || normalizar(`${p.nombre || ""} ${p.apellido || ""}`) === normalizar(nombre);
+  if (perfiles.some(repetido)) return { ok: false, mensaje: "Ya existe ese nombre. Agregá el apellido para distinguirlo." };
+  // Identificador técnico no entregable: no se solicita ni se envía correo.
+  const email = `usuario-${randomUUID()}@usuarios.croacia.invalid`;
+
   // 4. Crear el acceso. El trigger de la base crea el perfil con el nombre.
   const { data: creado, error } = await admin.auth.admin.createUser({
     email,
@@ -66,26 +75,36 @@ export async function crearUsuarioAction(
     return {
       ok: false,
       mensaje: ya
-        ? "Ya existe un usuario con ese email."
+        ? "No se pudo crear el acceso. Probá de nuevo."
         : "No se pudo crear el usuario. No se guardó nada.",
     };
   }
 
   // 5. Rol del perfil. Si falla, se deshace el alta completa para no dejar un usuario con rol equivocado.
-  const { error: errPerfil } = await admin
+  const { data: perfilGuardado, error: errPerfil } = await admin
     .from("profiles")
     .update({ nombre, rol, activo: true })
-    .eq("id", creado.user.id);
-  if (errPerfil) {
-    await admin.auth.admin.deleteUser(creado.user.id);
+    .eq("id", creado.user.id)
+    .select("id, nombre, rol, activo")
+    .single();
+  if (errPerfil || !perfilGuardado || perfilGuardado.rol !== rol || perfilGuardado.activo !== true) {
+    const { error: errBorrar } = await admin.auth.admin.deleteUser(creado.user.id);
     return {
       ok: false,
-      mensaje: "No se pudo guardar el rol. Se deshizo el alta; probá de nuevo.",
+      mensaje: errBorrar ? "No se pudo confirmar el rol. Revisá Usuarios antes de reintentar." : "No se pudo guardar el rol. Se deshizo el alta; probá de nuevo.",
     };
+  }
+
+  // Releer también después del alta: dos pedidos simultáneos no deben dejar
+  // nombres ambiguos. Si hubo carrera, retirar sólo la cuenta recién creada.
+  const { data: despues, error: errDespues } = await admin.from("profiles").select("id, nombre, apellido");
+  if (errDespues || !despues || despues.some((p) => p.id !== creado.user.id && repetido(p))) {
+    const { error: errBorrar } = await admin.auth.admin.deleteUser(creado.user.id);
+    return { ok: false, mensaje: errBorrar ? "No se pudo confirmar el alta. Revisá Usuarios antes de reintentar." : "El nombre no pudo confirmarse como único. Usá nombre y apellido y probá de nuevo." };
   }
 
   return {
     ok: true,
-    mensaje: `Usuario creado: ${nombre} (${rol}). Pasale el email y la contraseña para que entre.`,
+    mensaje: `Usuario creado: ${nombre} (${rol}). Pasale este nombre y la contraseña para que entre.`,
   };
 }
