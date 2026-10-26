@@ -33,14 +33,10 @@ export default function NuevoUsuarioForm() {
       <h2 className="text-lg font-bold text-slate-900">Nuevo usuario</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm font-medium text-slate-700">
-          Nombre
-          <input name="nombre" required className={campo} autoComplete="off" />
+          Nombre para ingresar
+          <input name="nombre" required maxLength={80} className={campo} autoComplete="off" />
         </label>
       </div>
-      <label className="block text-sm font-medium text-slate-700">
-        Email (con este entra)
-        <input name="email" type="email" required className={campo} autoComplete="off" />
-      </label>
       <label className="block text-sm font-medium text-slate-700">
         Rol
         <select name="rol" required defaultValue="" className={campo}>
