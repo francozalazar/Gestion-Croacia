@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { fechaLinda } from "@/lib/fechasFicha";
 import { textoFranja } from "@/lib/franjas";
 import { useEffect, useState } from "react";
 import { cargarCuentas, fechaCarga, type CuentaPedido } from "@/lib/saldoPedido";
@@ -110,201 +111,27 @@ export default function DetalleAprobacionFabricaPage() {
   }
 
   async function enviarACortar() {
-    if (!solicitud) return;
-
-    if (
-      solicitud.estado === "ENVIADO_A_CORTAR" ||
-      solicitud.estado === "EN_CORTE"
-    ) {
-      setMensaje("Esta solicitud ya fue enviada a cortar.");
-      return;
-    }
-
-    if (solicitud.estado === "FINALIZADO") {
-      setMensaje("Esta solicitud ya está finalizada.");
-      return;
-    }
-
-    const confirmar = window.confirm(
-      `¿Enviar el remito Nº ${solicitud.numero_remito} a cortar? Esto lo pasará directo a la bandeja de fábrica.`
-    );
-
-    if (!confirmar) return;
-
-    setProcesando(true);
-    setMensaje("");
-    setError("");
-
-    const fechaActual = new Date().toISOString();
-
-    // 1. Actualizamos el estado en solicitudes_fabrica.
-    // Queda como ENVIADO_A_CORTAR para que siga visible en la bandeja de
-    // aprobacion hasta que se finalice el pago del remito.
-    const { error: errorUpdate } = await supabase
-      .from("solicitudes_fabrica")
-      .update({
-        estado: "ENVIADO_A_CORTAR",
-        fecha_enviada_cortar: fechaActual,
-      })
-      .eq("id", solicitud.id);
-
-    if (errorUpdate) {
-      console.error(errorUpdate);
-      setError(errorUpdate.message);
-      setProcesando(false);
-      return;
-    }
-
-    // 2. CREAMOS EL REGISTRO EN LA TABLA PRINCIPAL `solicitudes` (visibilidad de oficina),
-    // vinculado al remito por solicitud_fabrica_id. Si ya existe, no lo duplicamos.
-    const { data: solicitudExistente } = await supabase
-      .from("solicitudes")
-      .select("id")
-      .eq("solicitud_fabrica_id", solicitud.id)
-      .maybeSingle();
-
-    if (solicitudExistente) {
-      setMensaje("La solicitud fue enviada a cortar y ya figura en los trabajos de fábrica.");
-      setSolicitud({
-        ...solicitud,
-        estado: "ENVIADO_A_CORTAR",
-        fecha_enviada_cortar: fechaActual,
-      });
-      setProcesando(false);
-      return;
-    }
-
-    // Buscamos o creamos el cliente primero si es necesario, o usamos los datos directamente en la solicitud
-    let clienteId = null;
-    
-    // Verificamos si ya existe un cliente con ese nombre o lo creamos
-    const { data: clienteExistente } = await supabase
-      .from("clientes")
-      .select("id")
-      .eq("nombre", solicitud.cliente_nombre)
-      .maybeSingle();
-
-    if (clienteExistente) {
-      clienteId = clienteExistente.id;
-    } else {
-      const {
-        data: { user: usuarioCreador },
-      } = await supabase.auth.getUser();
-
-      const { data: nuevoCliente } = await supabase
-        .from("clientes")
-        .insert({
-          nombre: solicitud.cliente_nombre,
-          direccion: solicitud.direccion,
-          localidad: solicitud.localidad,
-          telefono: solicitud.cliente_telefono,
-          creado_por: usuarioCreador?.id || null,
-        })
-        .select("id")
-        .single();
-
-      if (nuevoCliente) {
-        clienteId = nuevoCliente.id;
-      }
-    }
-
-    if (clienteId && solicitud.direccion) {
-      try {
-        await supabase.from("direcciones").insert({
-          cliente_id: clienteId,
-          direccion: solicitud.direccion,
-          localidad: solicitud.localidad || null,
-        });
-      } catch {
-        // sin la tabla direcciones todavía, no pasa nada
-      }
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    // Insertamos en la tabla `solicitudes` con estado "ASIGNADO_FABRICA"
-    const { error: errorSolicitudPrincipal } = await supabase
-      .from("solicitudes")
-      .insert({
-        cliente_id: clienteId,
-        cliente_nombre: solicitud.cliente_nombre,
-        cliente_telefono: solicitud.cliente_telefono,
-        direccion: solicitud.direccion,
-        localidad: solicitud.localidad,
-        fecha: solicitud.fecha,
-        horario_desde: solicitud.horario_desde,
-        horario_hasta: solicitud.horario_hasta,
-        tipo_visita: solicitud.tipo_visita || "Instalación",
-        observaciones: solicitud.observaciones,
-        estado: "ASIGNADO_FABRICA", // Estado que lee la pantalla de fábrica
-        creado_por: user?.id,
-        solicitud_fabrica_id: solicitud.id,
-      });
-
-    if (errorSolicitudPrincipal) {
-      console.error("Error al pasar a la tabla de solicitudes:", errorSolicitudPrincipal);
-      setError("Se actualizó el pedido pero hubo un error al enviarlo a fábrica: " + errorSolicitudPrincipal.message);
-      setProcesando(false);
-      return;
-    }
-
-    setMensaje("La solicitud fue enviada a cortar y ya figura en los trabajos de fábrica.");
-
-    setSolicitud({
-      ...solicitud,
-      estado: "ENVIADO_A_CORTAR",
-      fecha_enviada_cortar: fechaActual,
-    });
-
-    setProcesando(false);
+    if (!solicitud || procesando) return;
+    if (!window.confirm(`¿Aprobar o comprobar el vínculo del pedido Nº ${solicitud.numero_remito}? No cambia una etapa ya avanzada.`)) return;
+    setProcesando(true); setError(""); setMensaje("");
+    try {
+      const { error } = await supabase.rpc("aprobar_pedido_fabrica", { p_pedido: solicitud.id });
+      if (error) { setMensaje("No se confirmó la aprobación: " + error.message); return; }
+      await cargarSolicitud();
+      setMensaje("Pedido aprobado y vínculo para instalación verificado.");
+    } finally { setProcesando(false); }
   }
 
   async function finalizar() {
-    if (!solicitud) return;
-
-    if (solicitud.estado === "FINALIZADO") {
-      setMensaje("Esta solicitud ya está finalizada.");
-      return;
-    }
-
-    const confirmar = window.confirm(
-      `¿Marcar como FINALIZADO el remito Nº ${solicitud.numero_remito}?`
-    );
-
-    if (!confirmar) return;
-
-    setProcesando(true);
-    setMensaje("");
-    setError("");
-
-    const fechaFinalizado = new Date().toISOString();
-
-    const { error: errorUpdate } = await supabase
-      .from("solicitudes_fabrica")
-      .update({
-        estado: "FINALIZADO",
-        fecha_finalizado: fechaFinalizado,
-      })
-      .eq("id", solicitud.id);
-
-    if (errorUpdate) {
-      console.error(errorUpdate);
-      setError(errorUpdate.message);
-      setProcesando(false);
-      return;
-    }
-
-    setMensaje("La solicitud fue marcada como finalizada.");
-
-    setSolicitud({
-      ...solicitud,
-      estado: "FINALIZADO",
-      fecha_finalizado: fechaFinalizado,
-    });
-
-    setProcesando(false);
+    if (!solicitud || procesando) return;
+    if (!window.confirm("¿Cerrar la aprobación por pago completo? La fabricación y la instalación conservan su estado.")) return;
+    setProcesando(true); setMensaje("");
+    try {
+      const { error } = await supabase.rpc("cerrar_cobro_pedido", { p_pedido: solicitud.id });
+      if (error) { setMensaje("No se cerró el cobro: " + error.message); return; }
+      await cargarSolicitud();
+      setMensaje("Cobro cerrado. La etapa operativa no se modificó.");
+    } finally { setProcesando(false); }
   }
 
   function formatoPesos(valor: number | null) {
@@ -321,7 +148,7 @@ export default function DetalleAprobacionFabricaPage() {
   function formatoFecha(fecha: string | null) {
     if (!fecha) return "-";
 
-    return new Date(fecha).toLocaleDateString("es-AR");
+    return fechaLinda(fecha) || "-";
   }
 
   if (cargando) {
@@ -612,15 +439,13 @@ export default function DetalleAprobacionFabricaPage() {
               onClick={enviarACortar}
               disabled={
                 procesando ||
-                solicitud.estado === "EN_CORTE" ||
-                solicitud.estado === "ENVIADO_A_CORTAR" ||
-                solicitud.estado === "FINALIZADO"
+                ["ANULADO", "CANCELADO", "FINALIZADO"].includes(solicitud.estado)
               }
               className="rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {procesando
                 ? "Procesando..."
-                : "Enviar a cortar"}
+                : solicitud.estado === "PENDIENTE_APROBACION" ? "Enviar a cortar" : "Verificar vínculo de instalación"}
             </button>
 
             <button
@@ -628,11 +453,11 @@ export default function DetalleAprobacionFabricaPage() {
               onClick={finalizar}
               disabled={
                 procesando ||
-                solicitud.estado === "FINALIZADO"
+                Boolean(solicitud.fecha_finalizado) || ["PENDIENTE_APROBACION", "ANULADO", "CANCELADO"].includes(solicitud.estado)
               }
               className="rounded-xl bg-green-600 px-6 py-3 font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Finalizado
+              Cerrar cobro (pago completo)
             </button>
 
           </div>

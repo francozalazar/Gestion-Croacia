@@ -40,7 +40,9 @@ export default function AprobacionFabricaPage() {
     const { data: solFabrica } = await supabase
       .from("solicitudes_fabrica")
       .select("*, creador:profiles!creado_por(nombre, apellido)")
-      .in("estado", ["PENDIENTE_APROBACION", "ENVIADO_A_CORTAR"])
+      .neq("estado", "ANULADO")
+      .neq("estado", "CANCELADO")
+      .is("fecha_finalizado", null)
       .order("id", { ascending: false });
 
     const cuentas = await cargarCuentas(
@@ -61,132 +63,26 @@ export default function AprobacionFabricaPage() {
   }
 
   async function enviarACortar(id: number) {
-    if (perfil?.rol !== "ADMIN") return;
+    if (perfil?.rol !== "ADMIN" || procesando) return;
     setProcesando(true);
-
-    const { error } = await supabase
-      .from("solicitudes_fabrica")
-      .update({ estado: "ENVIADO_A_CORTAR" })
-      .eq("id", id);
-
-    if (error) {
-      alert("Error al actualizar: " + error.message);
-      setProcesando(false);
-      return;
-    }
-
-    // Creamos la solicitud principal vinculada (visibilidad de oficina),
-    // igual que desde la pantalla de detalle del remito.
-    const remito =
-      modalRemito?.id === id
-        ? modalRemito
-        : solicitudes.find((s) => s.id === id);
-
-    if (remito) {
-      const { data: existente } = await supabase
-        .from("solicitudes")
-        .select("id")
-        .eq("solicitud_fabrica_id", id)
-        .maybeSingle();
-
-      if (!existente) {
-        let clienteId = null;
-
-        const { data: clienteExistente } = await supabase
-          .from("clientes")
-          .select("id")
-          .eq("nombre", remito.cliente_nombre)
-          .maybeSingle();
-
-        if (clienteExistente) {
-          clienteId = clienteExistente.id;
-        } else {
-          const {
-            data: { user: usuarioCreador },
-          } = await supabase.auth.getUser();
-
-          const { data: nuevoCliente } = await supabase
-            .from("clientes")
-            .insert({
-              nombre: remito.cliente_nombre,
-              direccion: remito.direccion,
-              localidad: remito.localidad,
-              telefono: remito.cliente_telefono,
-              creado_por: usuarioCreador?.id || null,
-            })
-            .select("id")
-            .single();
-
-          if (nuevoCliente) {
-            clienteId = nuevoCliente.id;
-          }
-        }
-
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (clienteId && remito.direccion) {
-          try {
-            await supabase.from("direcciones").insert({
-              cliente_id: clienteId,
-              direccion: remito.direccion,
-              localidad: remito.localidad || null,
-            });
-          } catch {
-            // sin la tabla direcciones todavía, no pasa nada
-          }
-        }
-
-        const { error: errorSolicitud } = await supabase
-          .from("solicitudes")
-          .insert({
-            cliente_id: clienteId,
-            cliente_nombre: remito.cliente_nombre,
-            cliente_telefono: remito.cliente_telefono,
-            direccion: remito.direccion,
-            localidad: remito.localidad,
-            fecha: remito.fecha,
-            horario_desde: remito.horario_desde,
-            horario_hasta: remito.horario_hasta,
-            tipo_visita: remito.tipo_visita || "Instalación",
-            observaciones: remito.observaciones,
-            estado: "ASIGNADO_FABRICA",
-            creado_por: user?.id,
-            solicitud_fabrica_id: id,
-          });
-
-        if (errorSolicitud) {
-          alert(
-            "El pedido se envió a cortar pero hubo un error al crear la solicitud de oficina: " +
-              errorSolicitud.message
-          );
-        }
-      }
-    }
-
-    setModalRemito(null);
-    await cargarDatos();
-    setProcesando(false);
+    try {
+      const { error } = await supabase.rpc("aprobar_pedido_fabrica", { p_pedido: id });
+      if (error) { alert("No se aprobó el pedido: " + error.message); return; }
+      setModalRemito(null);
+      await cargarDatos();
+    } finally { setProcesando(false); }
   }
 
   async function finalizarRemito(id: number) {
-    if (perfil?.rol !== "ADMIN") return;
-    if (!confirm("¿Estás seguro de finalizar este pedido de fábrica?")) return;
+    if (perfil?.rol !== "ADMIN" || procesando) return;
+    if (!confirm("¿Cerrar la aprobación por pago completo? No finaliza la fabricación ni la instalación.")) return;
     setProcesando(true);
-
-    const { error } = await supabase
-      .from("solicitudes_fabrica")
-      .update({ estado: "FINALIZADO" })
-      .eq("id", id);
-
-    if (error) {
-      alert("Error al finalizar: " + error.message);
-    } else {
+    try {
+      const { error } = await supabase.rpc("cerrar_cobro_pedido", { p_pedido: id });
+      if (error) { alert("No se cerró el cobro: " + error.message); return; }
       setModalRemito(null);
       await cargarDatos();
-    }
-    setProcesando(false);
+    } finally { setProcesando(false); }
   }
 
   return (
@@ -202,7 +98,7 @@ export default function AprobacionFabricaPage() {
           Aprobación de Fábrica
         </h1>
         <p className="text-xs text-slate-500 mb-8">
-          Revisión de remitos de fábrica. Los enviados a cortar permanecen aquí hasta que el administrador finalice el remito.
+          Revisión de remitos de fábrica. Los pedidos permanecen aquí hasta cerrar el cobro, sin alterar su etapa de producción o instalación.
         </p>
 
         {cargando ? (
@@ -215,7 +111,7 @@ export default function AprobacionFabricaPage() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl">
             {solicitudes.map((s) => {
-              const enviadoACortar = s.estado === "ENVIADO_A_CORTAR";
+              const enviadoACortar = s.estado !== "PENDIENTE_APROBACION";
 
               return (
                 <div
@@ -242,7 +138,7 @@ export default function AprobacionFabricaPage() {
                               : "bg-amber-100 text-amber-800"
                           }`}
                         >
-                          {enviadoACortar ? "Enviado a cortar" : "Pendiente de aprobación"}
+                          {s.estado === "PENDIENTE_APROBACION" ? "Pendiente de aprobación" : s.estado.replaceAll("_", " ")}
                         </span>
 
                         {s.cuenta?.saldado ? (
@@ -317,12 +213,12 @@ export default function AprobacionFabricaPage() {
                 </span>
                 <span
                   className={`text-xs px-3 py-1 rounded-md font-semibold ${
-                    modalRemito.estado === "ENVIADO_A_CORTAR"
+                    modalRemito.estado !== "PENDIENTE_APROBACION"
                       ? "bg-blue-100 text-blue-800"
                       : "bg-amber-100 text-amber-800"
                   }`}
                 >
-                  {modalRemito.estado === "ENVIADO_A_CORTAR" ? "Enviado a cortar" : "Pendiente de aprobación"}
+                  {modalRemito.estado === "PENDIENTE_APROBACION" ? "Pendiente de aprobación" : modalRemito.estado.replaceAll("_", " ")}
                 </span>
 
                 {modalRemito.cuenta?.saldado ? (
@@ -333,7 +229,7 @@ export default function AprobacionFabricaPage() {
                       : ""}
                   </span>
                 ) : (
-                  modalRemito.estado === "ENVIADO_A_CORTAR" && (
+                  modalRemito.estado !== "PENDIENTE_APROBACION" && (
                     (modalRemito.cuenta || modalRemito.saldo_restante != null) ? (
                       <span className="text-xs px-3 py-1 rounded-md font-semibold bg-red-100 text-red-800">
                         Saldo pendiente: $
@@ -447,13 +343,13 @@ export default function AprobacionFabricaPage() {
                     </button>
                   )}
 
-                  {modalRemito.estado === "ENVIADO_A_CORTAR" && (
+                  {modalRemito.estado !== "PENDIENTE_APROBACION" && !modalRemito.fecha_finalizado && (
                     <button
                       onClick={() => finalizarRemito(modalRemito.id)}
                       disabled={procesando}
                       className="rounded-xl bg-emerald-600 px-6 py-3 text-xs font-semibold text-white hover:bg-emerald-700 transition flex items-center gap-2 disabled:opacity-50 shadow-sm"
                     >
-                      <CheckCircle2 size={14} /> Finalizar pedido
+                      <CheckCircle2 size={14} /> Cerrar cobro (pago completo)
                     </button>
                   )}
                 </div>

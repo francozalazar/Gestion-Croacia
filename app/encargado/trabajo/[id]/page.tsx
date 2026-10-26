@@ -89,7 +89,7 @@ export default async function TrabajoPage({
 
         <div className="mb-6">
           <Link
-            href="/encargado"
+            href="/encargado?seccion=Mis%20trabajos"
             className="mb-4 inline-block text-sm font-medium text-slate-500 hover:text-slate-900"
           >
             ← Volver a mis trabajos
@@ -219,6 +219,7 @@ export default async function TrabajoPage({
         {/* COMPLETAR */}
 
         <CompletarTrabajo
+          volverA="/encargado?seccion=Mis%20trabajos"
           solicitudId={vista.id}
           solicitudPrincipalId={vista.solicitudPrincipalId}
           estado={vista.estado}

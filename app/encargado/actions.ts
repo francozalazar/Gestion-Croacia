@@ -21,7 +21,9 @@ export async function operarEncargado(
     p_accion: accion,
     p_datos: datos,
   });
-  if (error) return { ok: false, mensaje: error.message };
+  if (error) return { ok: false, mensaje: error.code === "23505"
+    ? "Ese técnico ya tiene un trabajo con esa prioridad para ese día. Elegí otra prioridad."
+    : error.message };
   revalidatePath("/encargado");
   return { ok: true, mensaje: "Guardado." };
 }

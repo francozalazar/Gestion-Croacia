@@ -280,14 +280,19 @@ export default async function FichaPage({
   // (PRESUPUESTADO / PENDIENTE_PRECIO), asi que ya no se sabe en que etapa de
   // fabrica estaba. No se inventa una etapa: se marca "sin dato".
   const estadosTecnico = ["FINALIZADO", "PENDIENTE_PRECIO", "PRESUPUESTADO"];
-  const tecnicoFinalizo =
-    (estadoSol !== null && estadosTecnico.includes(estadoSol)) ||
-    (estadoFab !== null && estadosTecnico.includes(estadoFab));
+  const tecnicoFinalizo = Boolean(solicitud?.fecha_finalizacion);
+  const autoresCierre = [...new Set(fotosFinalizacion.filter((f: any) =>
+    f.created_at === solicitud?.fecha_finalizacion && f.creado_por
+  ).map((f: any) => f.creado_por as string))];
+  const autorCierre = autoresCierre.length === 1 ? autoresCierre[0] : null;
+  if (autorCierre && !nombres[autorCierre]) {
+    const { data: autor } = await supabase.from("profiles").select("nombre,apellido").eq("id", autorCierre).maybeSingle();
+    if (autor) nombres[autorCierre] = [autor.nombre, autor.apellido].filter(Boolean).join(" ");
+  }
   const fabricaSobrescrita =
     estadoFab !== null && estadosTecnico.includes(estadoFab);
 
-  const finalizado =
-    estadoFab === "FINALIZADO" || estadoSol === "FINALIZADO" || tecnicoFinalizo;
+  const finalizado = tecnicoFinalizo;
 
   const evPrecio = buscarEvento("precio asignado");
   const evAprobacion = buscarEvento("enviado a cortar");
@@ -381,10 +386,8 @@ export default async function FichaPage({
     etapas.push({
       nombre: "Instalacion",
       estado: finalizado ? "hecha" : "pendiente",
-      fecha: evFinalizado?.created_at || solicitud?.fecha_finalizacion || ultimaAsignacion?.fecha || null,
-      responsable: ultimaAsignacion?.usuario_id
-        ? nombres[ultimaAsignacion.usuario_id]
-        : null,
+      fecha: solicitud?.fecha_finalizacion || null,
+      responsable: tecnicoFinalizo && autorCierre ? nombres[autorCierre] : null,
       detalle: [
         tecnicoFinalizo && solicitud?.fecha_finalizacion
           ? `Finalización registrada por el técnico: ${fechaLinda(solicitud.fecha_finalizacion)}`
@@ -400,7 +403,7 @@ export default async function FichaPage({
     etapas.push({
       nombre: "Remito del tecnico",
       estado: tecnicoFinalizo ? "hecha" : "pendiente",
-      fecha: solicitud?.fecha_finalizacion || evFinalizado?.created_at || null,
+      fecha: solicitud?.fecha_finalizacion || null,
       detalle: tecnicoFinalizo
         ? solicitud?.firma_cliente
           ? "Firma del cliente registrada"

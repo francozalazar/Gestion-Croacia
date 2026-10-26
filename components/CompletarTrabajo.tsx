@@ -17,6 +17,7 @@ interface Props {
   ayudanteInicial?: string | null;
   tipoVisita?: string | null;
   esFabrica?: boolean;
+  volverA?: string;
 }
 
 export default function CompletarTrabajo({
@@ -31,6 +32,7 @@ export default function CompletarTrabajo({
   ayudanteInicial,
   tipoVisita,
   esFabrica = false,
+  volverA = "/trabajos",
 }: Props) {
   const router = useRouter();
   const supabase = createClient();
@@ -185,7 +187,7 @@ export default function CompletarTrabajo({
     setGuardando(false);
     
     router.refresh();
-    router.push("/trabajos");
+    router.push(volverA);
   }
 
   const inputClassName = "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed";

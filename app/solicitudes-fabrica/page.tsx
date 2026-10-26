@@ -191,13 +191,13 @@ export default function SolicitudFabricaPage() {
     let hDesde = null;
     let hHasta = null;
     if (franjaHoraria === "mañana") {
-      hDesde = "08:00";
-      hHasta = "12:00";
+      hDesde = "08:30";
+      hHasta = "12:30";
     } else if (franjaHoraria === "tarde") {
       hDesde = "13:00";
       hHasta = "17:00";
     } else if (franjaHoraria === "completo") {
-      hDesde = "08:00";
+      hDesde = "08:30";
       hHasta = "17:00";
     }
 
@@ -620,9 +620,9 @@ export default function SolicitudFabricaPage() {
                   disabled={exito}
                 >
                   <option value="">Coordinar con cliente...</option>
-                  <option value="mañana">Por la mañana (08:00 a 12:00)</option>
+                  <option value="mañana">Por la mañana (08:30 a 12:30)</option>
                   <option value="tarde">Por la tarde (13:00 a 17:00)</option>
-                  <option value="completo">Día completo (08:00 a 17:00)</option>
+                  <option value="completo">Día completo (08:30 a 17:00)</option>
                 </select>
               </div>
 
