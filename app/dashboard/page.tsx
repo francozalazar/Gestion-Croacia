@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
+import { requierePrecio } from "@/lib/tipoVisita";
 import Link from "next/link";
 import {
   Bell,
@@ -108,7 +109,7 @@ export default function DashboardPage() {
         { event: "UPDATE", schema: "public", table: "solicitudes" },
         (payload) => {
           const s: any = payload.new;
-          if (s.estado !== "PRESUPUESTADO") return;
+          if (s.estado !== "PRESUPUESTADO" || !requierePrecio(s.tipo_visita)) return;
           if (rol === "OFICINA" && s.creado_por !== perfil.id) return;
 
           agregarNovedad({
@@ -393,7 +394,7 @@ export default function DashboardPage() {
       }
 
       lista.forEach((s) => {
-        if (s.estado === "PRESUPUESTADO") {
+        if (s.estado === "PRESUPUESTADO" && requierePrecio(s.tipo_visita)) {
           eventos.push({
             id: `presupuesto-${s.id}`,
             titulo: `Precio asignado en Remito #${String(s.numero || s.id).padStart(5, "0")}`,
