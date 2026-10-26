@@ -1,0 +1,395 @@
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import fs from "fs/promises";
+import path from "path";
+
+export async function generarPDFVisita(solicitud: Record<string, any>, tecnico = "-") {
+  const datos = solicitud as Record<string, any>;
+
+  const clienteNombre = datos.cliente_nombre || "-";
+  const contacto = datos.contacto || datos.aclaracion_cliente || "-";
+  const direccion = datos.direccion || "-";
+  const localidad = datos.localidad || "-";
+  const tipoSolicitud =
+    datos.tipo_visita || datos.tipo_solicitud || datos.tipo || "-";
+  const detalleVisita =
+    datos.observaciones || datos.detalle_visita || datos.detalle || "-";
+  const trabajoRealizado = datos.trabajo_realizado || "-";
+  const observacionesTecnico = datos.observaciones_tecnico || "-";
+  const aclaracionCliente = datos.aclaracion_cliente || clienteNombre;
+  if (datos.tecnico_remito && String(datos.tecnico_remito).trim()) {
+    tecnico = String(datos.tecnico_remito).trim();
+  }
+  const ayudante = datos.ayudante || "-";
+
+  let fechaVisita = "-";
+  if (datos.fecha) {
+    fechaVisita = new Date(`${datos.fecha}T12:00:00`).toLocaleDateString(
+      "es-AR",
+      {
+        timeZone: "America/Argentina/Buenos_Aires",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }
+    );
+  }
+
+  let fechaFinalizacion = "-";
+  if (datos.fecha_finalizacion) {
+    fechaFinalizacion = new Date(datos.fecha_finalizacion).toLocaleDateString(
+      "es-AR",
+      {
+        timeZone: "America/Argentina/Buenos_Aires",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }
+    );
+  }
+
+  const pdf = await PDFDocument.create();
+  const fuente = await pdf.embedFont(StandardFonts.Helvetica);
+  const fuenteNegrita = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+  let logo = null;
+  try {
+    const logoPath = path.join(process.cwd(), "public", "logo.png");
+    const logoBytes = await fs.readFile(logoPath);
+    logo = await pdf.embedPng(logoBytes);
+  } catch (err) {
+    console.error("Logo no encontrado:", err);
+  }
+
+  const ancho = 595.28;
+  const alto = 841.89;
+  const margen = 45;
+  const anchoContenido = ancho - margen * 2;
+  const negro = rgb(0.05, 0.05, 0.05);
+
+  let pagina = pdf.addPage([ancho, alto]);
+  let y = alto - 40;
+
+  function centrado(
+    contenido: string,
+    yPos: number,
+    size: number,
+    bold = false
+  ) {
+    const f = bold ? fuenteNegrita : fuente;
+    const w = f.widthOfTextAtSize(contenido, size);
+    pagina.drawText(contenido, {
+      x: (ancho - w) / 2,
+      y: yPos,
+      size,
+      font: f,
+      color: negro,
+    });
+  }
+
+  function regla(yPos: number, grosor = 1.6) {
+    pagina.drawLine({
+      start: { x: margen, y: yPos },
+      end: { x: ancho - margen, y: yPos },
+      thickness: grosor,
+      color: negro,
+    });
+  }
+
+  function campo(
+    etiqueta: string,
+    valor: string,
+    x: number,
+    yPos: number,
+    size = 11
+  ) {
+    pagina.drawText(`${etiqueta}:`, {
+      x,
+      y: yPos,
+      size,
+      font: fuenteNegrita,
+      color: negro,
+    });
+    const offset = fuenteNegrita.widthOfTextAtSize(`${etiqueta}: `, size);
+    pagina.drawText(String(valor || "-"), {
+      x: x + offset,
+      y: yPos,
+      size,
+      font: fuente,
+      color: negro,
+    });
+  }
+
+  function envuelto(
+    contenido: string,
+    x: number,
+    yInicial: number,
+    maxWidth: number,
+    size = 10.5,
+    interlineado = 15
+  ) {
+    const palabras = String(contenido || "-").split(/\s+/);
+    const lineas: string[] = [];
+    let actual = "";
+
+    for (const palabra of palabras) {
+      const prueba = actual ? `${actual} ${palabra}` : palabra;
+      if (
+        fuente.widthOfTextAtSize(prueba, size) > maxWidth &&
+        actual
+      ) {
+        lineas.push(actual);
+        actual = palabra;
+      } else {
+        actual = prueba;
+      }
+    }
+    if (actual) lineas.push(actual);
+
+    let posicion = yInicial;
+    for (const lineaTexto of lineas) {
+      // Si no entra, sigue en una pagina nueva en vez de pisar la firma o el pie.
+      if (posicion < 90) {
+        pagina = pdf.addPage([ancho, alto]);
+        posicion = alto - 60;
+      }
+      pagina.drawText(lineaTexto, {
+        x,
+        y: posicion,
+        size,
+        font: fuente,
+        color: negro,
+      });
+      posicion -= interlineado;
+    }
+    return posicion;
+  }
+
+  // =========================
+  // ENCABEZADO
+  // =========================
+
+  if (logo) {
+    const altoLogo = 58;
+    const anchoLogo = (logo.width / logo.height) * altoLogo;
+    pagina.drawImage(logo, {
+      x: (ancho - anchoLogo) / 2,
+      y: y - altoLogo,
+      width: anchoLogo,
+      height: altoLogo,
+    });
+    y -= altoLogo + 8;
+  }
+
+  centrado("CROACIA SRL", y - 16, 20, true);
+  y -= 26;
+  centrado("FÁBRICA DE CORTINAS METÁLICAS", y - 8, 9, true);
+  y -= 22;
+
+  centrado(
+    "Fábrica: Ruta de la Tradición 670, Luis Guillón  4281-3813 / 3966-6430 / 11 5450-2050",
+    y,
+    7.5
+  );
+  y -= 11;
+  centrado(
+    "Suc. Lomas de Zamora: Camino negro, Esq. Colombres  11 5818-4428",
+    y,
+    7.5
+  );
+  y -= 11;
+  centrado("Suc. La Plata: Av 44 N° 3269  11 5659-4671", y, 7.5);
+  y -= 30;
+
+  centrado("SOLICITUD DE TRABAJO", y - 20, 24, true);
+  y -= 34;
+  regla(y, 2.2);
+  y -= 24;
+
+  // =========================
+  // DATOS
+  // =========================
+
+  const numeroRemito = datos.numero || datos.id;
+
+  campo("N° remito", String(numeroRemito), margen, y, 11.5);
+  y -= 26;
+
+  // Cada dato tiene un ancho fijo y, si no entra, baja de linea dentro de su
+  // columna: nombres o direcciones largos no se pisan con el dato de al lado.
+  function filaDatos(items: { etiqueta: string; valor: string; x: number; w: number }[]) {
+    let maxLineas = 1;
+    for (const it of items) {
+      const prefijo = `${it.etiqueta}: `;
+      const offset = fuenteNegrita.widthOfTextAtSize(prefijo, 11);
+      const disponible = Math.max(it.w - offset, 40);
+      const lineas: string[] = [];
+      let actual = "";
+      for (const palabra of String(it.valor || "-").split(/\s+/)) {
+        let p = palabra;
+        // palabra sola mas ancha que la columna: se corta
+        while (fuente.widthOfTextAtSize(p, 11) > disponible && p.length > 1) {
+          let n = p.length - 1;
+          while (n > 1 && fuente.widthOfTextAtSize(p.slice(0, n), 11) > disponible) n--;
+          if (actual) {
+            lineas.push(actual);
+            actual = "";
+          }
+          lineas.push(p.slice(0, n));
+          p = p.slice(n);
+        }
+        const prueba = actual ? actual + " " + p : p;
+        if (fuente.widthOfTextAtSize(prueba, 11) > disponible && actual) {
+          lineas.push(actual);
+          actual = p;
+        } else {
+          actual = prueba;
+        }
+      }
+      if (actual) lineas.push(actual);
+      pagina.drawText(prefijo, { x: it.x, y, size: 11, font: fuenteNegrita, color: negro });
+      lineas.forEach((l, i) => {
+        pagina.drawText(l, { x: it.x + offset, y: y - i * 14, size: 11, font: fuente, color: negro });
+      });
+      maxLineas = Math.max(maxLineas, lineas.length);
+    }
+    y -= 10 + maxLineas * 14;
+  }
+
+  filaDatos([
+    { etiqueta: "Fecha pactada", valor: fechaVisita, x: margen, w: 200 },
+    { etiqueta: "Finalización registrada", valor: fechaFinalizacion, x: 260, w: ancho - margen - 260 },
+  ]);
+  filaDatos([
+    { etiqueta: "Cliente", valor: clienteNombre, x: margen, w: 270 },
+    { etiqueta: "Contacto", valor: contacto, x: 330, w: ancho - margen - 330 },
+  ]);
+  filaDatos([
+    { etiqueta: "Dirección", valor: direccion, x: margen, w: 290 },
+    { etiqueta: "Localidad", valor: String(localidad).toUpperCase(), x: 350, w: ancho - margen - 350 },
+  ]);
+  filaDatos([
+    { etiqueta: "Técnico", valor: tecnico, x: margen, w: 160 },
+    { etiqueta: "Ayudante", valor: ayudante, x: 215, w: 140 },
+    { etiqueta: "Solicitud", valor: tipoSolicitud, x: 370, w: ancho - margen - 370 },
+  ]);
+  y += 4;
+
+  regla(y, 1.4);
+  y -= 28;
+
+  // =========================
+  // SECCIONES
+  // =========================
+
+  function seccion(titulo: string, contenido: string) {
+    if (y < 150) {
+      pagina = pdf.addPage([ancho, alto]);
+      y = alto - 60;
+    }
+    pagina.drawText(titulo, {
+      x: margen,
+      y,
+      size: 15,
+      font: fuenteNegrita,
+      color: negro,
+    });
+    y -= 22;
+    y = envuelto(contenido, margen, y, anchoContenido, 10.5, 15);
+    y -= 4;
+    regla(y, 1);
+    y -= 30;
+  }
+
+  seccion("Detalle de la visita", detalleVisita);
+  seccion("Indicaciones del técnico", trabajoRealizado);
+  y -= 30;
+  seccion("Observaciones del técnico", observacionesTecnico);
+
+  // =========================
+  // FIRMA Y ACLARACIÓN
+  // =========================
+
+  // La firma necesita ~130 pt libres sobre el pie; si no hay lugar, va en pagina nueva.
+  if (y - 30 < 130) {
+    pagina = pdf.addPage([ancho, alto]);
+    y = alto - 60;
+  }
+  const zonaFirmaY = Math.min(y - 30, 190);
+
+  if (
+    datos.firma_cliente &&
+    typeof datos.firma_cliente === "string" &&
+    datos.firma_cliente.startsWith("data:image/png;base64,")
+  ) {
+    try {
+      const base64 = datos.firma_cliente.split(",")[1];
+      const bytes = Buffer.from(base64, "base64");
+      const imagen = await pdf.embedPng(bytes);
+
+      const maxWidth = 150;
+      const maxHeight = 80;
+      const escala = Math.min(
+        maxWidth / imagen.width,
+        maxHeight / imagen.height
+      );
+
+      pagina.drawImage(imagen, {
+        x: margen + 30,
+        y: zonaFirmaY - 38,
+        width: imagen.width * escala,
+        height: imagen.height * escala,
+      });
+    } catch (error) {
+      console.error("No se pudo incrustar la firma:", error);
+    }
+  }
+
+  // Aclaración (nombre del firmante), a la derecha
+  const anchoAclaracion = fuente.widthOfTextAtSize(aclaracionCliente, 11);
+  pagina.drawText(aclaracionCliente, {
+    x: Math.min(430 - anchoAclaracion / 2, ancho - margen - anchoAclaracion),
+    y: zonaFirmaY - 5,
+    size: 11,
+    font: fuente,
+    color: negro,
+  });
+
+  centradoEnZona("Firma", margen, 220, zonaFirmaY - 60);
+  centradoEnZona("Aclaración", 320, ancho - margen, zonaFirmaY - 60);
+
+  function centradoEnZona(
+    contenido: string,
+    xDesde: number,
+    xHasta: number,
+    yPos: number
+  ) {
+    const w = fuenteNegrita.widthOfTextAtSize(contenido, 12);
+    const centro = (xDesde + xHasta) / 2;
+    pagina.drawText(contenido, {
+      x: centro - w / 2,
+      y: yPos,
+      size: 12,
+      font: fuenteNegrita,
+      color: negro,
+    });
+  }
+
+  // =========================
+  // TEXTO LEGAL
+  // =========================
+
+  centrado(
+    "La firma de este documento valida la terminación, verificación y aceptación del cliente por medio del firmante.",
+    52,
+    8
+  );
+  centrado(
+    "El mismo certifica la finalización y conformidad de la realización de la tarea por parte de Croacia S.R.L.",
+    40,
+    8
+  );
+
+  const pdfBytes = await pdf.save();
+
+  return { bytes: Buffer.from(pdfBytes), numero: numeroRemito };
+}

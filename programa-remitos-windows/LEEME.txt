@@ -1,0 +1,43 @@
+CROACIA - COPIA DE REMITOS - PRUEBA MANUAL
+
+1. Extrae TODO el ZIP en una carpeta de esta PC Windows.
+2. Abri Instalar.cmd. No requiere administrador.
+3. Elegi una carpeta del disco de 2 TB. Se crea dentro
+   Croacia-Remitos-PRUEBA para no mezclar con el archivo definitivo.
+4. Se abre Activacion.txt con un hash. Ese texto NO es la clave:
+   compartilo para habilitar la copia exclusiva de remitos.
+5. Despues de confirmar la activacion, abri Descargar.cmd.
+6. Espera a que diga "Copia completa". Revisa las carpetas visita
+   y fabrica. Abri al menos un PDF de cada una sin internet.
+
+No desactives el antivirus ni SmartScreen. Si Windows bloquea el
+programa, envia una captura del aviso antes de continuar.
+
+Todavia NO tiene horario automatico. No esta instalado hasta que
+completes los pasos en la PC. Solo consulta y descarga documentos.
+No cambia trabajos, no elimina documentos de la app y no usa Admin.
+
+La clave se genera en TU PC y queda cifrada para tu usuario Windows
+con DPAPI. No la compartas. Activacion.txt contiene solo su hash.
+Usa el mismo usuario de Windows para ejecutar futuras descargas.
+Los PDF del disco son documentos privados: no estan cifrados por
+este programa. Protege el acceso a la PC y al disco.
+
+Los nombres incluyen numero, cliente, fecha, ID y revision.
+Si cambia el remito, se guarda otra version, sin borrar la anterior.
+Indice-remitos.csv lista la ultima version conocida de cada remito.
+Ultima-copia.txt indica la ultima corrida completa, no la hora actual.
+Si falla internet, app o Supabase, las copias previas siguen abriendo.
+Al reintentar, revisa todo el listado y recupera lo pendiente.
+Si se desconecta el disco, se detiene sin crear copias en otro lugar.
+Si la copia falla a mitad, no la informa como completa.
+
+Esta copia de PDF no incluye fotos ni precios, y no reemplaza un
+backup de toda la base de datos. Tampoco rescata un documento que
+se borro antes de su primera descarga. La PC apagada no descarga.
+
+No borres estado.json, acceso.xml ni .croacia-disco.
+Para desinstalar: no hay tarea automatica que quitar. Borra
+%LOCALAPPDATA%\CroaciaRemitos y la carpeta donde extrajiste el ZIP.
+Los PDF guardados en el disco se conservan. Pide revocar el acceso
+para que la clave de esa PC deje de servir.
