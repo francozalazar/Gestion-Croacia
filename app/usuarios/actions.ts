@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type ResultadoAlta = { ok: boolean; mensaje: string };
 
-const ROLES = ["ADMIN", "OFICINA", "COORDINACION", "TECNICO", "FABRICA"];
+const ROLES = ["ADMIN", "OFICINA", "COORDINACION", "TECNICO", "FABRICA", "ENCARGADO"];
 
 export async function crearUsuarioAction(
   _prev: ResultadoAlta | null,
@@ -39,6 +39,11 @@ export async function crearUsuarioAction(
   if (password.length < 6)
     return { ok: false, mensaje: "La contraseña tiene que tener al menos 6 caracteres." };
 
+  if (rol === "ENCARGADO") {
+    const { data: listo, error: errRol } = await supabase.rpc("encargado_version");
+    if (errRol || listo !== 1) return { ok: false, mensaje: "El rol Encargado todavía no está habilitado en la base. No se creó nada." };
+  }
+
   // 3. Clave de servidor (nunca va al navegador)
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const clave = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -69,6 +74,7 @@ export async function crearUsuarioAction(
     password,
     email_confirm: true,
     user_metadata: { nombre },
+    app_metadata: rol === "ENCARGADO" ? { rol_inicial: "ENCARGADO" } : {},
   });
   if (error || !creado?.user) {
     const ya = /already|registered|exists/i.test(error?.message || "");

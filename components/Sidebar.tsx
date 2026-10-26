@@ -76,6 +76,7 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
     setSeccionAbierta(seccionAbierta === nombreSeccion ? null : nombreSeccion);
   };
 
+  const esEncargado = rol?.toUpperCase() === "ENCARGADO";
   const esTecnico = rol?.toUpperCase() === "TECNICO";
   const esFabrica = rol?.toUpperCase() === "FABRICA";
   const esAdminOficina = ["ADMIN", "OFICINA"].includes(rol?.toUpperCase() || "");
@@ -139,7 +140,7 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
         <nav className="space-y-2">
           {/* Dashboard General */}
           <Link
-            href="/dashboard"
+            href={esEncargado ? "/encargado" : "/dashboard"}
             className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
               pathname === "/dashboard"
                 ? "bg-blue-600 text-white"
@@ -151,7 +152,9 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
           </Link>
 
           {/* MENÚ CONDICIONAL SEGÚN EL ROL */}
-          {esFabrica ? (
+          {esEncargado ? (
+            <div className="space-y-2 pt-2">{["Coordinación", "Recorrido de camiones", "Producción", "Stock de motores", "Mis trabajos"].map(t => <Link key={t} href={`/encargado?seccion=${encodeURIComponent(t)}`} className="block rounded-xl px-4 py-3 text-sm hover:bg-slate-800 hover:text-white">{t}</Link>)}</div>
+          ) : esFabrica ? (
             <div className="pt-2">
               <Link
                 href="/fabrica"

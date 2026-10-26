@@ -90,7 +90,7 @@ export default async function StockPage() {
       .order("id", { ascending: false })
       .limit(50),
     supabase.from("profiles").select("id, nombre, apellido"),
-    supabase.from("profiles").select("id, nombre, apellido").eq("rol", "TECNICO").eq("activo", true).order("nombre"),
+    supabase.from("profiles").select("id, nombre, apellido").in("rol", ["TECNICO", "ENCARGADO"]).eq("activo", true).order("nombre"),
   ]);
 
   // Trabajo y tecnico de cada movimiento: se leen aparte para mostrar remito, cliente y tecnico.

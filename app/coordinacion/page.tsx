@@ -116,7 +116,7 @@ export default function CoordinacionPage() {
       supabase
         .from("profiles")
         .select("id, nombre, apellido")
-        .eq("rol", "TECNICO")
+        .in("rol", ["TECNICO", "ENCARGADO"])
         .eq("activo", true)
         .order("nombre"),
       supabase

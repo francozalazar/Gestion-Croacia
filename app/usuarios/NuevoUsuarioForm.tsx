@@ -4,6 +4,7 @@ import { useActionState, useRef, useEffect } from "react";
 import { crearUsuarioAction, type ResultadoAlta } from "./actions";
 
 const ROLES = [
+  { v: "ENCARGADO", t: "Encargado (operaciones y remitos propios)" },
   { v: "OFICINA", t: "Oficina (carga pedidos y clientes)" },
   { v: "COORDINACION", t: "Coordinación" },
   { v: "TECNICO", t: "Técnico" },

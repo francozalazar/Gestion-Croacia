@@ -17,7 +17,7 @@ export async function proxy(request: NextRequest) {
 
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
+            request.cookies.set(name, value),
           );
 
           response = NextResponse.next({
@@ -25,14 +25,39 @@ export async function proxy(request: NextRequest) {
           });
 
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, options),
           );
         },
       },
-    }
+    },
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const { data: perfil } = await supabase
+      .from("profiles")
+      .select("rol,activo")
+      .eq("id", user.id)
+      .single();
+    if (perfil?.rol === "ENCARGADO") {
+      const path = request.nextUrl.pathname;
+      const permitido =
+        path === "/encargado" ||
+        path.startsWith("/encargado/") ||
+        path.startsWith("/_next/");
+      if (!perfil.activo || !permitido) {
+        if (path.startsWith("/api/"))
+          return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
+        const destino = request.nextUrl.clone();
+        destino.pathname = perfil.activo ? "/encargado" : "/";
+        destino.search = "";
+        if (!perfil.activo && path === "/") return response;
+        return NextResponse.redirect(destino);
+      }
+    }
+  }
 
   return response;
 }

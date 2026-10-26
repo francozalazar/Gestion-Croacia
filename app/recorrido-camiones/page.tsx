@@ -67,7 +67,7 @@ export default function RecorridoCamionesPage() {
     const { data } = await supabase
       .from("profiles")
       .select("id, nombre, apellido, rol")
-      .eq("rol", "TECNICO")
+      .in("rol", ["TECNICO", "ENCARGADO"])
       .eq("activo", true)
       .order("nombre");
 
