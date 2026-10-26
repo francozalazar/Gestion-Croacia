@@ -3,6 +3,15 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import FinalizadosLista from "@/components/finalizadosLista";
+import { requierePrecio } from "@/lib/tipoVisita";
+
+// No se llama "terminado" lo que no tiene fecha_finalizacion, ni "presupuestado" a una instalacion.
+function etiquetaFinalizacion(s: any): string {
+  if (s.estado === "PENDIENTE_PRECIO") return "Visita finalizada - pendiente de precio";
+  if (requierePrecio(s.tipo_visita) || Number(s.subtotal || s.precio || 0) > 0) return "Presupuestado";
+  if (!s.fecha_finalizacion) return "Finalizado";
+  return s.solicitud_fabrica_id ? "Instalación finalizada" : "Trabajo finalizado";
+}
 
 export default async function FinalizadosPage() {
   const supabase = await createClient();
@@ -33,7 +42,11 @@ export default async function FinalizadosPage() {
   let query = supabase
     .from("solicitudes")
     .select("*")
-    .eq("estado", "FINALIZADO")
+    // Criterio de finalizacion registrada: el tecnico la cierra con fecha_finalizacion (el estado
+    // queda PRESUPUESTADO o PENDIENTE_PRECIO segun el tipo). FINALIZADO se conserva por registros viejos.
+    .or(
+      "estado.eq.FINALIZADO,and(fecha_finalizacion.not.is.null,estado.in.(PRESUPUESTADO,PENDIENTE_PRECIO))"
+    )
     .order("fecha_finalizacion", {
       ascending: false,
     });
@@ -85,6 +98,7 @@ export default async function FinalizadosPage() {
       localidad: solicitud.localidad || "",
       trabajoRealizado: solicitud.trabajo_realizado || "",
       fechaFinalizacion: solicitud.fecha_finalizacion || null,
+      etiqueta: etiquetaFinalizacion(solicitud),
     };
   });
 
