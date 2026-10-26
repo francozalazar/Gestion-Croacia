@@ -6,6 +6,8 @@ export type Tipo = typeof TIPOS[number];
 // Deliberadamente apagado hasta configurar hash, tipos y fecha en el servidor.
 // No acepta la clave de Supabase como credencial del programa.
 export function acceso(request: Request) {
+  // Nunca aceptar la clave en URLs inmutables de despliegues anteriores.
+  if (new URL(request.url).hostname !== "gestion-croacia.vercel.app") return null;
   const hash = process.env.COPIA_REMITOS_TOKEN_SHA256 || "";
   const tipos = (process.env.COPIA_REMITOS_TIPOS || "").split(",");
   const desde = process.env.COPIA_REMITOS_DESDE || "";
