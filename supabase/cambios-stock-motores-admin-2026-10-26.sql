@@ -13,7 +13,7 @@
 --  * stock_cargar_motores_trabajo(...): solo ADMIN. Valida que el trabajo este asignado a ese
 --    tecnico, junta lineas repetidas del mismo modelo y registra las SALIDAS en una transaccion
 --    (el trigger actual impide stock negativo; si falla una linea no cambia nada).
--- No toca stock_consumos_pedido ni las salidas ya registradas ni el envio a Listos de Fabrica.
+-- No toca stock_consumos_pedido (se conservan) ni las salidas ya registradas.
 -- Agrega enviar_a_listos(bigint) (sin stock ni motores) y deja stock solo para Admin.
 begin;
 alter table public.stock_movimientos
