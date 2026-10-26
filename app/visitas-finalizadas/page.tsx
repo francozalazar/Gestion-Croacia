@@ -3,14 +3,28 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
+import { requierePrecio } from "@/lib/tipoVisita";
 import { CheckCircle2, User, Search, MapPin, FileText, X, ArrowRight, Download, DollarSign } from "lucide-react";
 
-function etiquetaEstado(estado: string) {
+// PRESUPUESTADO es el estado en que la app deja las visitas sin cotizacion cuando el tecnico
+// finaliza; solo es un presupuesto real en Presupuesto/Urgencia o si hay importe cargado.
+function etiquetaEstado(v: any) {
+  const estado = v?.estado;
   if (estado === "PENDIENTE_PRECIO") {
     return { texto: "Pendiente de precio", clases: "bg-amber-100 text-amber-800" };
   }
   if (estado === "PRESUPUESTADO") {
-    return { texto: "Presupuestado", clases: "bg-blue-100 text-blue-800" };
+    const conPrecio = requierePrecio(v?.tipo_visita) || Number(v?.subtotal || v?.precio || 0) > 0;
+    if (conPrecio) {
+      return { texto: "Presupuestado", clases: "bg-blue-100 text-blue-800" };
+    }
+    if (v?.fecha_finalizacion) {
+      return {
+        texto: v?.solicitud_fabrica_id ? "Instalación finalizada" : "Trabajo finalizado",
+        clases: "bg-emerald-100 text-emerald-800",
+      };
+    }
+    return { texto: "Visita realizada", clases: "bg-slate-100 text-slate-700" };
   }
   return { texto: "Finalizado", clases: "bg-emerald-100 text-emerald-800" };
 }
@@ -64,18 +78,73 @@ export default function VisitasFinalizadasPage() {
 
     if (lista.length > 0) {
       const ids = lista.map((s) => s.id);
+      const pedidoIds = [...new Set(lista.map((s) => s.solicitud_fabrica_id).filter(Boolean))];
+      const filtrosAsig = [`solicitud_id.in.(${ids.join(",")})`];
+      if (pedidoIds.length > 0) filtrosAsig.push(`solicitud_fabrica_id.in.(${pedidoIds.join(",")})`);
       const { data: asignaciones } = await supabase
         .from("asignaciones")
-        .select("solicitud_id, profiles(nombre, apellido)")
+        .select("solicitud_id, solicitud_fabrica_id, usuario_id")
+        .or(filtrosAsig.join(","));
+      const { data: fotos } = await supabase
+        .from("fotos_trabajos")
+        .select("solicitud_id, creado_por, created_at")
         .in("solicitud_id", ids);
 
+      // Quien hizo el trabajo: autor de la foto de finalizacion (misma transaccion que
+      // fecha_finalizacion) o el nombre que el tecnico cargo en el remito. Sin prueba, "Asignado"
+      // solo si hay una unica asignacion; con varias o ninguna, "Sin dato".
+      const autorDe = (s: any): string | null => {
+        const autores = [
+          ...new Set(
+            (fotos || [])
+              .filter((f: any) => f.solicitud_id === s.id && f.created_at === s.fecha_finalizacion && f.creado_por)
+              .map((f: any) => f.creado_por as string)
+          ),
+        ];
+        return autores.length === 1 ? autores[0] : null;
+      };
+      const asignadosDe = (s: any): string[] => [
+        ...new Set(
+          (asignaciones || [])
+            .filter(
+              (a: any) =>
+                a.solicitud_id === s.id ||
+                (s.solicitud_fabrica_id && a.solicitud_fabrica_id === s.solicitud_fabrica_id)
+            )
+            .map((a: any) => a.usuario_id)
+            .filter(Boolean)
+        ),
+      ] as string[];
+      const idsPerfiles = [
+        ...new Set(lista.flatMap((s) => [autorDe(s), ...asignadosDe(s)]).filter(Boolean)),
+      ] as string[];
+      const nombres: Record<string, string> = {};
+      if (idsPerfiles.length > 0) {
+        const { data: perfiles } = await supabase
+          .from("profiles")
+          .select("id, nombre, apellido")
+          .in("id", idsPerfiles);
+        (perfiles || []).forEach((p: any) => {
+          nombres[p.id] = `${p.nombre} ${p.apellido || ""}`.trim();
+        });
+      }
+
       const mapeadas = lista.map((s) => {
-        const asig = asignaciones?.find((a) => a.solicitud_id === s.id);
-        const tec = asig?.profiles as any;
         const creadorInfo = s.creador as any;
+        const autor = autorDe(s);
+        const asignados = asignadosDe(s);
+        const remito = String(s.tecnico_remito || "").trim();
+        const tecnico_real =
+          autor && nombres[autor]
+            ? nombres[autor]
+            : remito
+            ? remito
+            : asignados.length === 1 && nombres[asignados[0]]
+            ? `Asignado: ${nombres[asignados[0]]}`
+            : "Sin dato";
         return {
           ...s,
-          tecnico_real: tec ? `${tec.nombre} ${tec.apellido || ""}`.trim() : "Sin técnico",
+          tecnico_real,
           usuario_creador: creadorInfo ? `${creadorInfo.nombre} ${creadorInfo.apellido || ""}`.trim() : "Oficina",
         };
       });
@@ -189,8 +258,8 @@ export default function VisitasFinalizadasPage() {
                     <p className="font-semibold text-slate-800">{v.tecnico_real}</p>
                   </div>
 
-                  <span className={`px-2.5 py-1 rounded-md font-semibold ${etiquetaEstado(v.estado).clases}`}>
-                    {etiquetaEstado(v.estado).texto}
+                  <span className={`px-2.5 py-1 rounded-md font-semibold ${etiquetaEstado(v).clases}`}>
+                    {etiquetaEstado(v).texto}
                   </span>
 
                   <ArrowRight size={16} className="text-slate-400" />
@@ -215,8 +284,8 @@ export default function VisitasFinalizadasPage() {
                 <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
                   Remito #{modalDetalle.numero || modalDetalle.id}
                 </span>
-                <span className={`text-xs px-3 py-1 rounded-md font-semibold ${etiquetaEstado(modalDetalle.estado).clases}`}>
-                  {etiquetaEstado(modalDetalle.estado).texto}
+                <span className={`text-xs px-3 py-1 rounded-md font-semibold ${etiquetaEstado(modalDetalle).clases}`}>
+                  {etiquetaEstado(modalDetalle).texto}
                 </span>
               </div>
 
