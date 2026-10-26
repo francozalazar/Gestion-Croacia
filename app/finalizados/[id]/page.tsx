@@ -3,6 +3,7 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import VolverLink from "@/components/VolverLink";
+import { fechaHoraLinda } from "@/lib/fechasFicha";
 
 export default async function ComprobantePage({
   params,
@@ -223,9 +224,7 @@ export default async function ComprobantePage({
             {solicitud.fecha_finalizacion && (
               <div className="border-t border-slate-200 pt-5 text-sm text-slate-500">
                 Fecha de finalización:{" "}
-                {new Date(
-                  solicitud.fecha_finalizacion
-                ).toLocaleString("es-AR")}
+                {fechaHoraLinda(solicitud.fecha_finalizacion)}
               </div>
             )}
 
