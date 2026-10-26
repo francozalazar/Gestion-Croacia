@@ -49,6 +49,8 @@ export default function DashboardPage() {
   });
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
   const [novedadEnVivo, setNovedadEnVivo] = useState<any | null>(null);
+  const [stockBajo, setStockBajo] = useState<{ id: number; nombre: string; cantidad: number; minimo: number }[]>([]);
+  const [errorStock, setErrorStock] = useState(false);
   const [paraHoy, setParaHoy] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
 
@@ -150,6 +152,16 @@ export default function DashboardPage() {
       .single();
 
     setPerfil(profile);
+    // Consultar stock únicamente para Admin. Los demás roles no cargan estos datos.
+    if (profile?.rol?.toUpperCase() === "ADMIN") {
+      const { data: motores, error } = await supabase.from("stock_motores")
+        .select("id, nombre, cantidad, minimo").order("nombre");
+      setErrorStock(Boolean(error));
+      setStockBajo((motores || []).filter((m) => m.cantidad <= m.minimo));
+    } else {
+      setStockBajo([]);
+      setErrorStock(false);
+    }
 
     const ahora = new Date();
     const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-${String(ahora.getDate()).padStart(2, "0")}`;
@@ -431,6 +443,18 @@ export default function DashboardPage() {
           <p className="text-xs font-semibold text-slate-400">Bienvenido nuevamente</p>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Panel principal</h1>
         </div>
+
+        {perfil?.rol?.toUpperCase() === "ADMIN" && (stockBajo.length > 0 || errorStock) && (
+          <section className="mb-6 rounded-xl border border-red-200 bg-red-50 p-5" aria-label="Aviso de stock de motores">
+            <h2 className="text-base font-bold text-red-800">{errorStock ? "No se pudo consultar el stock" : "Motores por agotarse"}</h2>
+            {errorStock ? <p className="mt-2 text-sm text-red-700">Revisá Stock de motores para comprobar las cantidades.</p> : (
+              <ul className="mt-2 space-y-1 text-sm text-red-800">
+                {stockBajo.map((m) => <li key={m.id}><strong>{m.nombre}</strong>: quedan {m.cantidad} · aviso en {m.minimo}</li>)}
+              </ul>
+            )}
+            <Link href="/stock" className="mt-3 inline-flex text-sm font-semibold text-red-800 underline">Ver stock de motores</Link>
+          </section>
+        )}
 
         {/* LO URGENTE DE HOY */}
         <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
