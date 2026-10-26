@@ -99,7 +99,7 @@ try {
                     if ((Get-Item -LiteralPath $Temporal).Length -gt 52428800) { throw 'PDF demasiado grande.' }
                     $Sha = (Get-FileHash -LiteralPath $Temporal -Algorithm SHA256).Hash
                     # Si una copia se corrompio, conservarla para revisar.
-                    if (Test-Path -LiteralPath $Final) { Move-Item -LiteralPath $Final -Destination ($Final + '.danado-' + [guid]::NewGuid().ToString()) }
+                    if (Test-Path -LiteralPath $Final) { Move-Item -LiteralPath $Final -Destination (Join-Path $Carpeta ('danado-' + [guid]::NewGuid().ToString() + '.pdf')) }
                     Move-Item -LiteralPath $Temporal -Destination $Final
                     $Estado[$Key] = @{ numero=$Doc.numero; cliente=$Doc.cliente; fecha=$Doc.fecha; tipo=$Tipo; revision=$Doc.revision; archivo=$Final; sha256=$Sha; descargado=(Get-Date).ToString('o') }
                     GuardarJson $Estado $EstadoPath
