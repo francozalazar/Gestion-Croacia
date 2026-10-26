@@ -18,8 +18,8 @@ async function verificarAcceso() {
     .eq("id", user.id)
     .single();
   const rol = String(yo?.rol || "").toUpperCase();
-  if (!["ADMIN", "FABRICA"].includes(rol)) {
-    return { supabase, error: "Solo Administración y Fábrica manejan el stock." };
+  if (rol !== "ADMIN") {
+    return { supabase, error: "Solo Administración maneja el stock." };
   }
   return { supabase, error: null as string | null };
 }
@@ -148,4 +148,53 @@ export async function actualizarMinimoAction(
 
   revalidatePath("/stock");
   return { ok: true, mensaje: "Mínimo actualizado." };
+}
+
+export async function cargarMotoresTrabajoAction(datos: {
+  operacion: string;
+  tecnicoId: string;
+  solicitudId: number | null;
+  pedidoId: number | null;
+  items: { motor_id: number; cantidad: number }[];
+}): Promise<ResultadoStock> {
+  const { supabase, error } = await verificarAcceso();
+  if (error) return { ok: false, mensaje: error };
+
+  if (!datos.operacion || !datos.tecnicoId)
+    return { ok: false, mensaje: "Faltan datos del envío. Volvé a abrir el trabajo." };
+  if (Boolean(datos.solicitudId) === Boolean(datos.pedidoId))
+    return { ok: false, mensaje: "No se pudo identificar el trabajo." };
+  if (!datos.items.length)
+    return { ok: false, mensaje: "Cargá al menos un modelo con su cantidad." };
+  for (const it of datos.items) {
+    if (!it.motor_id || !Number.isInteger(it.cantidad) || it.cantidad <= 0)
+      return { ok: false, mensaje: "Cada motor necesita modelo y una cantidad entera mayor a 0." };
+  }
+
+  const { data, error: e1 } = await supabase.rpc("stock_cargar_motores_trabajo", {
+    p_operacion: datos.operacion,
+    p_tecnico: datos.tecnicoId,
+    p_solicitud: datos.solicitudId,
+    p_pedido: datos.pedidoId,
+    p_items: datos.items,
+  });
+  if (e1) {
+    return {
+      ok: false,
+      mensaje: /suficiente stock/i.test(e1.message)
+        ? "No hay suficiente stock de uno de los motores. No se descontó nada."
+        : /no está asignado/i.test(e1.message)
+          ? "Ese trabajo ya no está asignado a ese técnico. Actualizá la lista."
+          : "No se pudo guardar. No se descontó nada.",
+    };
+  }
+
+  revalidatePath("/stock");
+  const yaAplicado = Boolean((data as { ya_aplicado?: boolean } | null)?.ya_aplicado);
+  return {
+    ok: true,
+    mensaje: yaAplicado
+      ? "Esa carga ya estaba registrada; no se descontó de nuevo."
+      : "Motores descontados del stock.",
+  };
 }

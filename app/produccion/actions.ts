@@ -48,8 +48,6 @@ export async function cambiarEstadoProduccionAction(formData: FormData) {
   const id = Number(formData.get("id"));
   const nuevoEstado = String(formData.get("nuevoEstado") || "");
   if (!id || !estadosProduccionPermitidos.includes(nuevoEstado)) return;
-  // Terminado solo se confirma con la pregunta de motores (enviar_a_listos_con_motores).
-  if (nuevoEstado === "LISTO_PARA_COLOCAR") return;
 
   const supabase = await createClient();
 

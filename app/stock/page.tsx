@@ -4,6 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { Package, ArrowLeft } from "lucide-react";
 import { FormularioModelo, CardStockMotor } from "./StockForms";
+import CargaPorTecnico from "./CargaPorTecnico";
 
 type Motor = {
   id: number;
@@ -23,6 +24,8 @@ type Movimiento = {
   cantidad: number;
   detalle: string | null;
   solicitud_fabrica_id: number | null;
+  solicitud_id: number | null;
+  tecnico_id: string | null;
   creado_por: string | null;
   created_at: string;
 };
@@ -64,18 +67,19 @@ export default async function StockPage() {
   if (!perfil) redirect("/");
 
   const rol = String(perfil.rol || "").toUpperCase();
-  if (!["ADMIN", "FABRICA"].includes(rol)) redirect("/dashboard");
+  if (rol !== "ADMIN") redirect("/dashboard");
 
   const [
     { data: motoresData, error: eMotores },
     { data: movimientosData },
     { data: pedidosData },
     { data: perfiles },
+    { data: tecnicosData },
   ] = await Promise.all([
     supabase.from("stock_motores").select("id, nombre, cantidad, minimo").order("nombre"),
     supabase
       .from("stock_movimientos")
-      .select("id, motor_id, tipo, cantidad, detalle, solicitud_fabrica_id, creado_por, created_at")
+      .select("id, motor_id, tipo, cantidad, detalle, solicitud_fabrica_id, solicitud_id, tecnico_id, creado_por, created_at")
       .order("id", { ascending: false })
       .limit(30),
     supabase
@@ -85,6 +89,20 @@ export default async function StockPage() {
       .order("id", { ascending: false })
       .limit(50),
     supabase.from("profiles").select("id, nombre, apellido"),
+    supabase.from("profiles").select("id, nombre, apellido").eq("rol", "TECNICO").eq("activo", true).order("nombre"),
+  ]);
+
+  // Trabajo y tecnico de cada movimiento: se leen aparte para mostrar remito, cliente y tecnico.
+  const movsIni: Movimiento[] = movimientosData || [];
+  const idsFab = [...new Set(movsIni.map((m) => m.solicitud_fabrica_id).filter(Boolean))] as number[];
+  const idsSol = [...new Set(movsIni.map((m) => m.solicitud_id).filter(Boolean))] as number[];
+  const [{ data: fabMov }, { data: solMov }, { data: asigMov }] = await Promise.all([
+    idsFab.length ? supabase.from("solicitudes_fabrica").select("id, numero_remito, cliente_nombre").in("id", idsFab) : Promise.resolve({ data: [] as any[] }),
+    idsSol.length ? supabase.from("solicitudes").select("id, numero, cliente_nombre").in("id", idsSol) : Promise.resolve({ data: [] as any[] }),
+    idsFab.length || idsSol.length
+      ? supabase.from("asignaciones").select("usuario_id, solicitud_id, solicitud_fabrica_id")
+          .or([idsFab.length ? `solicitud_fabrica_id.in.(${idsFab.join(",")})` : "", idsSol.length ? `solicitud_id.in.(${idsSol.join(",")})` : ""].filter(Boolean).join(","))
+      : Promise.resolve({ data: [] as any[] }),
   ]);
 
   const motores: Motor[] = motoresData || [];
@@ -99,8 +117,26 @@ export default async function StockPage() {
     return p ? `${p.nombre || ""} ${p.apellido || ""}`.trim() : "";
   };
   const motorDe = (id: number) => motores.find((m) => m.id === id)?.nombre || "—";
-  const pedidoDe = (id: number | null) =>
-    id ? listaPedidos.find((p) => p.id === id) : undefined;
+  // Trabajo (remito + cliente) y tecnico de un movimiento. Los movimientos viejos no guardan
+  // tecnico: se toma de la asignacion actual del trabajo.
+  const trabajoDe = (mov: Movimiento) => {
+    if (mov.solicitud_fabrica_id) {
+      const f = (fabMov || []).find((x: any) => x.id === mov.solicitud_fabrica_id);
+      return `#${f?.numero_remito || mov.solicitud_fabrica_id} ${f?.cliente_nombre || ""}`.trim();
+    }
+    if (mov.solicitud_id) {
+      const f = (solMov || []).find((x: any) => x.id === mov.solicitud_id);
+      return `#${f?.numero || mov.solicitud_id} ${f?.cliente_nombre || ""}`.trim();
+    }
+    return "";
+  };
+  const tecnicoDe = (mov: Movimiento) => {
+    if (mov.tecnico_id) return nombreDe(mov.tecnico_id);
+    const a = (asigMov || []).find((x: any) =>
+      (mov.solicitud_fabrica_id && x.solicitud_fabrica_id === mov.solicitud_fabrica_id) ||
+      (mov.solicitud_id && x.solicitud_id === mov.solicitud_id));
+    return a ? nombreDe(a.usuario_id) : "";
+  };
 
   const unidadesTotales = motores.reduce((acc, m) => acc + m.cantidad, 0);
   const enMinimo = motores.filter(porAgotarse).length;
@@ -131,7 +167,7 @@ export default async function StockPage() {
               <Package size={24} />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Fábrica</p>
+              <p className="text-sm text-slate-500">Administración</p>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
                 Stock de motores
               </h1>
@@ -180,6 +216,9 @@ export default async function StockPage() {
           </div>
         </div>
 
+        {/* CARGA POR TECNICO */}
+        <CargaPorTecnico tecnicos={tecnicosData || []} motores={motores} />
+
         {/* NUEVO MODELO */}
         <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-bold text-slate-900">Agregar modelo</h2>
@@ -194,7 +233,8 @@ export default async function StockPage() {
           ) : (
             <ul className="divide-y divide-slate-100">
               {movimientos.map((mov) => {
-                const pedido = pedidoDe(mov.solicitud_fabrica_id);
+                const trabajo = trabajoDe(mov);
+                const tecnico = tecnicoDe(mov);
                 return (
                   <li key={mov.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
                     <div className="flex items-center gap-3">
@@ -217,9 +257,13 @@ export default async function StockPage() {
                           )}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {mov.detalle || "Sin detalle"}
-                          {pedido && ` · Trabajo #${pedido.id} ${pedido.cliente_nombre || ""}`}
-                          {!pedido && mov.solicitud_fabrica_id && ` · Trabajo #${mov.solicitud_fabrica_id}`}
+                          {mov.tipo === "SALIDA" ? (
+                            <>
+                              Técnico: {tecnico || "—"} · Trabajo: {trabajo || mov.detalle || "—"}
+                            </>
+                          ) : (
+                            mov.detalle || "Sin detalle"
+                          )}
                         </p>
                       </div>
                     </div>
