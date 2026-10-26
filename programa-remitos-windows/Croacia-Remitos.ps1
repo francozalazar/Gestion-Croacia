@@ -86,7 +86,7 @@ try {
                 $Carpeta = Join-Path $Destino $Tipo
                 New-Item -ItemType Directory -Path $Carpeta -Force | Out-Null
                 # ID y revision evitan colisiones; nunca se sobrescribe una version previa.
-                $Nombre = '{0} - {1} - {2} - id{3} - {4}.pdf' -f (NombreSeguro ([string]$Doc.numero)), (NombreSeguro ([string]$Doc.cliente)), $Doc.fecha, $Doc.id, $Doc.revision
+                $Nombre = '{0} - {1} - {2} - id{3} - {4}.pdf' -f (NombreSeguro ([string]$Doc.numero)), (NombreSeguro ([string]$Doc.cliente)), $Doc.fecha, $Doc.id, $Doc.revision.Substring(0,16)
                 $Final = Join-Path $Carpeta $Nombre
                 if ($Viejo -and $Viejo.revision -eq $Doc.revision -and (Test-Path -LiteralPath $Final) -and (Get-FileHash -LiteralPath $Final -Algorithm SHA256).Hash -eq $Viejo.sha256) { $SinCambios++; continue }
                 $Temporal = Join-Path $Carpeta ([guid]::NewGuid().ToString() + '.partial')
