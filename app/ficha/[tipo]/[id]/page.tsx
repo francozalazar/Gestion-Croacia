@@ -136,7 +136,7 @@ export default async function FichaPage({
   if (solicitud) orAsig.push(`solicitud_id.eq.${solicitud.id}`);
   if (remito) orAsig.push(`solicitud_fabrica_id.eq.${remito.id}`);
 
-  const [resCliente, resEventos, resVentas, resAsig] = await Promise.all([
+  const [resCliente, resEventos, resVentas, resAsig, resFotosFinalizacion] = await Promise.all([
     clienteId
       ? supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -149,10 +149,30 @@ export default async function FichaPage({
     orAsig.length
       ? supabase.from("asignaciones").select("*").or(orAsig.join(",")).order("fecha", { ascending: true })
       : Promise.resolve({ data: [] as any[] }),
+    solicitud
+      ? supabase.from("fotos_trabajos").select("creado_por, created_at").eq("solicitud_id", solicitud.id)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
 
   const cliente: any = resCliente.data;
-  const eventos: any[] = resEventos.data || [];
+  // Compatibilidad con el estado técnico PRESUPUESTADO, sin cambiarlo ni tocar importes.
+  // Sólo reclasificar eventos que coinciden con la foto de la finalización en la
+  // misma transacción y el mismo responsable. No usar monto cero como prueba.
+  const fotosFinalizacion: any[] = resFotosFinalizacion.data || [];
+  const tipoFinalizado = solicitud?.tipo_visita || remito?.tipo_visita;
+  const sinPrecio = Boolean(String(tipoFinalizado || "").trim()) && !requierePrecio(tipoFinalizado);
+  const esInstalacion = Boolean(remito || solicitud?.solicitud_fabrica_id);
+  const eventos: any[] = (resEventos.data || []).map((evento: any) => {
+    const etapa = String(evento.etapa || "").trim().toUpperCase();
+    if (!sinPrecio || !["PRECIO ASIGNADO", "PRESUPUESTADO"].includes(etapa)) return evento;
+    const momento = new Date(evento.created_at).getTime();
+    const finalizacionComprobada = fotosFinalizacion.some((foto: any) =>
+      Boolean(evento.responsable) && foto.creado_por === evento.responsable && Number.isFinite(momento) &&
+      foto.created_at === evento.created_at
+    );
+    if (!finalizacionComprobada) return evento;
+    return { ...evento, etapa: esInstalacion ? "Instalación finalizada" : "Trabajo finalizado", detalle: null };
+  });
   const ventas: any[] = resVentas.data || [];
   const asignaciones: any[] = resAsig.data || [];
 
