@@ -65,6 +65,8 @@ export default async function TrabajoPage({
     observaciones_tecnico: string | null;
     firma_cliente: string | null;
     aclaracion_cliente: string | null;
+    tecnico_remito: string | null;
+    ayudante: string | null;
   };
 
   if (esFabrica) {
@@ -118,6 +120,8 @@ export default async function TrabajoPage({
       observaciones_tecnico: padre?.observaciones_tecnico || null,
       firma_cliente: padre?.firma_cliente || null,
       aclaracion_cliente: padre?.aclaracion_cliente || null,
+      tecnico_remito: padre?.tecnico_remito || null,
+      ayudante: padre?.ayudante || null,
     };
   } else {
     // =========================
@@ -176,6 +180,8 @@ export default async function TrabajoPage({
       observaciones_tecnico: solicitud.observaciones_tecnico || null,
       firma_cliente: solicitud.firma_cliente || null,
       aclaracion_cliente: solicitud.aclaracion_cliente || null,
+      tecnico_remito: solicitud.tecnico_remito || null,
+      ayudante: solicitud.ayudante || null,
     };
   }
 
@@ -349,6 +355,8 @@ export default async function TrabajoPage({
           observacionesTecnico={vista.observaciones_tecnico}
           firmaCliente={vista.firma_cliente}
           aclaracionCliente={vista.aclaracion_cliente}
+          tecnicoInicial={vista.tecnico_remito || `${perfil.nombre || ""} ${perfil.apellido || ""}`.trim()}
+          ayudanteInicial={vista.ayudante}
           tipoVisita={vista.tipo_visita}
           esFabrica={esFabrica}
         />

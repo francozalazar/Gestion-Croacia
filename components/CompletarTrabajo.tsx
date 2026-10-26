@@ -14,6 +14,8 @@ interface Props {
   observacionesTecnico: string | null;
   firmaCliente: string | null;
   aclaracionCliente: string | null;
+  tecnicoInicial?: string | null;
+  ayudanteInicial?: string | null;
   tipoVisita?: string | null;
   esFabrica?: boolean;
 }
@@ -26,6 +28,8 @@ export default function CompletarTrabajo({
   observacionesTecnico,
   firmaCliente,
   aclaracionCliente,
+  tecnicoInicial,
+  ayudanteInicial,
   tipoVisita,
   esFabrica = false,
 }: Props) {
@@ -39,6 +43,8 @@ export default function CompletarTrabajo({
   const [observaciones, setObservaciones] = useState(observacionesTecnico || "");
   const [firma, setFirma] = useState(firmaCliente || "");
   const [aclaracion, setAclaracion] = useState(aclaracionCliente || "");
+  const [tecnico, setTecnico] = useState(tecnicoInicial || "");
+  const [ayudante, setAyudante] = useState(ayudanteInicial || "");
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [foto, setFoto] = useState<Blob | null>(null);
@@ -167,6 +173,7 @@ export default function CompletarTrabajo({
         p_solicitud_id: solicitudPrincipalId, p_es_fabrica: esFabrica,
         p_path: path, p_trabajo: trabajo.trim(), p_observaciones: observaciones,
         p_firma: firmaFinal, p_aclaracion: aclaracion.trim(),
+        p_tecnico: tecnico.trim() || null, p_ayudante: ayudante.trim() || null,
       });
       if (error) throw new Error(error.message);
     } catch (error) {
@@ -189,6 +196,19 @@ export default function CompletarTrabajo({
       <div className="mb-6">
         <h2 className="text-xl font-bold text-slate-900">Completar trabajo</h2>
         <p className="mt-1 text-sm text-slate-500">Completá la información de la visita realizada.</p>
+      </div>
+
+      <div className="mb-5 grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-slate-700">Técnico</label>
+          <input type="text" value={tecnico} onChange={(e) => setTecnico(e.target.value)}
+            disabled={finalizado} placeholder="Nombre del técnico" className={inputClassName} />
+        </div>
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-slate-700">Ayudante</label>
+          <input type="text" value={ayudante} onChange={(e) => setAyudante(e.target.value)}
+            disabled={finalizado} placeholder="Nombre (si hubo)" className={inputClassName} />
+        </div>
       </div>
 
       <div className="mb-5">

@@ -89,6 +89,9 @@ export async function GET(
   const trabajoRealizado = datos.trabajo_realizado || "-";
   const observacionesTecnico = datos.observaciones_tecnico || "-";
   const aclaracionCliente = datos.aclaracion_cliente || clienteNombre;
+  if (datos.tecnico_remito && String(datos.tecnico_remito).trim()) {
+    tecnico = String(datos.tecnico_remito).trim();
+  }
   const ayudante = datos.ayudante || "-";
 
   let fechaVisita = "-";
