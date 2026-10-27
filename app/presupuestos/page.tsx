@@ -201,7 +201,7 @@ export default function InboxPresupuestoOficinaPage() {
                   <p className="text-xs font-semibold text-slate-500 mt-1 uppercase">
                     {p.direccion} {p.localidad ? `- ${p.localidad}` : ""}
                   </p>
-                  <p className="text-xs text-slate-600 mt-2 line-clamp-2">
+                  <p className="text-xs text-slate-600 mt-2 line-clamp-2 whitespace-pre-wrap">
                     <strong>Trabajo:</strong> {p.trabajo_realizado || p.detalles_tecnico || p.observaciones || "Completado"}
                   </p>
 
