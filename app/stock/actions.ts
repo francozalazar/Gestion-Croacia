@@ -88,24 +88,19 @@ export async function registrarMovimientoAction(
   const motorId = Number(formData.get("motor_id"));
   const tipo = String(formData.get("tipo") || "").toUpperCase();
   const cantidad = Number(formData.get("cantidad"));
-  const detalle = String(formData.get("detalle") || "").trim();
-  const pedidoRaw = String(formData.get("solicitud_fabrica_id") || "");
 
   if (!motorId) return { ok: false, mensaje: "Falta el motor." };
   if (!["ENTRADA", "SALIDA"].includes(tipo))
     return { ok: false, mensaje: "Tipo de movimiento inválido." };
   if (!Number.isInteger(cantidad) || cantidad <= 0)
     return { ok: false, mensaje: "La cantidad tiene que ser un número entero mayor a 0." };
-  if (tipo === "SALIDA" && !detalle && !pedidoRaw)
-    return { ok: false, mensaje: "Contá para qué se usó o elegí el trabajo." };
 
   const fila: Record<string, unknown> = {
     motor_id: motorId,
     tipo,
     cantidad,
-    detalle: detalle || null,
+    detalle: null,
   };
-  if (tipo === "SALIDA" && pedidoRaw) fila.solicitud_fabrica_id = Number(pedidoRaw);
 
   const { error: e1 } = await supabase.from("stock_movimientos").insert(fila);
   if (e1) {
