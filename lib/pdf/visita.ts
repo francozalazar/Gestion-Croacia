@@ -127,23 +127,21 @@ export async function generarPDFVisita(solicitud: Record<string, any>, tecnico =
     size = 10.5,
     interlineado = 15
   ) {
-    const palabras = String(contenido || "-").split(/\s+/);
     const lineas: string[] = [];
-    let actual = "";
-
-    for (const palabra of palabras) {
-      const prueba = actual ? `${actual} ${palabra}` : palabra;
-      if (
-        fuente.widthOfTextAtSize(prueba, size) > maxWidth &&
-        actual
-      ) {
-        lineas.push(actual);
-        actual = palabra;
-      } else {
-        actual = prueba;
+    // Cada Enter inicia otro renglon, incluso si deja una linea en blanco.
+    for (const renglon of String(contenido || "-").replace(/\r\n?/g, "\n").split("\n")) {
+      let actual = "";
+      for (const palabra of renglon.trim().split(/\s+/).filter(Boolean)) {
+        const prueba = actual ? `${actual} ${palabra}` : palabra;
+        if (fuente.widthOfTextAtSize(prueba, size) > maxWidth && actual) {
+          lineas.push(actual);
+          actual = palabra;
+        } else {
+          actual = prueba;
+        }
       }
+      lineas.push(actual);
     }
-    if (actual) lineas.push(actual);
 
     let posicion = yInicial;
     for (const lineaTexto of lineas) {
