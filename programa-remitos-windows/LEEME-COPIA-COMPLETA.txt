@@ -1,0 +1,20 @@
+CROACIA - COPIA COMPLETA PRIVADA (base de datos + fotos + facturas)
+
+Requiere que ya este instalada la copia de remitos en este usuario de Windows.
+No cambia los remitos PDF ni la tarea que ya funciona.
+
+1. Extrae TODO el ZIP. Abri Instalar-Copia-Completa.cmd (sin administrador).
+   Crea la carpeta Croacia-Copia-Completa al lado de la carpeta de remitos, en el mismo disco.
+2. Se abre Activacion-copia-completa.txt: ese texto NO es una clave. Compartilo para habilitarla.
+3. Cuando te avisen, abri Copiar-Completa-Ahora.cmd. Tiene que decir "Copia completa".
+4. Si salio bien, abri Activar-Automatico-Copia-Completa.cmd: se revisa cada hora y al iniciar sesion,
+   y hace una copia nueva solo si la ultima completa tiene mas de 23 horas.
+
+Cada copia queda en una carpeta fechada. No borra copias anteriores. Los archivos (fotos/facturas)
+se guardan en la carpeta "archivos" y no se vuelven a bajar si no cambiaron.
+Ultima-copia-completa.txt dice como termino la ultima. "completa" = base y TODOS los archivos verificados.
+"incompleta" = algun archivo cambio, se borro o no coincide con la foto de la base: la carpeta queda marcada
+-INCOMPLETA, NO cuenta como copia del dia y se reintenta en la proxima revision (cada hora) con una foto nueva.
+No incluye contrasenas de login ni claves de avisos del celular. Los datos NO estan cifrados:
+protege el acceso a la PC y al disco. Si el disco se rompe, se pierde la copia: conviene tener otra fuera de esta PC.
+Para desactivar: Programador de tareas > Croacia - Copia completa > Deshabilitar.

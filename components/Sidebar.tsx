@@ -34,7 +34,7 @@ function seccionDeRuta(path: string | null): string | null {
   if (en("/solicitudes-fabrica", "/aprobacion-fabrica", "/produccion", "/listos-para-colocar", "/trabajos-finalizados", "/stock")) return "fabrica";
   if (en("/solicitudes", "/coordinacion", "/recorrido-camiones", "/visitas-finalizadas")) return "visitas";
   if (en("/presupuestos")) return "presupuestos";
-  if (en("/saldos-pendientes", "/estadisticas", "/usuarios")) return "administracion";
+  if (en("/saldos-pendientes", "/estadisticas", "/usuarios", "/cierre-del-dia")) return "administracion";
   if (en("/clientes")) return "clientes";
   if (en("/trabajos")) return "trabajos";
   return null;
@@ -337,6 +337,16 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
                         }`}
                       >
                         • Estadísticas
+                      </Link>
+                      <Link
+                        href="/cierre-del-dia"
+                        className={`block py-2 text-xs font-medium transition ${
+                          pathname === "/cierre-del-dia"
+                            ? "text-rose-400 font-bold"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        • Cierre del día
                       </Link>
                       <Link
                         href="/saldos-pendientes"
