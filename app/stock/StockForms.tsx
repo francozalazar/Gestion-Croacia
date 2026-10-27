@@ -133,24 +133,7 @@ export function FormularioMovimiento({
           Cantidad
           <input name="cantidad" type="number" min={1} step={1} required className={campo} />
         </label>
-        <label className="block text-sm font-medium text-slate-700">
-          Detalle {tipo === "ENTRADA" ? "(ej: llegó compra)" : "(para qué se usó)"}
-          <input name="detalle" className={campo} autoComplete="off" />
-        </label>
       </div>
-      {tipo === "SALIDA" && pedidos.length > 0 && (
-        <label className="block text-sm font-medium text-slate-700">
-          Trabajo en que se usó (opcional)
-          <select name="solicitud_fabrica_id" defaultValue="" className={campo}>
-            <option value="">Sin vincular</option>
-            {pedidos.map((p) => (
-              <option key={p.id} value={p.id}>
-                #{p.id} · {p.cliente_nombre || "Sin cliente"}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
       <div className="flex items-center gap-4">
         <button
           type="submit"
