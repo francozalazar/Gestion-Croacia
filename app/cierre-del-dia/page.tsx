@@ -42,7 +42,7 @@ export default async function CierreDelDiaPage({ searchParams }: { searchParams:
     return { data: filas, error: null };
   };
 
-  const [visitas, pedidos, pagos, salidas, motores, ventas, perfiles] = await Promise.all([
+  const [visitas, pedidos, pagos, salidas, motores, ventas, perfiles, todosPedidos] = await Promise.all([
     traerTodo((d, h) => supabase.from("solicitudes").select("id, numero, cliente_nombre, tipo_visita, estado, tecnico_remito, fecha_finalizacion, solicitud_fabrica_id")
       .gte("fecha_finalizacion", desde).lt("fecha_finalizacion", hasta).order("fecha_finalizacion").order("id").range(d, h)),
     traerTodo((d, h) => supabase.from("solicitudes_fabrica").select("id, numero_remito, cliente_nombre, estado, fecha_finalizado")
@@ -53,11 +53,12 @@ export default async function CierreDelDiaPage({ searchParams }: { searchParams:
     supabase.from("stock_motores").select("id, nombre, cantidad, minimo").order("nombre"),
     traerTodo((d, h) => supabase.from("ventas").select("id, cliente_id, total, solicitud_fabrica_id, pagos(monto), clientes(nombre)").order("id").range(d, h)),
     supabase.from("profiles").select("id, nombre, apellido"),
+    traerTodo((d, h) => supabase.from("solicitudes_fabrica").select("id, numero_remito, cliente_nombre, estado").order("id").range(d, h)),
   ]);
   // Un error se muestra; nunca se presenta como "cero".
   const errores = [
     ["trabajos finalizados", visitas.error], ["pedidos cerrados", pedidos.error], ["cobros", pagos.error],
-    ["motores", salidas.error || motores.error], ["saldos", ventas.error], ["usuarios", perfiles.error],
+    ["motores", salidas.error || motores.error], ["saldos", ventas.error || todosPedidos.error], ["usuarios", perfiles.error],
   ].filter(([, e]) => e).map(([n, e]) => `${n}: ${(e as { message: string }).message}`);
 
   const nombre: Record<string, string> = {};
@@ -72,6 +73,11 @@ export default async function CierreDelDiaPage({ searchParams }: { searchParams:
     const d = (deudores[v.cliente_id] = deudores[v.cliente_id] || { nombre: v.clientes?.nombre || "Cliente", saldo: 0 });
     d.saldo += s;
   });
+  // Mismos avisos que Saldos pendientes: el total no es completo si hay pedidos sin venta o ventas con total $0. No se inventan montos.
+  const conVenta = new Set((ventas.data || []).map((v: any) => v.solicitud_fabrica_id).filter((x: any) => x != null));
+  const pedidosSinVenta = (todosPedidos.data || []).filter((p: any) => p.estado !== "ANULADO" && !conVenta.has(p.id));
+  const ventasEnCero = (ventas.data || []).filter((v: any) => Number(v.total || 0) <= 0);
+  const totalIncompleto = pedidosSinVenta.length > 0 || ventasEnCero.length > 0 || !!ventas.error || !!todosPedidos.error;
   const debe = Object.entries(deudores).filter(([, d]) => d.saldo > 0.5).sort((a, b) => b[1].saldo - a[1].saldo);
   const totalSaldo = debe.reduce((a, [, d]) => a + d.saldo, 0);
 
@@ -113,10 +119,36 @@ export default async function CierreDelDiaPage({ searchParams }: { searchParams:
           <div className="grid gap-4 sm:grid-cols-4">
             <div className={caja}><p className="text-sm text-slate-500">Trabajos finalizados</p><p className="text-2xl font-bold">{(visitas.data || []).length}</p></div>
             <div className={caja}><p className="text-sm text-slate-500">Cobrado</p><p className="text-2xl font-bold">{plata(cobrado)}</p></div>
-            <div className={caja}><p className="text-sm text-slate-500">Saldo pendiente total</p><p className="text-2xl font-bold text-red-700">{plata(totalSaldo)}</p></div>
+            <div className={caja}><p className="text-sm text-slate-500">Saldo pendiente total</p><p className="text-2xl font-bold text-red-700">{plata(totalSaldo)}</p>{totalIncompleto && <p className="mt-1 text-xs font-medium text-amber-700">Incompleto: hay pedidos sin venta o ventas en $0 (ver abajo). No es la deuda total.</p>}</div>
             <div className={caja}><p className="text-sm text-slate-500">Motores descontados</p><p className="text-2xl font-bold">{motoresUsados}</p></div>
           </div>
 
+          {totalIncompleto && (
+            <section className="rounded-xl bg-amber-50 p-5 text-sm text-amber-900 shadow-sm">
+              <h2 className="font-semibold">El saldo pendiente no es completo</h2>
+              <p className="mt-1">No se calculan ni se inventan montos para lo que falta. Revisalo en Clientes.</p>
+              {pedidosSinVenta.length > 0 && (
+                <>
+                  <p className="mt-2 font-medium">{pedidosSinVenta.length} {pedidosSinVenta.length === 1 ? "pedido de fábrica sin venta registrada" : "pedidos de fábrica sin venta registrada"} (su deuda no está en el total):</p>
+                  <ul className="mt-1 list-disc pl-5">
+                    {pedidosSinVenta.map((p: any) => (
+                      <li key={p.id}><Link className="text-blue-700 hover:underline" href={`/ficha/remito/${p.id}`}>#{p.numero_remito || p.id} {p.cliente_nombre}</Link></li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {ventasEnCero.length > 0 && (
+                <>
+                  <p className="mt-2 font-medium">{ventasEnCero.length} {ventasEnCero.length === 1 ? "venta con total en $0" : "ventas con total en $0"} (total desconocido, no es deuda cero):</p>
+                  <ul className="mt-1 list-disc pl-5">
+                    {ventasEnCero.map((v: any) => (
+                      <li key={v.id}><Link className="text-blue-700 hover:underline" href={`/clientes/${v.cliente_id}`}>{v.clientes?.nombre || "Cliente"}</Link> · venta #{v.id}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </section>
+          )}
           <section className={caja}>
             <h2 className="font-semibold text-slate-900">Trabajos finalizados por el técnico</h2>
             {(visitas.data || []).length === 0 ? <p className="mt-2 text-sm text-slate-500">Ninguno este día.</p> : (
