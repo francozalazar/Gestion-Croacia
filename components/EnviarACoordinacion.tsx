@@ -87,31 +87,27 @@ export default function EnviarACoordinacion({ solicitud }: Props) {
       observaciones: observaciones || null,
     };
 
-    // 1. Actualizamos en solicitudes_fabrica
-    const { error: errFabrica } = await supabase
-      .from("solicitudes_fabrica")
-      .update(datosNuevos)
-      .eq("id", solicitud.id);
-
-    if (errFabrica) {
-      alert("No se pudo enviar a coordinación: " + errFabrica.message);
-      setGuardando(false);
-      return;
-    }
-
-    // 2. Actualizamos la tabla principal "solicitudes" (vinculada por solicitud_fabrica_id)
+    // 1. Primero la visita vinculada (solicitudes, por solicitud_fabrica_id).
+    // Si algo falla, el pedido sigue en "Listos para colocar" y se puede reintentar.
     const { error: errVisita } = await supabase
       .from("solicitudes")
       .update(datosNuevos)
       .eq("solicitud_fabrica_id", solicitud.id);
 
     if (errVisita) {
-      // Es seguro reintentar: repite los mismos datos.
-      alert(
-        "El pedido se envió pero la visita vinculada no se actualizó (" +
-          errVisita.message +
-          "). Tocá Enviar a coordinación otra vez para completar."
-      );
+      alert("No se pudo enviar a coordinación: " + errVisita.message + ". Probá de nuevo.");
+      setGuardando(false);
+      return;
+    }
+
+    // 2. Después el pedido de fábrica, que es el que lo saca de este listado.
+    const { error: errFabrica } = await supabase
+      .from("solicitudes_fabrica")
+      .update(datosNuevos)
+      .eq("id", solicitud.id);
+
+    if (errFabrica) {
+      alert("No se pudo enviar a coordinación: " + errFabrica.message + ". Probá de nuevo.");
       setGuardando(false);
       return;
     }
