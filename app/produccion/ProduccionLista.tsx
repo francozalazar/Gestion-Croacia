@@ -8,6 +8,7 @@ import {
   anularProduccionAction,
   cambiarEstadoProduccionAction,
 } from "./actions";
+import Desplegable from "@/components/Desplegable";
 
 type Trabajo = {
   id: number;
@@ -180,21 +181,15 @@ export default function ProduccionLista({
                 onSubmit={cerrar}
               >
                 <input type="hidden" name="id" value={seleccionado.id} />
-                <select
-                  name="nuevoEstado"
-                  value={nuevoEstado}
-                  onChange={(e) => setNuevoEstado(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-500 outline-none focus:border-slate-400"
-                >
-                  <option value="" disabled>
-                    Seleccione un estado
-                  </option>
-                  {opcionesEstado.map((op) => (
-                    <option key={op.value} value={op.value}>
-                      {op.label}
-                    </option>
-                  ))}
-                </select>
+                <Desplegable
+                name="nuevoEstado"
+                value={nuevoEstado}
+                onChange={setNuevoEstado}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 outline-none focus:border-slate-400"
+                ariaLabel="Nuevo estado"
+                placeholder="Seleccione un estado"
+                opciones={opcionesEstado}
+                />
 
                 <div className="mt-4 flex justify-end">
                   <button
