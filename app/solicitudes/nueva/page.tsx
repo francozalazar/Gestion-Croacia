@@ -16,6 +16,7 @@ import {
   ClipboardList,
   BellRing,
 } from "lucide-react";
+import Desplegable from "@/components/Desplegable";
 
 const tiposVisita = [
   "Presupuesto aceptado",
@@ -463,16 +464,17 @@ export default function NuevaSolicitudPage() {
                 <label className="mb-2 block text-sm font-medium text-slate-700">
                   Tipo de visita *
                 </label>
-                <select
-                  value={tipoVisita}
-                  onChange={(e) => setTipoVisita(e.target.value)}
-                  className={inputClassName}
-                >
-                  <option value="">Seleccionar...</option>
-                  {tiposVisita.map((tipo) => (
-                    <option key={tipo} value={tipo}>{tipo}</option>
-                  ))}
-                </select>
+                <Desplegable
+                value={tipoVisita}
+                onChange={setTipoVisita}
+                className={inputClassName}
+                ariaLabel="Tipo de visita"
+                placeholder="Seleccionar..."
+                opciones={[
+                { value: "", label: "Seleccionar..." },
+                ...tiposVisita.map((tipo) => ({ value: tipo, label: tipo })),
+                ]}
+                />
               </div>
 
               <div>
@@ -480,16 +482,19 @@ export default function NuevaSolicitudPage() {
                   <Clock size={16} />
                   Franja Horaria
                 </label>
-                <select
-                  value={franjaHoraria}
-                  onChange={(e) => setFranjaHoraria(e.target.value)}
-                  className={inputClassName}
-                >
-                  <option value="">Coordinar con cliente...</option>
-                  <option value="mañana">Por la mañana (08:30 a 12:30)</option>
-                  <option value="tarde">Por la tarde (13:00 a 17:00)</option>
-                  <option value="completo">Día completo (08:30 a 17:00)</option>
-                </select>
+                <Desplegable
+                value={franjaHoraria}
+                onChange={setFranjaHoraria}
+                className={inputClassName}
+                ariaLabel="Franja Horaria"
+                placeholder="Coordinar con cliente..."
+                opciones={[
+                { value: "", label: "Coordinar con cliente..." },
+                { value: "mañana", label: "Por la mañana (08:30 a 12:30)" },
+                { value: "tarde", label: "Por la tarde (13:00 a 17:00)" },
+                { value: "completo", label: "Día completo (08:30 a 17:00)" },
+                ]}
+                />
               </div>
 
               <div>
