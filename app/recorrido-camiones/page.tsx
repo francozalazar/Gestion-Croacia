@@ -1,5 +1,6 @@
 "use client";
 
+import { anularVisitas } from "@/lib/anularVisita";
 import { useState, useEffect } from "react";
 import { textoFranja as obtenerTextoFranja } from "@/lib/franjas";
 import { createClient } from "@/lib/supabase/cliente";
@@ -321,19 +322,18 @@ export default function RecorridoCamionesPage() {
     // Si algo falla se devuelve la asignación y se puede reintentar.
     let errorSolicitud: any = null;
     if (trabajoModal._esFabrica) {
-      const { error } = await supabase
-        .from("solicitudes")
-        .update({ estado: "ANULADO" })
-        .eq("solicitud_fabrica_id", trabajoModal.id)
-        .neq("estado", "FINALIZADO");
-      errorSolicitud = error;
+      errorSolicitud = await anularVisitas(supabase, "solicitud_fabrica_id", trabajoModal.id);
     }
     if (!errorSolicitud) {
-      const { error } = await supabase
-        .from(tablaRelacion)
-        .update({ estado: "ANULADO" })
-        .eq("id", trabajoModal.id);
-      errorSolicitud = error;
+      if (trabajoModal._esFabrica) {
+        const { error } = await supabase
+          .from("solicitudes_fabrica")
+          .update({ estado: "ANULADO" })
+          .eq("id", trabajoModal.id);
+        errorSolicitud = error;
+      } else {
+        errorSolicitud = await anularVisitas(supabase, "id", trabajoModal.id);
+      }
     }
 
     if (errorSolicitud) {
