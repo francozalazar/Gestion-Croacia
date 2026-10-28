@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
+import { compararCoordinacion, colorCoordinacion, esUrgencia } from "@/lib/coordinacion";
 import {
   Search,
   X,
@@ -223,7 +224,7 @@ export default function CoordinacionPage() {
     setSolicitudes([
       ...mapeadasFab,
       ...baseFiltradas,
-    ]);
+    ].sort(compararCoordinacion));
 
     setCargando(false);
   }
@@ -530,7 +531,7 @@ export default function CoordinacionPage() {
               <div
                 key={`${s.es_fabrica ? "fabrica" : "solicitud"}-${s.id}`}
                 onClick={() => abrirModal(s)}
-                className="cursor-pointer rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-blue-400 hover:shadow-md"
+                className={`cursor-pointer rounded-xl border p-6 shadow-sm transition hover:shadow-md ${colorCoordinacion(s)}`}
               >
 
                 {/* CABECERA */}
@@ -552,6 +553,9 @@ export default function CoordinacionPage() {
                   </span>
 
                 </div>
+
+                {esUrgencia(s) && <p className="mb-2 text-sm font-bold text-red-700">URGENTE</p>}
+                {!s.coordinacion_desde && <p className="mb-2 text-xs text-slate-500">Antigüedad sin registro</p>}
 
                 {/* CLIENTE */}
 
