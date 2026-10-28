@@ -329,6 +329,16 @@ export default function CoordinacionPage() {
 
     let errorAsignacion: any = null;
 
+    // Asignación previa, para poder volver atrás si falla un paso posterior.
+    const columnaAsig = solicitudModal.es_fabrica
+      ? "solicitud_fabrica_id"
+      : "solicitud_id";
+    const { data: asignacionPrevia } = await supabase
+      .from("asignaciones")
+      .select("*")
+      .eq(columnaAsig, solicitudModal.id)
+      .maybeSingle();
+
     if (solicitudModal.es_fabrica) {
       const { data: asignacionExistente } = await supabase
         .from("asignaciones")
@@ -413,23 +423,55 @@ export default function CoordinacionPage() {
       .update(datosActualizacion)
       .eq("id", solicitudModal.id);
 
+    // Si falla el estado, se deshace la asignación para no dejar el trabajo a medias.
+    async function deshacerAsignacion() {
+      if (asignacionPrevia) {
+        const { id: _idPrevio, ...datosPrevios } = asignacionPrevia as any;
+        const { error } = await supabase
+          .from("asignaciones")
+          .update(datosPrevios)
+          .eq("id", asignacionPrevia.id);
+        return !error;
+      }
+      const { data, error } = await supabase
+        .from("asignaciones")
+        .delete()
+        .eq(columnaAsig, solicitudModal.id)
+        .select("id");
+      return !error && !!data && data.length > 0;
+    }
+
     if (errEstado) {
+      const deshecho = await deshacerAsignacion();
       alert(
         "Error al actualizar estado: " +
-          errEstado.message
+          errEstado.message +
+          (deshecho
+            ? ". No se guardó la asignación, probá de nuevo."
+            : ". La asignación quedó guardada: volvé a tocar Asignar para completar.")
       );
     } else {
       // Si es un trabajo de fabrica, sincronizamos la solicitud principal
       // para que oficina vea el estado real.
+      let errEspejo: any = null;
       if (solicitudModal.es_fabrica) {
-        await supabase
+        const { error } = await supabase
           .from("solicitudes")
           .update(datosActualizacion)
           .eq("solicitud_fabrica_id", solicitudModal.id);
+        errEspejo = error;
       }
 
-      cerrarModal();
-      await cargarDatos();
+      if (errEspejo) {
+        alert(
+          "El trabajo se asignó, pero la visita vinculada no se actualizó (" +
+            errEspejo.message +
+            "). Volvé a tocar Asignar para completar."
+        );
+      } else {
+        cerrarModal();
+        await cargarDatos();
+      }
     }
 
     setGuardando(false);
