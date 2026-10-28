@@ -1,3 +1,4 @@
+import { rangoFinalizados } from "@/lib/finalizados";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
@@ -19,7 +20,13 @@ const ENTRE_ETAPAS_FABRICA = [
 
 // Cierre del circuito: pedido de fabrica -> corte -> listo para colocar ->
 // coordinacion -> el tecnico instalo y finalizo. Solo lee, no modifica nada.
-export default async function TrabajosFinalizadosPage() {
+export default async function TrabajosFinalizadosPage({ searchParams }: {
+  searchParams: Promise<{ desde?: string; hasta?: string }>;
+}) {
+  const params = await searchParams;
+  const desde = typeof params.desde === "string" ? params.desde : "";
+  const hasta = typeof params.hasta === "string" ? params.hasta : "";
+  const rango = rangoFinalizados(desde, hasta);
   const supabase = await createClient();
 
   const {
@@ -38,13 +45,24 @@ export default async function TrabajosFinalizadosPage() {
   }
 
   // Visitas ligadas a un pedido de fabrica que el tecnico ya finalizo.
-  const { data: visitas } = await supabase
+  let query = supabase
     .from("solicitudes")
-    .select("id, solicitud_fabrica_id, tipo_visita, cliente_nombre, direccion, localidad, estado, fecha_finalizacion, tecnico_remito")
+    .select("id, cliente_id, solicitud_fabrica_id, tipo_visita, cliente_nombre, direccion, localidad, estado, fecha_finalizacion, tecnico_remito")
     .not("solicitud_fabrica_id", "is", null)
     .not("fecha_finalizacion", "is", null)
     .in("estado", ["FINALIZADO", "PENDIENTE_PRECIO", "PRESUPUESTADO"])
     .order("fecha_finalizacion", { ascending: false });
+  let visitas: any[] = [];
+  if (rango) {
+    query = query.gte("fecha_finalizacion", rango.inicio).lt("fecha_finalizacion", rango.fin);
+    if (profile.rol === "OFICINA") {
+      const { data: propios } = await supabase.from("clientes").select("id").eq("creado_por", user.id);
+      query = query.in("cliente_id", (propios || []).map(c => c.id));
+    }
+    const { data, error } = await query;
+    if (error) throw new Error("No se pudieron cargar los trabajos finalizados. Volvé a intentar.");
+    visitas = data || [];
+  }
 
   // Solo visitas de instalacion (cortar e instalar / instalacion). Otras visitas
   // ligadas a fabrica (medicion, reclamo, etc.) no se cuentan como circuito completo.
@@ -108,8 +126,8 @@ export default async function TrabajosFinalizadosPage() {
     });
   }
 
-  // OFICINA ve solo los pedidos que cargo ella (creado_por del pedido de fabrica,
-  // no de la visita, que la crea quien aprueba). ADMIN y COORDINACION ven todos.
+  // OFICINA ya fue filtrada por clientes.creado_por antes de consultar visitas.
+  // ADMIN y COORDINACION conservan el acceso existente.
   const trabajos: TrabajoInstalado[] = lista
     .map((v) => {
       const pedido = pedidos.find((p) => p.id === v.solicitud_fabrica_id);
@@ -146,7 +164,6 @@ export default async function TrabajosFinalizadosPage() {
         creadoPor: pedido?.creado_por as string | undefined,
       };
     })
-    .filter((t) => profile.rol !== "OFICINA" || t.creadoPor === user.id)
     .map(({ creadoPor, ...resto }) => resto);
 
   return (
@@ -173,11 +190,11 @@ export default async function TrabajosFinalizadosPage() {
             </p>
             {profile.rol === "OFICINA" && (
               <p className="mt-2 inline-block border border-blue-100 bg-blue-50 px-3 py-1.5 text-sm text-blue-700">
-                Mostrando los pedidos cargados por vos.
+                Sólo trabajos de clientes cargados por vos.
               </p>
             )}
           </div>
-          <TrabajosFinalizadosLista trabajos={trabajos} />
+          <TrabajosFinalizadosLista trabajos={trabajos} desde={desde} hasta={hasta} buscado={!!rango} />
         </div>
       </main>
     </div>
