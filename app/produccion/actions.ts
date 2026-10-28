@@ -32,9 +32,20 @@ export async function anularProduccionAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
+  // Un pedido de fábrica anulado también anula su visita vinculada (si no está finalizada).
+  const { error: errVisita } = await supabase
+    .from("solicitudes")
+    .update({ estado: "ANULADO" })
+    .eq("solicitud_fabrica_id", id)
+    .neq("estado", "FINALIZADO");
+
+  if (errVisita) throw new Error(errVisita.message);
+
   revalidatePath("/produccion");
   revalidatePath("/fabrica");
   revalidatePath("/aprobacion-fabrica");
+  revalidatePath("/coordinacion");
+  revalidatePath("/trabajos");
 }
 const estadosProduccionPermitidos = [
   "ENVIADO_A_CORTAR",
