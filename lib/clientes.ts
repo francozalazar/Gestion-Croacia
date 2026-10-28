@@ -9,12 +9,14 @@ export async function resolverClienteYDireccion(
     localidad,
     userId,
     telefono,
+    clienteIdSeleccionado,
   }: {
     nombre: string;
     direccion: string;
     localidad: string;
     userId: string;
     telefono?: string;
+    clienteIdSeleccionado?: number | null;
   }
 ): Promise<{ clienteId: number | null; direccionId: number | null }> {
   const nombreLimpio = nombre.trim();
@@ -24,12 +26,12 @@ export async function resolverClienteYDireccion(
   let clienteId: number | null = null;
 
   try {
-    const { data: existente } = await supabase
-      .from("clientes")
-      .select("id")
-      .ilike("nombre", nombreLimpio)
-      .limit(1)
-      .maybeSingle();
+    const consulta = supabase.from("clientes").select("id");
+    const { data: existente } = clienteIdSeleccionado
+      ? await consulta.eq("id", clienteIdSeleccionado).maybeSingle()
+      : await consulta.ilike("nombre", nombreLimpio).limit(1).maybeSingle();
+    // Un ID elegido nunca se sustituye por un homónimo ni se crea como nuevo.
+    if (clienteIdSeleccionado && !existente) throw new Error("Cliente no disponible");
 
     if (existente) {
       clienteId = existente.id;
