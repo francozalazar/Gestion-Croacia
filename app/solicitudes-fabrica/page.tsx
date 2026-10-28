@@ -10,8 +10,6 @@ import { Clock, BellRing, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Desplegable from "@/components/Desplegable";
 
-// Solicitud de fábrica: único tipo de visita posible (ya no se elige).
-const TIPO_VISITA_FABRICA = "Cortar e instalar";
 
 const tiposVenta = [
   { value: "CORTINA", label: "Cortina completa" },
@@ -245,7 +243,7 @@ export default function SolicitudFabricaPage() {
         fecha: fecha || null,
         horario_desde: hDesde,
         horario_hasta: hHasta,
-        tipo_visita: TIPO_VISITA_FABRICA,
+        tipo_visita: null, // Sin tipo de visita en las solicitudes de fábrica.
 
         observaciones: observacionesFinales,
 
@@ -277,7 +275,7 @@ export default function SolicitudFabricaPage() {
           fecha: fecha || null,
           horario_desde: hDesde,
           horario_hasta: hHasta,
-          tipo_visita: TIPO_VISITA_FABRICA,
+        tipo_visita: null, // Sin tipo de visita en las solicitudes de fábrica.
           observaciones: observacionesFinales,
           total_pesos: total ? Number(total) : null,
           saldo_restante: saldo ? Number(saldo) : null,
