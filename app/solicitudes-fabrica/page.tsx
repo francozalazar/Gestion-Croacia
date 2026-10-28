@@ -8,6 +8,7 @@ import { resolverClienteYDireccion } from "@/lib/clientes";
 import { useRouter } from "next/navigation";
 import { Clock, BellRing, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
+import Desplegable from "@/components/Desplegable";
 
 const tiposVisita = ["Cortar e instalar"];
 
@@ -511,25 +512,21 @@ export default function SolicitudFabricaPage() {
             <div className="mt-5 space-y-3">
               {renglones.map((r, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <select
-                    value={r.tipo}
-                    onChange={(e) =>
-                      setRenglones(
-                        renglones.map((x, j) =>
-                          j === i ? { ...x, tipo: e.target.value } : x
-                        )
-                      )
-                    }
-                    className={inputClassName}
-                    disabled={exito}
-                  >
-                    <option value="">Elegí qué es...</option>
-                    {tiposVenta.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
+                  <Desplegable
+                  value={r.tipo}
+                  onChange={(v) =>
+                  setRenglones(
+                  renglones.map((x, j) =>
+                  j === i ? { ...x, tipo: v } : x
+                  )
+                  )
+                  }
+                  className={inputClassName}
+                  disabled={exito}
+                  ariaLabel="Qué es"
+                  placeholder="Elegí qué es..."
+                  opciones={[{ value: "", label: "Elegí qué es..." }, ...tiposVenta]}
+                  />
                   <input
                     type="number"
                     min="1"
@@ -594,36 +591,38 @@ export default function SolicitudFabricaPage() {
                 <label className="mb-1 block text-sm font-medium">
                   Tipo de visita
                 </label>
-                <select
-                  value={tipoVisita}
-                  onChange={(e) => setTipoVisita(e.target.value)}
-                  className={inputClassName}
-                  disabled={exito}
-                >
-                  <option value="">Seleccionar...</option>
-                  {tiposVisita.map((tipo) => (
-                    <option key={tipo} value={tipo}>
-                      {tipo}
-                    </option>
-                  ))}
-                </select>
+                <Desplegable
+                value={tipoVisita}
+                onChange={setTipoVisita}
+                className={inputClassName}
+                disabled={exito}
+                ariaLabel="Tipo de visita"
+                placeholder="Seleccionar..."
+                opciones={[
+                { value: "", label: "Seleccionar..." },
+                ...tiposVisita.map((tipo) => ({ value: tipo, label: tipo })),
+                ]}
+                />
               </div>
 
               <div>
                 <label className="mb-1 flex items-center gap-2 text-sm font-medium">
                   <Clock size={16} /> Franja Horaria
                 </label>
-                <select
-                  value={franjaHoraria}
-                  onChange={(e) => setFranjaHoraria(e.target.value)}
-                  className={inputClassName}
-                  disabled={exito}
-                >
-                  <option value="">Coordinar con cliente...</option>
-                  <option value="mañana">Por la mañana (08:30 a 12:30)</option>
-                  <option value="tarde">Por la tarde (13:00 a 17:00)</option>
-                  <option value="completo">Día completo (08:30 a 17:00)</option>
-                </select>
+                <Desplegable
+                value={franjaHoraria}
+                onChange={setFranjaHoraria}
+                className={inputClassName}
+                disabled={exito}
+                ariaLabel="Franja Horaria"
+                placeholder="Coordinar con cliente..."
+                opciones={[
+                { value: "", label: "Coordinar con cliente..." },
+                { value: "mañana", label: "Por la mañana (08:30 a 12:30)" },
+                { value: "tarde", label: "Por la tarde (13:00 a 17:00)" },
+                { value: "completo", label: "Día completo (08:30 a 17:00)" },
+                ]}
+                />
               </div>
 
               <div>
@@ -746,18 +745,21 @@ export default function SolicitudFabricaPage() {
               <label className="mb-1 block text-sm font-medium">
                 Medio de pago
               </label>
-              <select
-                value={medioPago}
-                onChange={(e) => setMedioPago(e.target.value)}
-                className={inputClassName}
-                disabled={exito}
-              >
-                <option value="">Seleccionar medio de pago</option>
-                <option value="Efectivo">Efectivo</option>
-                <option value="Santander">Santander</option>
-                <option value="Mercado Pago">Mercado Pago</option>
-                <option value="Cuenta corriente">Cuenta corriente</option>
-              </select>
+              <Desplegable
+              value={medioPago}
+              onChange={setMedioPago}
+              className={inputClassName}
+              disabled={exito}
+              ariaLabel="Medio de pago"
+              placeholder="Seleccionar medio de pago"
+              opciones={[
+              { value: "", label: "Seleccionar medio de pago" },
+              { value: "Efectivo", label: "Efectivo" },
+              { value: "Santander", label: "Santander" },
+              { value: "Mercado Pago", label: "Mercado Pago" },
+              { value: "Cuenta corriente", label: "Cuenta corriente" },
+              ]}
+              />
             </div>
 
             <div className="mt-4">
