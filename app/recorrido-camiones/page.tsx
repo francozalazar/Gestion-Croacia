@@ -1,6 +1,6 @@
 "use client";
 
-import { anularVisitas } from "@/lib/anularVisita";
+import { quitarOAnularPasos } from "@/lib/pasosCircuito";
 import { useState, useEffect } from "react";
 import { textoFranja as obtenerTextoFranja } from "@/lib/franjas";
 import { createClient } from "@/lib/supabase/cliente";
@@ -220,63 +220,29 @@ export default function RecorridoCamionesPage() {
   async function removerTecnicoYFecha() {
     if (!trabajoModal) return;
 
-    const columnaRelacion = trabajoModal._esFabrica
-      ? "solicitud_fabrica_id"
-      : "solicitud_id";
+    const r = await quitarOAnularPasos(supabase, {
+      id: trabajoModal.id,
+      esFabrica: !!trabajoModal._esFabrica,
+      tecnicoId: tecnicoSeleccionado,
+      fecha,
+      accion: "QUITAR",
+    });
 
-    const tablaRelacion = trabajoModal._esFabrica
-      ? "solicitudes_fabrica"
-      : "solicitudes";
-
-    const { data: asignacionesBorradas, error: errorAsignacion } = await supabase
-      .from("asignaciones")
-      .delete()
-      .eq(columnaRelacion, trabajoModal.id)
-      .eq("usuario_id", tecnicoSeleccionado)
-      .eq("fecha", fecha)
-      .select("*");
-
-    if (errorAsignacion) {
-      alert("Error quitando asignación: " + errorAsignacion.message);
-      return;
-    }
-
-    if (!asignacionesBorradas || asignacionesBorradas.length === 0) {
-      alert("No se quitó la asignación. Solo un administrador puede quitar asignaciones.");
-      return;
-    }
-
-    // La fecha y el técnico pactados viven en la asignación (ya borrada arriba).
-    // solicitudes.fecha es la fecha del trabajo y no admite null: se conserva.
-    const datosReset = { estado: "PENDIENTE_COORDINACION" };
-
-    // Llamadas separadas (no una sola transacción): primero la visita vinculada,
-    // al final el pedido. Si algo falla se devuelve la asignación y se puede reintentar.
-    let errorSolicitud: any = null;
-    if (trabajoModal._esFabrica) {
-      const { error } = await supabase
-        .from("solicitudes")
-        .update(datosReset)
-        .eq("solicitud_fabrica_id", trabajoModal.id);
-      errorSolicitud = error;
-    }
-    if (!errorSolicitud) {
-      const { error } = await supabase
-        .from(tablaRelacion)
-        .update(datosReset)
-        .eq("id", trabajoModal.id);
-      errorSolicitud = error;
-    }
-
-    if (errorSolicitud) {
-      const filas = (asignacionesBorradas || []).map(({ id: _id, ...resto }: any) => resto);
-      const { error: errRestaurar } = await supabase.from("asignaciones").insert(filas);
+    if (!r.ok) {
+      if (r.etapa === "asignacion") {
+        alert(
+          r.sinPermiso
+            ? "No se quitó la asignación. Solo un administrador puede quitar asignaciones."
+            : "Error quitando asignación: " + r.error?.message
+        );
+        return;
+      }
       alert(
         "Error actualizando trabajo: " +
-          errorSolicitud.message +
-          (errRestaurar
-            ? ". La asignación se quitó pero el estado no cambió: avisá a administración."
-            : ". No se quitó la asignación, probá de nuevo.")
+          r.error?.message +
+          (r.deshecho
+            ? ". No se quitó la asignación, probá de nuevo."
+            : ". La asignación se quitó pero el estado no cambió: avisá a administración.")
       );
       await ejecutarBusqueda(tecnicoSeleccionado, fecha);
       return;
@@ -292,59 +258,29 @@ export default function RecorridoCamionesPage() {
 
     if (!confirm("¿Estás seguro de anular esta visita? El remito quedará cancelado.")) return;
 
-    const columnaRelacion = trabajoModal._esFabrica
-      ? "solicitud_fabrica_id"
-      : "solicitud_id";
+    const r = await quitarOAnularPasos(supabase, {
+      id: trabajoModal.id,
+      esFabrica: !!trabajoModal._esFabrica,
+      tecnicoId: tecnicoSeleccionado,
+      fecha,
+      accion: "ANULAR",
+    });
 
-    const tablaRelacion = trabajoModal._esFabrica
-      ? "solicitudes_fabrica"
-      : "solicitudes";
-
-    const { data: asignacionesBorradas, error: errorAsignacion } = await supabase
-      .from("asignaciones")
-      .delete()
-      .eq(columnaRelacion, trabajoModal.id)
-      .eq("usuario_id", tecnicoSeleccionado)
-      .eq("fecha", fecha)
-      .select("*");
-
-    if (errorAsignacion) {
-      alert("Error anulando asignación: " + errorAsignacion.message);
-      return;
-    }
-
-    if (!asignacionesBorradas || asignacionesBorradas.length === 0) {
-      alert("No se anuló la visita porque no se pudo quitar su asignación. Solo un administrador puede quitar asignaciones.");
-      return;
-    }
-
-    // Primero la visita vinculada (si no está finalizada), al final el pedido.
-    // Si algo falla se devuelve la asignación y se puede reintentar.
-    let errorSolicitud: any = null;
-    if (trabajoModal._esFabrica) {
-      errorSolicitud = await anularVisitas(supabase, "solicitud_fabrica_id", trabajoModal.id);
-    }
-    if (!errorSolicitud) {
-      if (trabajoModal._esFabrica) {
-        const { error } = await supabase
-          .from("solicitudes_fabrica")
-          .update({ estado: "ANULADO" })
-          .eq("id", trabajoModal.id);
-        errorSolicitud = error;
-      } else {
-        errorSolicitud = await anularVisitas(supabase, "id", trabajoModal.id);
+    if (!r.ok) {
+      if (r.etapa === "asignacion") {
+        alert(
+          r.sinPermiso
+            ? "No se anuló la visita porque no se pudo quitar su asignación. Solo un administrador puede quitar asignaciones."
+            : "Error anulando asignación: " + r.error?.message
+        );
+        return;
       }
-    }
-
-    if (errorSolicitud) {
-      const filas = (asignacionesBorradas || []).map(({ id: _id, ...resto }: any) => resto);
-      const { error: errRestaurar } = await supabase.from("asignaciones").insert(filas);
       alert(
         "Error anulando trabajo: " +
-          errorSolicitud.message +
-          (errRestaurar
-            ? ". La asignación se quitó pero el trabajo no se anuló: avisá a administración."
-            : ". No se anuló nada, probá de nuevo.")
+          r.error?.message +
+          (r.deshecho
+            ? ". No se anuló nada, probá de nuevo."
+            : ". La asignación se quitó pero el trabajo no se anuló: avisá a administración.")
       );
       await ejecutarBusqueda(tecnicoSeleccionado, fecha);
       return;
