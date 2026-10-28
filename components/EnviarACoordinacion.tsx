@@ -88,16 +88,33 @@ export default function EnviarACoordinacion({ solicitud }: Props) {
     };
 
     // 1. Actualizamos en solicitudes_fabrica
-    await supabase
+    const { error: errFabrica } = await supabase
       .from("solicitudes_fabrica")
       .update(datosNuevos)
       .eq("id", solicitud.id);
 
+    if (errFabrica) {
+      alert("No se pudo enviar a coordinación: " + errFabrica.message);
+      setGuardando(false);
+      return;
+    }
+
     // 2. Actualizamos la tabla principal "solicitudes" (vinculada por solicitud_fabrica_id)
-    await supabase
+    const { error: errVisita } = await supabase
       .from("solicitudes")
       .update(datosNuevos)
       .eq("solicitud_fabrica_id", solicitud.id);
+
+    if (errVisita) {
+      // Es seguro reintentar: repite los mismos datos.
+      alert(
+        "El pedido se envió pero la visita vinculada no se actualizó (" +
+          errVisita.message +
+          "). Tocá Enviar a coordinación otra vez para completar."
+      );
+      setGuardando(false);
+      return;
+    }
 
     setGuardando(false);
     setAbierto(false);
