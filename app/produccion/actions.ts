@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { anularVisitas } from "@/lib/anularVisita";
 
 export async function anularProduccionAction(formData: FormData) {
   const id = Number(formData.get("id"));
@@ -27,11 +28,7 @@ export async function anularProduccionAction(formData: FormData) {
 
   // Primero la visita vinculada (si no está finalizada) y después el pedido.
   // Si algo falla, el pedido sigue visible en Producción y se puede reintentar.
-  const { error: errVisita } = await supabase
-    .from("solicitudes")
-    .update({ estado: "ANULADO" })
-    .eq("solicitud_fabrica_id", id)
-    .neq("estado", "FINALIZADO");
+  const errVisita = await anularVisitas(supabase, "solicitud_fabrica_id", id);
 
   if (errVisita) throw new Error(errVisita.message);
 
