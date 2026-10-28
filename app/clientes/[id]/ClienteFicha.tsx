@@ -8,6 +8,7 @@ import {
   editarTotalVentaAction,
   cargarPagoAction,
 } from "./actions";
+import Desplegable from "@/components/Desplegable";
 
 type Direccion = { id: number; direccion: string; localidad: string | null };
 type Pago = {
@@ -260,20 +261,21 @@ export default function ClienteFicha({
                 <label className="mb-1.5 block text-xs font-semibold text-slate-600">
                   Dirección
                 </label>
-                <select
-                  name="direccionId"
-                  value={dirElegida}
-                  onChange={(e) => setDirElegida(e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="">Nueva dirección...</option>
-                  {direcciones.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.direccion}
-                      {d.localidad ? ` (${d.localidad})` : ""}
-                    </option>
-                  ))}
-                </select>
+                <Desplegable
+                name="direccionId"
+                value={dirElegida}
+                onChange={setDirElegida}
+                className={inputCls}
+                ariaLabel="Dirección"
+                placeholder="Nueva dirección..."
+                opciones={[
+                { value: "", label: "Nueva dirección..." },
+                ...direcciones.map((d) => ({
+                value: String(d.id),
+                label: `${d.direccion}${d.localidad ? ` (${d.localidad})` : ""}`,
+                })),
+                ]}
+                />
               </div>
               {dirElegida === "" && (
                 <>
@@ -319,41 +321,39 @@ export default function ClienteFicha({
                 <label className="mb-1.5 block text-xs font-semibold text-slate-600">
                   Tipo de venta
                 </label>
-                <select
-                  name="tipo"
-                  value={tipoVenta}
-                  onChange={(e) => {
-                    setTipoVenta(e.target.value);
-                    if (e.target.value !== "REPARACION") setVisitaVinculada("");
-                  }}
-                  className={inputCls}
-                >
-                  <option value="">Venta común</option>
-                  <option value="REPARACION">Reparación</option>
-                </select>
+                <Desplegable
+                name="tipo"
+                value={tipoVenta}
+                onChange={(v) => {
+                setTipoVenta(v);
+                if (v !== "REPARACION") setVisitaVinculada("");
+                }}
+                className={inputCls}
+                ariaLabel="Tipo de venta"
+                opciones={[
+                { value: "", label: "Venta común" },
+                { value: "REPARACION", label: "Reparación" },
+                ]}
+                />
               </div>
               {tipoVenta === "REPARACION" && (
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold text-slate-600">
                     Visita vinculada (obligatoria)
                   </label>
-                  <select
-                    name="solicitudId"
-                    required
-                    value={visitaVinculada}
-                    onChange={(e) => setVisitaVinculada(e.target.value)}
-                    className={inputCls}
-                  >
-                    <option value="" disabled>
-                      Elegí la visita de esta reparación...
-                    </option>
-                    {solicitudes.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        #{s.numero || s.id} - {s.tipo_visita || "Visita"} -{" "}
-                        {fechaLinda(s.fecha || s.created_at)}
-                      </option>
-                    ))}
-                  </select>
+                  <Desplegable
+                  name="solicitudId"
+                  required
+                  value={visitaVinculada}
+                  onChange={setVisitaVinculada}
+                  className={inputCls}
+                  ariaLabel="Visita vinculada"
+                  placeholder="Elegí la visita de esta reparación..."
+                  opciones={solicitudes.map((s) => ({
+                  value: String(s.id),
+                  label: `#${s.numero || s.id} - ${s.tipo_visita || "Visita"} - ${fechaLinda(s.fecha || s.created_at)}`,
+                  }))}
+                  />
                 </div>
               )}
               <div>
@@ -392,17 +392,14 @@ export default function ClienteFicha({
                   <label className="mb-1.5 block text-xs font-semibold text-slate-600">
                     Cómo pagó
                   </label>
-                  <select
-                    name="medioAbonado"
-                    value={medioAbonado}
-                    onChange={(e) => setMedioAbonado(e.target.value)}
-                    className={inputCls}
-                  >
-                    <option>Efectivo</option>
-                    <option>Transferencia</option>
-                    <option>Cheque</option>
-                    <option>Otro</option>
-                  </select>
+                  <Desplegable
+                  name="medioAbonado"
+                  value={medioAbonado}
+                  onChange={setMedioAbonado}
+                  className={inputCls}
+                  ariaLabel="Cómo pagó"
+                  opciones={["Efectivo", "Transferencia", "Cheque", "Otro"].map((m) => ({ value: m, label: m }))}
+                  />
                 </div>
               )}
             </div>
@@ -611,17 +608,14 @@ export default function ClienteFicha({
                               onChange={(e) => setFechaPago(e.target.value)}
                               className={inputCls}
                             />
-                            <select
-                              name="medio"
-                              value={medio}
-                              onChange={(e) => setMedio(e.target.value)}
-                              className={inputCls}
-                            >
-                              <option>Efectivo</option>
-                              <option>Transferencia</option>
-                              <option>Cheque</option>
-                              <option>Otro</option>
-                            </select>
+                            <Desplegable
+                            name="medio"
+                            value={medio}
+                            onChange={setMedio}
+                            className={inputCls}
+                            ariaLabel="Medio de pago"
+                            opciones={["Efectivo", "Transferencia", "Cheque", "Otro"].map((m) => ({ value: m, label: m }))}
+                            />
                           </div>
                           <label className="mt-3 flex items-center gap-2 text-sm text-slate-600">
                             <input
