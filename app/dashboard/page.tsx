@@ -60,6 +60,15 @@ export default function DashboardPage() {
     cargarDashboard();
   }, []);
 
+  // Volver a Inicio o recuperar el foco actualiza la agenda del día.
+  useEffect(() => {
+    if (perfil?.rol?.toUpperCase() !== "TECNICO") return;
+    const actualizar = () => { if (document.visibilityState === "visible") cargarDashboard(); };
+    window.addEventListener("focus", actualizar);
+    document.addEventListener("visibilitychange", actualizar);
+    return () => { window.removeEventListener("focus", actualizar); document.removeEventListener("visibilitychange", actualizar); };
+  }, [perfil?.rol]);
+
   // Novedades en vivo: si el usuario está con la página abierta, la
   // notificación aparece en el momento, sin recargar.
   useEffect(() => {
@@ -165,8 +174,7 @@ export default function DashboardPage() {
       setErrorStock(false);
     }
 
-    const ahora = new Date();
-    const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-${String(ahora.getDate()).padStart(2, "0")}`;
+    const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
     const esTecnico = profile?.rol?.toUpperCase() === "TECNICO";
 
@@ -232,7 +240,8 @@ export default function DashboardPage() {
       const { data: asignaciones } = await supabase
         .from("asignaciones")
         .select("*")
-        .eq("usuario_id", user.id);
+        .eq("usuario_id", user.id)
+        .eq("fecha", hoy);
 
       const listaAsignaciones = asignaciones || [];
       const solicitudIds = listaAsignaciones
@@ -251,9 +260,12 @@ export default function DashboardPage() {
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
+      const { data: visitasInstalacion } = solicitudFabricaIds.length
+        ? await supabase.from("solicitudes").select("solicitud_fabrica_id, fecha_finalizacion").in("solicitud_fabrica_id", solicitudFabricaIds).not("fecha_finalizacion", "is", null)
+        : { data: [] };
       const solicitudesTecnico: any[] = [
-        ...(solBase || []),
-        ...(solFab || []),
+        ...(solBase || []).map(s => ({ ...s, origen: "visita" })),
+        ...(solFab || []).filter(f => !(solBase || []).some(s => s.solicitud_fabrica_id === f.id)).map(s => ({ ...s, origen: "fabrica", fecha_finalizacion: (visitasInstalacion || []).find(v => v.solicitud_fabrica_id === s.id)?.fecha_finalizacion })),
       ];
 
       const deHoy = listaAsignaciones.filter((a: any) => a.fecha === hoy);
@@ -276,13 +288,13 @@ export default function DashboardPage() {
 
       setMetricasTecnico({
         asignadas: solicitudesTecnico.length,
-        pendientes: solicitudesTecnico.filter((s: any) => s.estado !== "FINALIZADO").length,
-        finalizados: solicitudesTecnico.filter((s: any) => s.estado === "FINALIZADO").length,
+        pendientes: solicitudesTecnico.filter((s: any) => !s.fecha_finalizacion && !["FINALIZADO", "ANULADO", "CANCELADO"].includes(s.estado)).length,
+        finalizados: solicitudesTecnico.filter((s: any) => !!s.fecha_finalizacion || s.estado === "FINALIZADO").length,
       });
 
       // 2. ALERTAS PERSONALIZADAS PARA EL TÉCNICO
       const eventos: any[] = solicitudesTecnico
-        .filter((s: any) => s.estado !== "FINALIZADO")
+        .filter((s: any) => !s.fecha_finalizacion && !["FINALIZADO", "ANULADO", "CANCELADO"].includes(s.estado))
         .map((s: any) => ({
           id: `tec-${s.id}`,
           titulo: "¡Se te asignó un nuevo trabajo!",
@@ -519,15 +531,15 @@ export default function DashboardPage() {
         ) : esTecnico ? (
           <div className="grid gap-4 sm:grid-cols-3 mb-8">
             <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-              <p className="text-xs font-medium text-slate-400">Total Asignados</p>
+              <p className="text-xs font-medium text-slate-400">Asignados para hoy</p>
               <p className="text-3xl font-bold text-slate-900 mt-1">{metricasTecnico.asignadas}</p>
             </div>
             <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-              <p className="text-xs font-medium text-slate-400">Pendientes de Realizar</p>
+              <p className="text-xs font-medium text-slate-400">Pendientes de hoy</p>
               <p className="text-3xl font-bold text-slate-900 mt-1">{metricasTecnico.pendientes}</p>
             </div>
             <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-              <p className="text-xs font-medium text-slate-400">Trabajos Finalizados</p>
+              <p className="text-xs font-medium text-slate-400">Finalizados de hoy</p>
               <p className="text-3xl font-bold text-slate-900 mt-1">{metricasTecnico.finalizados}</p>
             </div>
           </div>
