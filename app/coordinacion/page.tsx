@@ -15,6 +15,7 @@ import {
   User,
   ShieldAlert,
 } from "lucide-react";
+import Desplegable from "@/components/Desplegable";
 
 
 // =========================================================
@@ -728,33 +729,17 @@ export default function CoordinacionPage() {
                         Técnico / Chofer
                       </label>
 
-                      <select
-                        value={tecnicoId}
-                        onChange={(e) =>
-                          setTecnicoId(
-                            e.target.value
-                          )
-                        }
-                        className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500"
-                      >
-
-                        <option value="">
-                          Seleccionar técnico...
-                        </option>
-
-                        {tecnicos.map((t) => (
-
-                          <option
-                            key={t.id}
-                            value={t.id}
-                          >
-                            👷 {t.nombre}{" "}
-                            {t.apellido || ""}
-                          </option>
-
-                        ))}
-
-                      </select>
+                      <Desplegable
+                      value={tecnicoId}
+                      onChange={setTecnicoId}
+                      className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500"
+                      ariaLabel="Técnico / Chofer"
+                      placeholder="Seleccionar técnico..."
+                      opciones={[
+                      { value: "", label: "Seleccionar técnico..." },
+                      ...tecnicos.map((t) => ({ value: String(t.id), label: `👷 ${t.nombre} ${t.apellido || ""}` })),
+                      ]}
+                      />
 
                     </div>
 
@@ -793,29 +778,17 @@ export default function CoordinacionPage() {
                         Franja Horaria
                       </label>
 
-                      <select
-                        value={franjaSeleccionada}
-                        onChange={(e) =>
-                          setFranjaSeleccionada(
-                            e.target.value
-                          )
-                        }
-                        className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500"
-                      >
-
-                        <option value="MANANA">
-                          🌅 Mañana (08:30 - 12:30 hs)
-                        </option>
-
-                        <option value="TARDE">
-                          ☀️ Tarde (13:00 - 17:00 hs)
-                        </option>
-
-                        <option value="DIA_COMPLETO">
-                          📅 Día completo (08:30 - 17:00 hs)
-                        </option>
-
-                      </select>
+                      <Desplegable
+                      value={franjaSeleccionada}
+                      onChange={setFranjaSeleccionada}
+                      className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500"
+                      ariaLabel="Franja Horaria"
+                      opciones={[
+                      { value: "MANANA", label: "🌅 Mañana (08:30 - 12:30 hs)" },
+                      { value: "TARDE", label: "☀️ Tarde (13:00 - 17:00 hs)" },
+                      { value: "DIA_COMPLETO", label: "📅 Día completo (08:30 - 17:00 hs)" },
+                      ]}
+                      />
 
                     </div>
 
@@ -829,18 +802,17 @@ export default function CoordinacionPage() {
                       Prioridad del recorrido
                     </label>
 
-                    <select
-                      value={prioridad}
-                      onChange={(e) => setPrioridad(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500"
-                    >
-                      <option value="">Sin prioridad</option>
-                      <option value="1">Prioridad 1</option>
-                      <option value="2">Prioridad 2</option>
-                      <option value="3">Prioridad 3</option>
-                      <option value="4">Prioridad 4</option>
-                      <option value="5">Prioridad 5</option>
-                    </select>
+                    <Desplegable
+                    value={prioridad}
+                    onChange={setPrioridad}
+                    className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500"
+                    ariaLabel="Prioridad del recorrido"
+                    placeholder="Sin prioridad"
+                    opciones={[
+                    { value: "", label: "Sin prioridad" },
+                    ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: `Prioridad ${n}` })),
+                    ]}
+                    />
 
                   </div>
 
