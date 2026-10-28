@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useRef, useEffect } from "react";
+import { useActionState, useRef, useState } from "react";
 import { crearUsuarioAction, type ResultadoAlta } from "./actions";
+import Desplegable from "@/components/Desplegable";
 
 const ROLES = [
   { v: "ENCARGADO", t: "Encargado (operaciones y remitos propios)" },
@@ -13,14 +14,19 @@ const ROLES = [
 ];
 
 export default function NuevoUsuarioForm() {
+  const form = useRef<HTMLFormElement>(null);
+  const [resetKey, setResetKey] = useState(0);
   const [res, accion, pendiente] = useActionState<ResultadoAlta | null, FormData>(
-    crearUsuarioAction,
+    async (prev, fd) => {
+      const r = await crearUsuarioAction(prev, fd);
+      if (r?.ok) {
+        form.current?.reset();
+        setResetKey((k) => k + 1);
+      }
+      return r;
+    },
     null
   );
-  const form = useRef<HTMLFormElement>(null);
-  useEffect(() => {
-    if (res?.ok) form.current?.reset();
-  }, [res]);
 
   const campo =
     "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-900";
@@ -40,16 +46,15 @@ export default function NuevoUsuarioForm() {
       </div>
       <label className="block text-sm font-medium text-slate-700">
         Rol
-        <select name="rol" required defaultValue="" className={campo}>
-          <option value="" disabled>
-            Elegí un rol
-          </option>
-          {ROLES.map((r) => (
-            <option key={r.v} value={r.v}>
-              {r.t}
-            </option>
-          ))}
-        </select>
+        <Desplegable
+        key={resetKey}
+        name="rol"
+        required
+        className={campo}
+        ariaLabel="Rol"
+        placeholder="Elegí un rol"
+        opciones={ROLES.map((r) => ({ value: r.v, label: r.t }))}
+        />
       </label>
       <label className="block text-sm font-medium text-slate-700">
         Contraseña para el primer ingreso (mínimo 6 caracteres)
