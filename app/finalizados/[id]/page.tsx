@@ -1,3 +1,4 @@
+import { puedeVerFinalizado } from "@/lib/accesoFinalizados";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
@@ -56,6 +57,10 @@ export default async function ComprobantePage({
     .select("*")
     .eq("id", solicitud.cliente_id)
     .single();
+
+  if (!(await puedeVerFinalizado(supabase, user.id, profile.rol, solicitud))) {
+    notFound();
+  }
 
   if (!solicitud.fecha_finalizacion) {
     return (
