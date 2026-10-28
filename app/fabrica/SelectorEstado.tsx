@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { actualizarEstadoAction } from "./actions";
+import Desplegable from "@/components/Desplegable";
 
 const OPCIONES = [
   { value: "EN_FABRICACION", label: "En producción" },
@@ -51,18 +52,14 @@ export default function SelectorEstado({
 
   return (
     <div className="w-full sm:w-72">
-      <select
-        value={elegido}
-        disabled={cambiando}
-        onChange={(e) => cambiar(e.target.value)}
-        className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500 disabled:opacity-50"
-      >
-        {OPCIONES.map((op) => (
-          <option key={op.value} value={op.value}>
-            {op.label}
-          </option>
-        ))}
-      </select>
+      <Desplegable
+      value={elegido}
+      onChange={cambiar}
+      disabled={cambiando}
+      className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500 disabled:opacity-50"
+      ariaLabel="Estado"
+      opciones={OPCIONES}
+      />
 
       {elegido === "LISTO_PARA_COLOCAR" && (
         <button
