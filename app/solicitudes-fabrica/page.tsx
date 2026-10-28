@@ -10,7 +10,8 @@ import { Clock, BellRing, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Desplegable from "@/components/Desplegable";
 
-const tiposVisita = ["Cortar e instalar"];
+// Solicitud de fábrica: único tipo de visita posible (ya no se elige).
+const TIPO_VISITA_FABRICA = "Cortar e instalar";
 
 const tiposVenta = [
   { value: "CORTINA", label: "Cortina completa" },
@@ -30,7 +31,6 @@ export default function SolicitudFabricaPage() {
   const [fecha, setFecha] = useState("");
   const [franjaHoraria, setFranjaHoraria] = useState("");
   const [preferencia, setPreferencia] = useState("");
-  const [tipoVisita, setTipoVisita] = useState("");
 
   const [observaciones, setObservaciones] = useState("");
 
@@ -245,7 +245,7 @@ export default function SolicitudFabricaPage() {
         fecha: fecha || null,
         horario_desde: hDesde,
         horario_hasta: hHasta,
-        tipo_visita: tipoVisita.trim() || null,
+        tipo_visita: TIPO_VISITA_FABRICA,
 
         observaciones: observacionesFinales,
 
@@ -277,7 +277,7 @@ export default function SolicitudFabricaPage() {
           fecha: fecha || null,
           horario_desde: hDesde,
           horario_hasta: hHasta,
-          tipo_visita: tipoVisita.trim() || null,
+          tipo_visita: TIPO_VISITA_FABRICA,
           observaciones: observacionesFinales,
           total_pesos: total ? Number(total) : null,
           saldo_restante: saldo ? Number(saldo) : null,
@@ -584,24 +584,6 @@ export default function SolicitudFabricaPage() {
                   onChange={(e) => setFecha(e.target.value)}
                   className={inputClassName}
                   disabled={exito}
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Tipo de visita
-                </label>
-                <Desplegable
-                value={tipoVisita}
-                onChange={setTipoVisita}
-                className={inputClassName}
-                disabled={exito}
-                ariaLabel="Tipo de visita"
-                placeholder="Seleccionar..."
-                opciones={[
-                { value: "", label: "Seleccionar..." },
-                ...tiposVisita.map((tipo) => ({ value: tipo, label: tipo })),
-                ]}
                 />
               </div>
 
