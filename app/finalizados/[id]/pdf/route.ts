@@ -1,3 +1,4 @@
+import { puedeVerFinalizado } from "@/lib/accesoFinalizados";
 import { generarPDFVisita } from "@/lib/pdf/visita";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -42,6 +43,10 @@ export async function GET(
     .single();
 
   if (error || !solicitud) {
+    return new NextResponse("Trabajo no encontrado", { status: 404 });
+  }
+
+  if (!(await puedeVerFinalizado(supabase, user.id, profile.rol, solicitud))) {
     return new NextResponse("Trabajo no encontrado", { status: 404 });
   }
 
