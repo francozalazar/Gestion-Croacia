@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { rangoFinalizados } from "@/lib/finalizados";
 import Link from "next/link";
 
 export type TrabajoInstalado = {
@@ -15,28 +16,23 @@ export type TrabajoInstalado = {
 
 const TZ = "America/Argentina/Buenos_Aires";
 
-function diaISO(iso: string | null): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-CA", { timeZone: TZ });
-}
-
 function diaLindo(iso: string | null): string {
   if (!iso) return "-";
   return new Date(iso).toLocaleDateString("es-AR", { timeZone: TZ });
 }
 
 export default function TrabajosFinalizadosLista({
-  trabajos,
+  trabajos, desde = "", hasta = "", buscado = false,
 }: {
-  trabajos: TrabajoInstalado[];
+  trabajos: TrabajoInstalado[]; desde?: string; hasta?: string; buscado?: boolean;
 }) {
   const [texto, setTexto] = useState("");
-  const [fecha, setFecha] = useState("");
+  const [inicio, setInicio] = useState(desde);
+  const [fin, setFin] = useState(hasta);
 
   const filtrados = useMemo(() => {
     const t = texto.trim().toLowerCase();
     return trabajos.filter((x) => {
-      if (fecha && diaISO(x.fechaInstalacion) !== fecha) return false;
       if (!t) return true;
       return (
         x.cliente.toLowerCase().includes(t) ||
@@ -44,37 +40,23 @@ export default function TrabajosFinalizadosLista({
         String(x.pedido ?? "").includes(t)
       );
     });
-  }, [trabajos, texto, fecha]);
+  }, [trabajos, texto]);
 
   return (
     <>
-      <div className="mb-6 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 lg:grid-cols-[1fr_200px_auto]">
-        <input
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          placeholder="Buscar por cliente, dirección o número de pedido"
-          className="w-full border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-900"
-        />
-        <input
-          type="date"
-          value={fecha}
-          onChange={(e) => setFecha(e.target.value)}
-          aria-label="Fecha de finalización registrada"
-          className="w-full border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-900"
-        />
-        <button
-          type="button"
-          onClick={() => {
-            setTexto("");
-            setFecha("");
-          }}
-          className="border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Limpiar
-        </button>
-      </div>
-
-      {filtrados.length === 0 ? (
+      <form action="/trabajos-finalizados" className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-white p-5">
+        <label className="min-w-0 flex-1 text-sm text-slate-600">Desde
+          <input type="date" name="desde" aria-label="Desde" required value={inicio} onChange={e => setInicio(e.target.value)} className="mt-2 block w-full rounded border border-slate-300 px-3 py-3" />
+        </label>
+        <label className="min-w-0 flex-1 text-sm text-slate-600">Hasta
+          <input type="date" name="hasta" aria-label="Hasta" required min={inicio || undefined} value={fin} onChange={e => setFin(e.target.value)} className="mt-2 block w-full rounded border border-slate-300 px-3 py-3" />
+        </label>
+        <button type="submit" disabled={!rangoFinalizados(inicio, fin)} className="rounded bg-blue-600 px-6 py-3 font-medium text-white disabled:bg-slate-200 disabled:text-slate-400">Buscar</button>
+        {inicio && fin && inicio > fin && <p role="alert" className="w-full text-sm text-red-700">Desde no puede ser posterior a Hasta.</p>}
+      </form>
+      {buscado && <input value={texto} onChange={e => setTexto(e.target.value)} placeholder="Filtrar por cliente, dirección o pedido" aria-label="Filtrar resultados" className="mb-4 w-full rounded border border-slate-300 px-3 py-2" />}
+      {!buscado ? <p className="text-sm text-slate-500">Elegí Desde y Hasta y presioná Buscar.</p> :
+      filtrados.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
           No hay trabajos finalizados para mostrar.
         </div>
