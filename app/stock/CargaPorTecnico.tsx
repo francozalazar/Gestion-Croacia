@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { cargarMotoresTrabajoAction } from "./actions";
+import Desplegable from "@/components/Desplegable";
 
 type Tecnico = { id: string; nombre: string | null; apellido: string | null };
 type Motor = { id: number; nombre: string; cantidad: number };
@@ -163,11 +164,13 @@ export default function CargaPorTecnico({ tecnicos, motores }: { tecnicos: Tecni
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-xs font-semibold text-slate-600">Técnico</label>
-          <select className={campo} value={tecnicoId} onChange={(e) => { setTecnicoId(e.target.value); setAbierto(null); }}>
-            {tecnicos.map((t) => (
-              <option key={t.id} value={t.id}>{`${t.nombre || ""} ${t.apellido || ""}`.trim() || "Sin nombre"}</option>
-            ))}
-          </select>
+          <Desplegable
+          value={tecnicoId}
+          onChange={(v) => { setTecnicoId(v); setAbierto(null); }}
+          className={campo}
+          ariaLabel="Técnico"
+          opciones={tecnicos.map((t) => ({ value: String(t.id), label: `${t.nombre || ""} ${t.apellido || ""}`.trim() || "Sin nombre" }))}
+          />
         </div>
         <div>
           <label className="mb-1 block text-xs font-semibold text-slate-600">Día</label>
@@ -205,12 +208,17 @@ export default function CargaPorTecnico({ tecnicos, motores }: { tecnicos: Tecni
                 <div className="space-y-2">
                   {lineas.map((l, i) => (
                     <div key={i} className="grid grid-cols-[1fr_90px] gap-2">
-                      <select className={campo} value={l.motor_id} onChange={(e) => setLineas(lineas.map((x, k) => (k === i ? { ...x, motor_id: e.target.value } : x)))}>
-                        <option value="">Modelo</option>
-                        {motores.map((m) => (
-                          <option key={m.id} value={m.id}>{`${m.nombre} (hay ${m.cantidad})`}</option>
-                        ))}
-                      </select>
+                      <Desplegable
+                      value={l.motor_id}
+                      onChange={(v) => setLineas(lineas.map((x, k) => (k === i ? { ...x, motor_id: v } : x)))}
+                      className={campo}
+                      ariaLabel="Modelo"
+                      placeholder="Modelo"
+                      opciones={[
+                      { value: "", label: "Modelo" },
+                      ...motores.map((m) => ({ value: String(m.id), label: `${m.nombre} (hay ${m.cantidad})` })),
+                      ]}
+                      />
                       <input type="number" min={1} step={1} className={campo} value={l.cantidad} aria-label="Cantidad"
                         onChange={(e) => setLineas(lineas.map((x, k) => (k === i ? { ...x, cantidad: e.target.value } : x)))} />
                     </div>
