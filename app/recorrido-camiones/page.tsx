@@ -5,6 +5,7 @@ import { textoFranja as obtenerTextoFranja } from "@/lib/franjas";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
 import { Search, X, Truck, Calendar } from "lucide-react";
+import Desplegable from "@/components/Desplegable";
 
 export default function RecorridoCamionesPage() {
   const supabase = createClient();
@@ -346,18 +347,17 @@ export default function RecorridoCamionesPage() {
             <label className="text-xs font-semibold text-slate-400 block mb-1 uppercase flex items-center gap-1.5">
               <Truck size={14} /> Seleccionar Camión / Técnico
             </label>
-            <select
-              value={tecnicoSeleccionado}
-              onChange={(e) => setTecnicoSeleccionado(e.target.value)}
-              className="w-full border border-slate-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:border-blue-500 bg-white"
-            >
-              <option value="">Seleccionar camión...</option>
-              {tecnicos.map((t) => (
-                <option key={t.id} value={t.id}>
-                  🚛 {t.nombre} {t.apellido || ""}
-                </option>
-              ))}
-            </select>
+            <Desplegable
+            value={tecnicoSeleccionado}
+            onChange={setTecnicoSeleccionado}
+            className="w-full border border-slate-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:border-blue-500 bg-white"
+            ariaLabel="Seleccionar Camión / Técnico"
+            placeholder="Seleccionar camión..."
+            opciones={[
+            { value: "", label: "Seleccionar camión..." },
+            ...tecnicos.map((t) => ({ value: String(t.id), label: `🚛 ${t.nombre} ${t.apellido || ""}` })),
+            ]}
+            />
           </div>
           )}
 
@@ -488,19 +488,18 @@ export default function RecorridoCamionesPage() {
                 <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
                   Cambiar prioridad
                 </label>
-                <select
-                  value={nuevaPrioridad}
-                  onChange={(e) => setNuevaPrioridad(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl p-3 text-slate-700 text-sm outline-none bg-white"
-                >
-                  <option value="">Seleccionar prioridad...</option>
-                  <option value="1">Prioridad: 1</option>
-                  <option value="2">Prioridad: 2</option>
-                  <option value="3">Prioridad: 3</option>
-                  <option value="4">Prioridad: 4</option>
-                  <option value="5">Prioridad: 5</option>
-                  <option value="">Sin prioridad</option>
-                </select>
+                <Desplegable
+                value={nuevaPrioridad}
+                onChange={setNuevaPrioridad}
+                className="w-full border border-slate-200 rounded-xl p-3 text-slate-700 text-sm outline-none bg-white"
+                ariaLabel="Cambiar prioridad"
+                placeholder="Seleccionar prioridad..."
+                opciones={[
+                { value: "", label: "Seleccionar prioridad..." },
+                ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: `Prioridad: ${n}` })),
+                { value: "", label: "Sin prioridad" },
+                ]}
+                />
               </div>
               )}
 
