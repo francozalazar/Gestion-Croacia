@@ -76,8 +76,32 @@ export default async function MisTrabajosPage() {
       "ANULADO",
     ];
 
+    // Visitas cuyo pedido de fábrica fue anulado no se muestran al técnico.
+    const idsFabricaVinculada = Array.from(
+      new Set(
+        (dataBase || [])
+          .map((sol: any) => sol.solicitud_fabrica_id)
+          .filter(Boolean)
+      )
+    );
+    const fabricasAnuladas = new Set<string>();
+    if (idsFabricaVinculada.length) {
+      const { data: vinculadas } = await supabase
+        .from("solicitudes_fabrica")
+        .select("id, estado")
+        .in("id", idsFabricaVinculada);
+      (vinculadas || [])
+        .filter((f: any) => f.estado === "ANULADO")
+        .forEach((f: any) => fabricasAnuladas.add(String(f.id)));
+    }
+
     const listaBase = (dataBase || [])
       .filter((sol) => !estadosOcultos.includes(sol.estado))
+      .filter(
+        (sol: any) =>
+          !sol.solicitud_fabrica_id ||
+          !fabricasAnuladas.has(String(sol.solicitud_fabrica_id))
+      )
       .map((sol) => {
         const asig = asignaciones.find(
           (a) => String(a.solicitud_id) === String(sol.id)
