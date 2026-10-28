@@ -233,7 +233,7 @@ export default function RecorridoCamionesPage() {
       .eq(columnaRelacion, trabajoModal.id)
       .eq("usuario_id", tecnicoSeleccionado)
       .eq("fecha", fecha)
-      .select("id");
+      .select("*");
 
     if (errorAsignacion) {
       alert("Error quitando asignación: " + errorAsignacion.message);
@@ -255,17 +255,34 @@ export default function RecorridoCamionesPage() {
       .eq("id", trabajoModal.id);
 
     if (errorSolicitud) {
-      alert("Error actualizando trabajo: " + errorSolicitud.message);
+      // Se devuelve la asignación para no dejar el trabajo sin técnico y asignado.
+      const filas = (asignacionesBorradas || []).map(({ id: _id, ...resto }: any) => resto);
+      const { error: errRestaurar } = await supabase.from("asignaciones").insert(filas);
+      alert(
+        "Error actualizando trabajo: " +
+          errorSolicitud.message +
+          (errRestaurar
+            ? ". La asignación se quitó pero el estado no cambió: avisá a administración."
+            : ". No se quitó la asignación, probá de nuevo.")
+      );
+      await ejecutarBusqueda(tecnicoSeleccionado, fecha);
       return;
     }
 
     // Si es un trabajo de fábrica, sincronizamos la solicitud principal
     // para que oficina vea el estado real.
     if (trabajoModal._esFabrica) {
-      await supabase
+      const { error: errEspejo } = await supabase
         .from("solicitudes")
         .update(datosReset)
         .eq("solicitud_fabrica_id", trabajoModal.id);
+      if (errEspejo) {
+        alert(
+          "La asignación se quitó, pero la visita vinculada no se actualizó (" +
+            errEspejo.message +
+            "). Avisá a administración."
+        );
+      }
     }
 
     setTrabajoModal(null);
@@ -292,7 +309,7 @@ export default function RecorridoCamionesPage() {
       .eq(columnaRelacion, trabajoModal.id)
       .eq("usuario_id", tecnicoSeleccionado)
       .eq("fecha", fecha)
-      .select("id");
+      .select("*");
 
     if (errorAsignacion) {
       alert("Error anulando asignación: " + errorAsignacion.message);
@@ -310,8 +327,33 @@ export default function RecorridoCamionesPage() {
       .eq("id", trabajoModal.id);
 
     if (errorSolicitud) {
-      alert("Error anulando trabajo: " + errorSolicitud.message);
+      const filas = (asignacionesBorradas || []).map(({ id: _id, ...resto }: any) => resto);
+      const { error: errRestaurar } = await supabase.from("asignaciones").insert(filas);
+      alert(
+        "Error anulando trabajo: " +
+          errorSolicitud.message +
+          (errRestaurar
+            ? ". La asignación se quitó pero el trabajo no se anuló: avisá a administración."
+            : ". No se anuló nada, probá de nuevo.")
+      );
+      await ejecutarBusqueda(tecnicoSeleccionado, fecha);
       return;
+    }
+
+    // Un pedido de fábrica anulado también anula su visita vinculada.
+    if (trabajoModal._esFabrica) {
+      const { error: errEspejo } = await supabase
+        .from("solicitudes")
+        .update({ estado: "ANULADO" })
+        .eq("solicitud_fabrica_id", trabajoModal.id)
+        .neq("estado", "FINALIZADO");
+      if (errEspejo) {
+        alert(
+          "El pedido se anuló, pero la visita vinculada no (" +
+            errEspejo.message +
+            "). Avisá a administración."
+        );
+      }
     }
 
     setTrabajoModal(null);
