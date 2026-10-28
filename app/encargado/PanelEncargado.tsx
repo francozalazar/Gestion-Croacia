@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { operarEncargado } from "./actions";
 import { fechaLinda as fechaCivil } from "@/lib/fechasFicha";
+import Desplegable from "@/components/Desplegable";
 type Trabajo = {
   id: number;
   numero: number;
@@ -184,10 +185,16 @@ export default function PanelEncargado({
               >
                 <label>
                   Movimiento
-                  <select name="tipo" className={campo}>
-                    <option>ENTRADA</option>
-                    <option>SALIDA</option>
-                  </select>
+                  <Desplegable
+                  name="tipo"
+                  defaultValue="ENTRADA"
+                  className={campo}
+                  ariaLabel="Movimiento"
+                  opciones={[
+                  { value: "ENTRADA", label: "ENTRADA" },
+                  { value: "SALIDA", label: "SALIDA" },
+                  ]}
+                  />
                 </label>
                 <label>
                   Cantidad
@@ -249,17 +256,13 @@ export default function PanelEncargado({
             <div className="grid sm:grid-cols-2 gap-3 mb-5">
               <label>
                 Técnico
-                <select
-                  className={campo}
-                  value={tecnico}
-                  onChange={(e) => setTecnico(e.target.value)}
-                >
-                  {datos.tecnicos.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.nombre}
-                    </option>
-                  ))}
-                </select>
+                <Desplegable
+                className={campo}
+                ariaLabel="Técnico"
+                value={tecnico}
+                onChange={setTecnico}
+                opciones={datos.tecnicos.map((t) => ({ value: String(t.id), label: t.nombre }))}
+                />
               </label>
               <label>
                 Fecha
@@ -353,19 +356,15 @@ export default function PanelEncargado({
                       >
                         <label>
                           Técnico
-                          <select
-                            name="tecnico"
-                            required
-                            defaultValue={a?.usuario_id || ""}
-                            className={campo}
-                          >
-                            <option value="">Seleccionar</option>
-                            {datos.tecnicos.map((x) => (
-                              <option key={x.id} value={x.id}>
-                                {x.nombre}
-                              </option>
-                            ))}
-                          </select>
+                          <Desplegable
+                          name="tecnico"
+                          required
+                          defaultValue={a?.usuario_id || ""}
+                          className={campo}
+                          ariaLabel="Técnico"
+                          placeholder="Seleccionar"
+                          opciones={datos.tecnicos.map((x) => ({ value: String(x.id), label: x.nombre }))}
+                          />
                         </label>
                         <label>
                           Fecha pactada
@@ -380,25 +379,32 @@ export default function PanelEncargado({
                         {!t.horario_desde && !t.horario_hasta && (
                           <label>
                             Horario
-                            <select name="franja" className={campo}>
-                              <option value="DIA_COMPLETO">Día completo</option>
-                              <option value="MANANA">Mañana08:30–12:30</option>
-                              <option value="TARDE">Tarde13–17</option>
-                            </select>
+                            <Desplegable
+                            name="franja"
+                            defaultValue="DIA_COMPLETO"
+                            className={campo}
+                            ariaLabel="Horario"
+                            opciones={[
+                            { value: "DIA_COMPLETO", label: "Día completo" },
+                            { value: "MANANA", label: "Mañana08:30–12:30" },
+                            { value: "TARDE", label: "Tarde13–17" },
+                            ]}
+                            />
                           </label>
                         )}
                         <label>
                           Prioridad
-                          <select
-                            name="prioridad"
-                            defaultValue={a?.prioridad || ""}
-                            className={campo}
-                          >
-                            <option value="">Sin prioridad</option>
-                            {[1, 2, 3, 4, 5].map((n) => (
-                              <option key={n}>{n}</option>
-                            ))}
-                          </select>
+                          <Desplegable
+                          name="prioridad"
+                          defaultValue={String(a?.prioridad || "")}
+                          className={campo}
+                          ariaLabel="Prioridad"
+                          placeholder="Sin prioridad"
+                          opciones={[
+                          { value: "", label: "Sin prioridad" },
+                          ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) })),
+                          ]}
+                          />
                         </label>
                         <button disabled={ocupado} className={boton}>
                           {a ? "Actualizar asignación" : "Asignar trabajo"}
@@ -417,22 +423,19 @@ export default function PanelEncargado({
                           });
                         }}
                       >
-                        <select
-                          aria-label="Nuevo estado"
-                          name="estado"
-                          defaultValue={t.estado}
-                          className={campo}
-                        >
-                          {[
-                            "ENVIADO_A_CORTAR",
-                            "EN_CORTE",
-                            "EN_FABRICACION",
-                            "FALTANTES",
-                            "LISTO_PARA_COLOCAR",
-                          ].map((x) => (
-                            <option key={x}>{x}</option>
-                          ))}
-                        </select>
+                        <Desplegable
+                        ariaLabel="Nuevo estado"
+                        name="estado"
+                        defaultValue={t.estado}
+                        className={campo}
+                        opciones={[
+                        "ENVIADO_A_CORTAR",
+                        "EN_CORTE",
+                        "EN_FABRICACION",
+                        "FALTANTES",
+                        "LISTO_PARA_COLOCAR",
+                        ].map((x) => ({ value: x, label: x }))}
+                        />
                         <button disabled={ocupado} className={boton}>
                           Cambiar estado
                         </button>
@@ -454,17 +457,17 @@ export default function PanelEncargado({
                           });
                         }}
                       >
-                        <select
-                          name="prioridad"
-                          defaultValue={a.prioridad || ""}
-                          className={campo}
-                          aria-label="Prioridad"
-                        >
-                          <option value="">Sin prioridad</option>
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <option key={n}>{n}</option>
-                          ))}
-                        </select>
+                        <Desplegable
+                        name="prioridad"
+                        defaultValue={String(a.prioridad || "")}
+                        className={campo}
+                        ariaLabel="Prioridad"
+                        placeholder="Sin prioridad"
+                        opciones={[
+                        { value: "", label: "Sin prioridad" },
+                        ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) })),
+                        ]}
+                        />
                         <button disabled={ocupado} className={boton}>
                           Guardar prioridad
                         </button>
