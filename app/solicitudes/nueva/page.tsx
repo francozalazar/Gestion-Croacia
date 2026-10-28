@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { resolverClienteYDireccion } from "@/lib/clientes";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import SelectorCliente from "@/components/SelectorCliente";
 import ProvinciaLocalidad from "@/components/ProvinciaLocalidad";
 import { createClient } from "@/lib/supabase/cliente";
 import {
@@ -165,10 +166,13 @@ export default function NuevaSolicitudPage() {
           localidad,
           userId: user.id,
           telefono,
+          clienteIdSeleccionado: modoClienteNuevo ? null : clienteIdSel,
         }
       );
 
       let clienteIdFinal = clienteId;
+
+      if (!clienteIdFinal && !modoClienteNuevo) throw new Error("El cliente elegido ya no está disponible. Volvé a seleccionarlo.");
 
       if (!clienteIdFinal) {
         // Respaldo por si falla la búsqueda/creación automática
@@ -363,25 +367,14 @@ export default function NuevaSolicitudPage() {
                     Cliente *
                   </label>
                   <div className="flex flex-col gap-2 sm:flex-row">
-                    <select
-                      value={clienteIdSel ?? ""}
-                      onChange={(e) => {
-                        const id = e.target.value ? Number(e.target.value) : null;
+                    <SelectorCliente clientes={clientes} value={clienteIdSel} className={inputClassName}
+                      onSelect={(elegido) => {
+                        const id = elegido?.id ?? null;
                         setClienteIdSel(id);
-                        const elegido = clientes.find((c) => c.id === id);
-                        setCliente(elegido ? elegido.nombre : "");
+                        setCliente(elegido?.nombre ?? "");
                         setTelefono(elegido?.telefono ?? "");
                         cargarDirecciones(id);
-                      }}
-                      className={inputClassName}
-                    >
-                      <option value="">Elegir cliente...</option>
-                      {clientes.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nombre}
-                        </option>
-                      ))}
-                    </select>
+                      }} />
                     <button
                       type="button"
                       onClick={() => {
@@ -502,7 +495,7 @@ export default function NuevaSolicitudPage() {
               <div>
                 <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
                   <BellRing size={16} />
-                  Aviso / Preferencia
+                  Preferencia
                 </label>
                 <input
                   type="text"
