@@ -130,8 +130,6 @@ export default async function StockPage() {
   // no se reconstruye desde la asignacion actual (el trabajo pudo reasignarse).
   const tecnicoDe = (mov: Movimiento) => (mov.tecnico_id ? nombreDe(mov.tecnico_id) : "");
 
-  const unidadesTotales = motores.reduce((acc, m) => acc + m.cantidad, 0);
-  const enMinimo = motores.filter(porAgotarse).length;
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -168,24 +166,6 @@ export default async function StockPage() {
           <p className="mt-2 text-sm text-slate-600">
             Cada modelo se cuenta por separado. Sumá cuando llegan motores y descontá cuando se usa uno en un trabajo.
           </p>
-        </div>
-
-        {/* RESUMEN */}
-        <div className="mb-8 grid grid-cols-3 gap-3 md:gap-5">
-          <div className="rounded-xl bg-white p-3 shadow-sm md:p-5">
-            <p className="text-xs text-slate-500 md:text-sm">Modelos</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900 md:mt-2 md:text-3xl">{motores.length}</p>
-          </div>
-          <div className="rounded-xl bg-white p-3 shadow-sm md:p-5">
-            <p className="text-xs text-slate-500 md:text-sm">Unidades en total</p>
-            <p className="mt-1 text-2xl font-bold text-blue-600 md:mt-2 md:text-3xl">{unidadesTotales}</p>
-          </div>
-          <div className="rounded-xl bg-white p-3 shadow-sm md:p-5">
-            <p className="text-xs text-slate-500 md:text-sm">Por agotarse</p>
-            <p className={`mt-1 text-2xl font-bold md:mt-2 md:text-3xl ${enMinimo > 0 ? "text-red-600" : "text-slate-900"}`}>
-              {enMinimo}
-            </p>
-          </div>
         </div>
 
         {eMotores && (
