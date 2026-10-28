@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { Calendar, Clock, Send, X } from "lucide-react";
 import Desplegable from "@/components/Desplegable";
+import { enviarACoordinacionPasos } from "@/lib/pasosCircuito";
 
 interface Props {
   solicitud: {
@@ -87,27 +88,11 @@ export default function EnviarACoordinacion({ solicitud }: Props) {
       observaciones: observaciones || null,
     };
 
-    // 1. Primero la visita vinculada (solicitudes, por solicitud_fabrica_id).
+    // Primero la visita vinculada, después el pedido que lo saca de este listado.
     // Si algo falla, el pedido sigue en "Listos para colocar" y se puede reintentar.
-    const { error: errVisita } = await supabase
-      .from("solicitudes")
-      .update(datosNuevos)
-      .eq("solicitud_fabrica_id", solicitud.id);
-
-    if (errVisita) {
-      alert("No se pudo enviar a coordinación: " + errVisita.message + ". Probá de nuevo.");
-      setGuardando(false);
-      return;
-    }
-
-    // 2. Después el pedido de fábrica, que es el que lo saca de este listado.
-    const { error: errFabrica } = await supabase
-      .from("solicitudes_fabrica")
-      .update(datosNuevos)
-      .eq("id", solicitud.id);
-
-    if (errFabrica) {
-      alert("No se pudo enviar a coordinación: " + errFabrica.message + ". Probá de nuevo.");
+    const r = await enviarACoordinacionPasos(supabase, solicitud.id, datosNuevos);
+    if (!r.ok) {
+      alert("No se pudo enviar a coordinación: " + r.error?.message + ". Probá de nuevo.");
       setGuardando(false);
       return;
     }
