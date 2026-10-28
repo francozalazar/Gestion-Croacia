@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { useRouter } from "next/navigation";
 import { UserCog } from "lucide-react";
+import Desplegable from "@/components/Desplegable";
 
 type Usuario = {
   id: string;
@@ -128,34 +129,35 @@ export default function AsignarSolicitud({
           No hay usuarios activos con el rol <strong>TECNICO</strong>.
         </div>
       ) : (
-        <select
-          value={usuarioId}
-          onChange={(e) => setUsuarioId(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-gray-900"
-        >
-          <option value="">Seleccionar técnico...</option>
-          {tecnicos.map((usuario) => (
-            <option key={usuario.id} value={usuario.id}>
-              {usuario.nombre} {usuario.apellido || ""}
-            </option>
-          ))}
-        </select>
+        <Desplegable
+        value={usuarioId}
+        onChange={setUsuarioId}
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-gray-900"
+        ariaLabel="Técnico responsable"
+        placeholder="Seleccionar técnico..."
+        opciones={[
+        { value: "", label: "Seleccionar técnico..." },
+        ...tecnicos.map((usuario) => ({ value: String(usuario.id), label: `${usuario.nombre} ${usuario.apellido || ""}` })),
+        ]}
+        />
       )}
 
       <label className="mb-2 mt-4 block text-sm font-medium text-gray-700">
         Prioridad
       </label>
-      <select
-        value={prioridad}
-        onChange={(e) => setPrioridad(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-gray-900"
-      >
-        <option value="1">1 - Urgente</option>
-        <option value="2">2 - Alta</option>
-        <option value="3">3 - Normal</option>
-        <option value="4">4 - Baja</option>
-        <option value="5">5 - Muy baja</option>
-      </select>
+      <Desplegable
+      value={prioridad}
+      onChange={setPrioridad}
+      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-gray-900"
+      ariaLabel="Prioridad"
+      opciones={[
+      { value: "1", label: "1 - Urgente" },
+      { value: "2", label: "2 - Alta" },
+      { value: "3", label: "3 - Normal" },
+      { value: "4", label: "4 - Baja" },
+      { value: "5", label: "5 - Muy baja" },
+      ]}
+      />
 
       <div className="mt-4 rounded-lg bg-white p-3 text-sm text-gray-600">
         <div className="flex gap-2">

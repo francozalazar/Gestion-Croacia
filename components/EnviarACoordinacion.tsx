@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { Calendar, Clock, Send, X } from "lucide-react";
+import Desplegable from "@/components/Desplegable";
 
 interface Props {
   solicitud: {
@@ -151,22 +152,22 @@ export default function EnviarACoordinacion({ solicitud }: Props) {
                 </label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-2.5 text-slate-400" size={18} />
-                  <select
-                    value={franja}
-                    onChange={(e) => setFranja(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                  >
-                    <option value="">Coordinar con cliente...</option>
-                    <option value="manana">Por la mañana (8:30 a 12:30)</option>
-                    <option value="tarde">Por la tarde (13:00 a 17:00)</option>
-                    <option value="completo">Día completo (8:30 a 17:00)</option>
-                    {franja === "custom" && (
-                      <option value="custom">
-                        Actual: {(solicitud.horario_desde || "").slice(0, 5)} a{" "}
-                        {(solicitud.horario_hasta || "").slice(0, 5)} hs
-                      </option>
-                    )}
-                  </select>
+                  <Desplegable
+                  value={franja}
+                  onChange={setFranja}
+                  className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                  ariaLabel="Franja horaria"
+                  placeholder="Coordinar con cliente..."
+                  opciones={[
+                  { value: "", label: "Coordinar con cliente..." },
+                  { value: "manana", label: "Por la mañana (8:30 a 12:30)" },
+                  { value: "tarde", label: "Por la tarde (13:00 a 17:00)" },
+                  { value: "completo", label: "Día completo (8:30 a 17:00)" },
+                  ...(franja === "custom"
+                  ? [{ value: "custom", label: `Actual: ${(solicitud.horario_desde || "").slice(0, 5)} a ${(solicitud.horario_hasta || "").slice(0, 5)} hs` }]
+                  : []),
+                  ]}
+                  />
                 </div>
               </div>
 
