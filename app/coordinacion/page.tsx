@@ -217,6 +217,21 @@ export default function CoordinacionPage() {
           : "Sin usuario",
       }));
 
+    // Fecha historica solo cuando el ultimo evento propio prueba que sigue
+    // en Coordinacion. No usar fecha de carga ni eventos de la visita hija.
+    const idsPedidos = mapeadasFab.filter(s => !s.coordinacion_desde).map(s => s.id);
+    const idsVisitas = baseFiltradas.filter(s => !s.coordinacion_desde).map(s => s.id);
+    const [eventosPedidos, eventosVisitas] = await Promise.all([
+      idsPedidos.length ? supabase.from("trabajo_eventos").select("solicitud_fabrica_id, etapa, created_at, id").in("solicitud_fabrica_id", idsPedidos).is("solicitud_id", null).order("created_at", { ascending: false }).order("id", { ascending: false }) : Promise.resolve({ data: [] }),
+      idsVisitas.length ? supabase.from("trabajo_eventos").select("solicitud_id, etapa, created_at, id").in("solicitud_id", idsVisitas).order("created_at", { ascending: false }).order("id", { ascending: false }) : Promise.resolve({ data: [] }),
+    ]);
+    const entradaComprobada = (eventos: any[], campo: string, id: number) => {
+      const ultimo = eventos.find(e => e[campo] === id);
+      return ultimo && ["Pendiente de coordinacion", "En coordinacion", "PENDIENTE"].includes(ultimo.etapa) ? ultimo.created_at : null;
+    };
+    mapeadasFab.forEach(s => { if (!s.coordinacion_desde) s.coordinacion_desde = entradaComprobada(eventosPedidos.data || [], "solicitud_fabrica_id", s.id); });
+    baseFiltradas.forEach(s => { if (!s.coordinacion_desde) s.coordinacion_desde = entradaComprobada(eventosVisitas.data || [], "solicitud_id", s.id); });
+
     // =========================================================
     // 7. UNIR TODO
     // =========================================================
