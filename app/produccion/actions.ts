@@ -25,14 +25,8 @@ export async function anularProduccionAction(formData: FormData) {
     throw new Error("Solo un administrador puede anular trabajos");
   }
 
-  const { error } = await supabase
-    .from("solicitudes_fabrica")
-    .update({ estado: "ANULADO" })
-    .eq("id", id);
-
-  if (error) throw new Error(error.message);
-
-  // Un pedido de fábrica anulado también anula su visita vinculada (si no está finalizada).
+  // Primero la visita vinculada (si no está finalizada) y después el pedido.
+  // Si algo falla, el pedido sigue visible en Producción y se puede reintentar.
   const { error: errVisita } = await supabase
     .from("solicitudes")
     .update({ estado: "ANULADO" })
@@ -40,6 +34,13 @@ export async function anularProduccionAction(formData: FormData) {
     .neq("estado", "FINALIZADO");
 
   if (errVisita) throw new Error(errVisita.message);
+
+  const { error } = await supabase
+    .from("solicitudes_fabrica")
+    .update({ estado: "ANULADO" })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
 
   revalidatePath("/produccion");
   revalidatePath("/fabrica");
