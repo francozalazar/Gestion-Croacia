@@ -1,5 +1,6 @@
 "use client";
 
+import { asignarPasos } from "@/lib/pasosCircuito";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
@@ -325,86 +326,8 @@ export default function CoordinacionPage() {
     // 1. GUARDAR / ACTUALIZAR ASIGNACIÓN CON UPSERT
     // =========================================================
 
-    let solicitudIdAsignacion = solicitudModal.id;
-
-    let errorAsignacion: any = null;
-
-    // Asignación previa, para poder volver atrás si falla un paso posterior.
-    const columnaAsig = solicitudModal.es_fabrica
-      ? "solicitud_fabrica_id"
-      : "solicitud_id";
-    const { data: asignacionPrevia } = await supabase
-      .from("asignaciones")
-      .select("*")
-      .eq(columnaAsig, solicitudModal.id)
-      .maybeSingle();
-
-    if (solicitudModal.es_fabrica) {
-      const { data: asignacionExistente } = await supabase
-        .from("asignaciones")
-        .select("id")
-        .eq("solicitud_fabrica_id", solicitudModal.id)
-        .maybeSingle();
-
-      if (asignacionExistente) {
-        const resultado = await supabase
-          .from("asignaciones")
-          .update({
-            usuario_id: tecnicoId,
-            fecha: fechaPactada,
-            tipo: "TECNICO",
-            prioridad: prioridadNumerica,
-          })
-          .eq("id", asignacionExistente.id);
-
-        errorAsignacion = resultado.error;
-      } else {
-        const resultado = await supabase
-          .from("asignaciones")
-          .insert({
-            solicitud_id: null,
-            solicitud_fabrica_id: solicitudModal.id,
-            usuario_id: tecnicoId,
-            fecha: fechaPactada,
-            tipo: "TECNICO",
-            prioridad: prioridadNumerica,
-          });
-
-        errorAsignacion = resultado.error;
-      }
-    } else {
-      const resultado = await supabase
-        .from("asignaciones")
-        .upsert(
-          {
-            solicitud_id: solicitudModal.id,
-            solicitud_fabrica_id: null,
-            usuario_id: tecnicoId,
-            fecha: fechaPactada,
-            tipo: "TECNICO",
-            prioridad: prioridadNumerica,
-          },
-          { onConflict: "solicitud_id" }
-        );
-
-      errorAsignacion = resultado.error;
-    }
-
-    if (errorAsignacion) {
-      if (errorAsignacion.code === "23505") {
-        alert(
-          `El técnico ya tiene otro trabajo con prioridad ${prioridadNumerica} para ese día.`
-        );
-      } else {
-        alert("Error al asignar el trabajo: " + errorAsignacion.message);
-      }
-
-      setGuardando(false);
-      return;
-    }
-
     // =========================================================
-    // 2. ACTUALIZAR SOLICITUD
+    // 1. ASIGNACIÓN + 2. ACTUALIZAR VISITA Y PEDIDO (con deshacer si falla)
     // =========================================================
 
     const datosActualizacion = {
@@ -414,58 +337,33 @@ export default function CoordinacionPage() {
       horario_hasta: hHasta,
     };
 
-    const tablaDestino = solicitudModal.es_fabrica
-      ? "solicitudes_fabrica"
-      : "solicitudes";
+    const r = await asignarPasos(supabase, {
+      id: solicitudModal.id,
+      esFabrica: !!solicitudModal.es_fabrica,
+      tecnicoId,
+      fecha: fechaPactada,
+      prioridad: prioridadNumerica,
+      datosActualizacion,
+    });
 
-    // Si falla un paso, se deshace la asignación para no dejar el trabajo a medias.
-    // Estas llamadas son separadas (no una sola transacción), por eso el orden:
-    // primero la visita vinculada, al final el pedido que lo saca de Coordinación.
-    // Si algo falla, el trabajo sigue en Coordinación y se puede volver a asignar.
-    async function deshacerAsignacion() {
-      if (asignacionPrevia) {
-        const { id: _idPrevio, ...datosPrevios } = asignacionPrevia as any;
-        const { error } = await supabase
-          .from("asignaciones")
-          .update(datosPrevios)
-          .eq("id", asignacionPrevia.id);
-        return !error;
+    if (!r.ok) {
+      if (r.etapa === "asignacion") {
+        if (r.error?.code === "23505") {
+          alert(
+            `El técnico ya tiene otro trabajo con prioridad ${prioridadNumerica} para ese día.`
+          );
+        } else {
+          alert("Error al asignar el trabajo: " + r.error?.message);
+        }
+      } else {
+        alert(
+          "Error al actualizar el trabajo: " +
+            r.error?.message +
+            (r.deshecho
+              ? ". No se guardó la asignación, probá de nuevo."
+              : ". La asignación quedó guardada: volvé a tocar Asignar para completar.")
+        );
       }
-      const { data, error } = await supabase
-        .from("asignaciones")
-        .delete()
-        .eq(columnaAsig, solicitudModal.id)
-        .select("id");
-      return !error && !!data && data.length > 0;
-    }
-
-    let errPaso: any = null;
-
-    if (solicitudModal.es_fabrica) {
-      const { error } = await supabase
-        .from("solicitudes")
-        .update(datosActualizacion)
-        .eq("solicitud_fabrica_id", solicitudModal.id);
-      errPaso = error;
-    }
-
-    if (!errPaso) {
-      const { error } = await supabase
-        .from(tablaDestino)
-        .update(datosActualizacion)
-        .eq("id", solicitudModal.id);
-      errPaso = error;
-    }
-
-    if (errPaso) {
-      const deshecho = await deshacerAsignacion();
-      alert(
-        "Error al actualizar el trabajo: " +
-          errPaso.message +
-          (deshecho
-            ? ". No se guardó la asignación, probá de nuevo."
-            : ". La asignación quedó guardada: volvé a tocar Asignar para completar.")
-      );
     } else {
       cerrarModal();
       await cargarDatos();
