@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import { avisoAsignacionVendedor } from '../lib/avisosVendedor.ts';
+const visita = {id: 7, numero: 101, creado_por:'ruth', cliente_creado_por:'otro', estado:'ASIGNADO', cliente_nombre:'Lomas', updated_at:'2026-10-30T13:00:00Z'};
+const asignacion = {id:8, usuario_id:'tecnico', tipo:'TECNICO', fecha:'2026-11-02', created_at:'2026-10-30T13:00:00Z'};
+const tecnico = {nombre:'Gonzalo', apellido:null};
+const aviso=avisoAsignacionVendedor(asignacion, visita, null, 'ruth', tecnico);
+assert.match(aviso.detalle,/Gonzalo - 02\/11\/2026/);
+assert.equal(aviso.fecha,asignacion.created_at);
+assert.equal(aviso.link,'/ficha/visita/7');
+assert.equal(avisoAsignacionVendedor(asignacion, visita, null, 'otro', tecnico),null);
+for(const estado of ['PENDIENTE_COORDINACION','ANULADO','CANCELADO','FINALIZADO']) assert.equal(avisoAsignacionVendedor(asignacion,{...visita,estado},null,'ruth',tecnico),null);
+assert.equal(avisoAsignacionVendedor({...asignacion,fecha:null},visita,null,'ruth',tecnico),null);
+assert.equal(avisoAsignacionVendedor({...asignacion,tipo:'OTRO'},visita,null,'ruth',tecnico),null);
+assert.equal(avisoAsignacionVendedor(asignacion,{...visita,fecha_finalizacion:'2026-10-30'},null,'ruth',tecnico),null);
+assert.equal(avisoAsignacionVendedor(asignacion,visita,{...visita,id:9,creado_por:'otra'},'ruth',tecnico),null);
+assert.equal(avisoAsignacionVendedor(asignacion,visita,{...visita,id:9},'ruth',tecnico).link,'/ficha/remito/9');
+console.log('OK: autor del trabajo, fecha sin desfase, fábrica, estados y asignación parcial');

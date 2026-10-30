@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {avisoPushVigente,textoAvisoPush} from '../lib/avisoPush.ts';
+const p={rol:'OFICINA',activo:true};const s={estado:'ASIGNADO',creado_por:'ruth',fecha:'2026-11-02'};
+const e={tipo:'asignacion_vendedor',usuario_id:'ruth',tecnico_id:'tec',fecha:'2026-11-02'};const a={usuario_id:'tec',tipo:'TECNICO',fecha:'2026-11-02'};
+assert.equal(avisoPushVigente(e,p,s,a),true);
+for(const update of [{usuario_id:'otra'},{fecha:'2026-11-03'},{tipo:'OTRO'}]) assert.equal(avisoPushVigente(e,p,s,{...a,...update}),false);
+assert.equal(avisoPushVigente(e,p,{...s,creado_por:'otra'},a),false);
+assert.equal(avisoPushVigente(e,{...p,activo:false},s,a),false);
+assert.equal(avisoPushVigente(e,p,{...s,estado:'ANULADO'},a),false);
+assert.equal(avisoPushVigente({...e,tipo:'aprobacion_pendiente'},{rol:'ADMIN',activo:true},{estado:'PENDIENTE_APROBACION'},null),true);
+assert.equal(avisoPushVigente({...e,tipo:'fabrica_aprobada'},p,{...s,estado:'EN_CORTE'},null),true);
+assert.equal(avisoPushVigente({...e,tipo:'fabrica_aprobada'},p,{...s,estado:'PENDIENTE_APROBACION'},null),false);
+assert.equal(avisoPushVigente({...e,tipo:'precio'},p,{...s,estado:'PRESUPUESTADO',tipo_visita:'Instalación'},null),false);
+for(const tipo of ['precio','aprobacion_pendiente','fabrica_aprobada','asignacion_vendedor']) assert.ok(textoAvisoPush(tipo));
+console.log('OK: despacho vigente por rol, autor, estado, técnico, fecha y tipo visita');

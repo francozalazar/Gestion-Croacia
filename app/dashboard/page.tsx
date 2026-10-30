@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
 import AvisosAndroid from "@/components/AvisosAndroid";
+import { avisoAsignacionVendedor } from "@/lib/avisosVendedor";
 import { requierePrecio } from "@/lib/tipoVisita";
 import Link from "next/link";
 import {
@@ -50,6 +51,8 @@ export default function DashboardPage() {
     anulados: 0,
   });
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
+  const avisosAsignacionConocidos = useRef(new Set<string>());
+  const [errorAvisos, setErrorAvisos] = useState(false);
   const [novedadEnVivo, setNovedadEnVivo] = useState<any | null>(null);
   const [stockBajo, setStockBajo] = useState<{ id: number; nombre: string; cantidad: number; minimo: number }[]>([]);
   const [errorStock, setErrorStock] = useState(false);
@@ -62,7 +65,7 @@ export default function DashboardPage() {
 
   // Volver a Inicio o recuperar el foco actualiza la agenda del día.
   useEffect(() => {
-    if (perfil?.rol?.toUpperCase() !== "TECNICO") return;
+    if (!["TECNICO", "ADMIN", "OFICINA", "COORDINACION"].includes(perfil?.rol?.toUpperCase() || "")) return;
     const actualizar = () => { if (document.visibilityState === "visible") cargarDashboard(); };
     window.addEventListener("focus", actualizar);
     document.addEventListener("visibilitychange", actualizar);
@@ -82,6 +85,18 @@ export default function DashboardPage() {
         return [n, ...prev].slice(0, 8);
       });
       setNovedadEnVivo(n);
+    }
+
+    async function actualizarAsignaciones() {
+      if (rol !== "OFICINA") return;
+      const avisos = await cargarAvisosAsignacion(perfil.id);
+      if (!avisos) return;
+      setNotificaciones(prev => [...prev.filter(n => !n.id.startsWith("asignacion-vendedor-")), ...avisos]
+        .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()).slice(0, 8));
+      // No repetir avisos al cambiar otra solicitud o al recibir el mismo evento.
+      const nuevos = avisos.filter(n => !avisosAsignacionConocidos.current.has(n.id));
+      avisosAsignacionConocidos.current = new Set(avisos.map(n => n.id));
+      if (nuevos.length) setNovedadEnVivo(nuevos[0]);
     }
 
     const canal = supabase
@@ -119,6 +134,7 @@ export default function DashboardPage() {
         { event: "UPDATE", schema: "public", table: "solicitudes" },
         (payload) => {
           const s: any = payload.new;
+          if (rol === "OFICINA" && s.creado_por === perfil.id) void actualizarAsignaciones();
           if (s.estado !== "PRESUPUESTADO" || !requierePrecio(s.tipo_visita)) return;
           if (rol === "OFICINA" && s.creado_por !== perfil.id) return;
 
@@ -133,6 +149,15 @@ export default function DashboardPage() {
           });
         }
       )
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "solicitudes_fabrica" },
+        (payload) => { if ((payload.new as any).creado_por === perfil.id) void actualizarAsignaciones(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "asignaciones" },
+        () => { void actualizarAsignaciones(); })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "avisos_circuito", filter: `usuario_id=eq.${perfil.id}` },
+        (payload) => {
+          const n: any = payload.new;
+          if (n.tipo === "fabrica_aprobada") agregarNovedad({id:`fabrica-aprobada-${n.id}`, titulo:"Tu trabajo de fábrica fue aprobado", detalle:"El pedido fue aprobado y enviado a cortar.", fecha:n.created_at, link:`/ficha/remito/${n.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
+        })
       .subscribe();
 
     return () => {
@@ -146,6 +171,24 @@ export default function DashboardPage() {
     const timer = setTimeout(() => setNovedadEnVivo(null), 10000);
     return () => clearTimeout(timer);
   }, [novedadEnVivo]);
+
+  async function cargarAvisosAsignacion(usuarioId: string) {
+    // RLS sigue vigente. No se amplía el acceso a clientes ni trabajos.
+    const [visitas, pedidos, asignaciones, tecnicos] = await Promise.all([
+      supabase.from("solicitudes").select("*").eq("creado_por", usuarioId).in("estado", ["ASIGNADO", "EN_PROCESO"]),
+      supabase.from("solicitudes_fabrica").select("*").eq("creado_por", usuarioId).in("estado", ["ASIGNADO", "EN_PROCESO"]),
+      supabase.from("asignaciones").select("*").eq("tipo", "TECNICO"),
+      supabase.from("profiles").select("id,nombre,apellido").in("rol", ["TECNICO", "ENCARGADO"]),
+    ]);
+    if ([visitas, pedidos, asignaciones, tecnicos].some(r => r.error)) { setErrorAvisos(true); return null; }
+    setErrorAvisos(false);
+    return (asignaciones.data || []).flatMap(a => {
+      const pedido = a.solicitud_fabrica_id ? pedidos.data?.find(p => p.id === a.solicitud_fabrica_id) : null;
+      const visita = a.solicitud_id ? visitas.data?.find(v => v.id === a.solicitud_id) : null;
+      const aviso = avisoAsignacionVendedor(a, visita, pedido, usuarioId, tecnicos.data?.find(t => t.id === a.usuario_id));
+      return aviso ? [{...aviso, icono: Calendar, colorIcono: "bg-blue-100 text-blue-600"}] : [];
+    }).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+  }
 
   async function cargarDashboard() {
     setCargando(true);
@@ -432,6 +475,21 @@ export default function DashboardPage() {
         }
       });
 
+      if (esOficina) {
+        const aprobados = await supabase.from("avisos_circuito").select("id,solicitud_fabrica_id,created_at").eq("usuario_id", user.id).eq("tipo", "fabrica_aprobada").order("created_at", {ascending:false}).limit(8);
+        if (!aprobados.error) {
+          for (const aviso of aprobados.data || []) {
+            eventos.push({ id: `fabrica-aprobada-${aviso.id}`, titulo: "Tu trabajo de fábrica fue aprobado",
+              detalle: "El pedido fue aprobado y enviado a cortar.", fecha: aviso.created_at,
+              link: `/ficha/remito/${aviso.solicitud_fabrica_id}`, icono: CheckCircle2, colorIcono: "bg-emerald-100 text-emerald-600" });
+          }
+        }
+        const avisos = await cargarAvisosAsignacion(user.id);
+        if (avisos) {
+          avisosAsignacionConocidos.current = new Set(avisos.map(n => n.id));
+          eventos.push(...avisos);
+        }
+      }
       eventos.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
       setNotificaciones(eventos.slice(0, 8));
     }
@@ -470,7 +528,7 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {esTecnico && <AvisosAndroid />}
+        {["TECNICO", "OFICINA", "ADMIN"].includes(perfil?.rol?.toUpperCase() || "") && <AvisosAndroid />}
 
         {/* LO URGENTE DE HOY */}
         <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -706,6 +764,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {errorAvisos && <p role="alert" className="mb-3 text-xs text-red-700">No se pudieron cargar los avisos de asignación. Volvé a Inicio para reintentar.</p>}
             {cargando ? (
               <p className="text-center text-xs text-slate-400 py-8">Cargando información...</p>
             ) : notificaciones.length === 0 ? (

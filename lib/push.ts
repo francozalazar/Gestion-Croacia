@@ -13,7 +13,7 @@ export function pushDisponible() {
 export function endpointPermitido(endpoint: string) {
   try {
     const url = new URL(endpoint);
-    // Android Chrome/Firefox: no aceptar destinos arbitrarios ni redes locales.
+    // Chrome, Edge y Firefox (Android/escritorio): no aceptar destinos arbitrarios ni redes locales.
     return url.protocol === "https:" && !url.username && !url.password && !url.port &&
       ["fcm.googleapis.com", "updates.push.services.mozilla.com"].includes(url.hostname);
   } catch { return false; }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { despacharAvisos } from "@/lib/despacharAvisos";
 import { timingSafeEqual } from "node:crypto";
 import webpush from "web-push";
 import { endpointPermitido, pushAdmin, pushDisponible } from "@/lib/push";
@@ -55,5 +56,6 @@ export async function POST(req: NextRequest) {
     }
     if (!retry) await cerrar();
   }
-  return NextResponse.json({ ok: true });
+  const circuito = await despacharAvisos(admin, webpush);
+  return NextResponse.json({ ok: true, circuito });
 }

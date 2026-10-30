@@ -3,20 +3,20 @@ import { createClient } from "@/lib/supabase/server";
 import { endpointPermitido, pushAdmin, pushDisponible } from "@/lib/push";
 
 export const runtime = "nodejs";
-async function tecnico() {
+async function usuarioAvisos() {
   const client = await createClient();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return null;
   const { data } = await client.from("profiles").select("rol, activo").eq("id", user.id).single();
-  return data?.rol?.toUpperCase() === "TECNICO" && data.activo === true ? user : null;
+  return ["TECNICO", "OFICINA", "ADMIN"].includes(data?.rol?.toUpperCase() || "") && data?.activo === true ? user : null;
 }
 export async function GET() {
-  if (!await tecnico()) return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
+  if (!await usuarioAvisos()) return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
   return NextResponse.json({ disponible: pushDisponible(), publicKey: pushDisponible() ? process.env.PUSH_VAPID_PUBLIC_KEY : null }, { headers: { "Cache-Control": "no-store" } });
 }
 export async function POST(req: NextRequest) {
   if (req.headers.get("origin") !== req.nextUrl.origin) return new NextResponse(null, { status: 403 });
-  const user = await tecnico();
+  const user = await usuarioAvisos();
   if (!user) return new NextResponse(null, { status: 403 });
   if (!pushDisponible()) return NextResponse.json({ error: "Los avisos todavía no están disponibles." }, { status: 503 });
   if (Number(req.headers.get("content-length")) > 8192) return new NextResponse(null, { status: 413 });
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 }
 export async function DELETE(req: NextRequest) {
   if (req.headers.get("origin") !== req.nextUrl.origin) return new NextResponse(null, { status: 403 });
-  const user = await tecnico();
+  const user = await usuarioAvisos();
   if (!user) return new NextResponse(null, { status: 403 });
   let endpoint;
   try { endpoint = (await req.json()).endpoint; } catch { return new NextResponse(null, { status: 400 }); }
