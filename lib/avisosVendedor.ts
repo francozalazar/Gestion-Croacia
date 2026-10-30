@@ -14,6 +14,7 @@ export function avisoAsignacionVendedor(
   if (!["ASIGNADO", "EN_PROCESO"].includes(trabajo.estado)) return null;
   const fecha = String(asignacion.fecha).slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return null;
+  if (String(trabajo.fecha || "").slice(0, 10) !== fecha) return null;
   const [ano, mes, dia] = fecha.split("-");
   const nombre = tecnico ? [tecnico.nombre, tecnico.apellido].filter(Boolean).join(" ") : "Técnico asignado";
   return {
