@@ -15,3 +15,6 @@ self.addEventListener('notificationclick', event => {
   const url = event.notification.data?.url === '/trabajos' ? '/trabajos' : '/dashboard';
   event.waitUntil(clients.openWindow(url));
 });
+// Actualiza los avisos sin esperar a que se cierren todas las pestañas viejas.
+self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
+self.addEventListener('activate', event => event.waitUntil(clients.claim()));
