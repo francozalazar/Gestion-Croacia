@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import NuevoUsuarioForm from "./NuevoUsuarioForm";
+import FilaUsuario from "./FilaUsuario";
 
 export default async function UsuariosPage() {
   const supabase = await createClient();
@@ -12,11 +13,11 @@ export default async function UsuariosPage() {
 
   const { data: perfil } = await supabase
     .from("profiles")
-    .select("nombre, apellido, rol")
+    .select("nombre, apellido, rol, activo")
     .eq("id", user.id)
     .single();
   const rol = perfil?.rol || "OFICINA";
-  if (rol.toUpperCase() !== "ADMIN") redirect("/dashboard");
+  if (perfil?.activo !== true || rol.toUpperCase() !== "ADMIN") redirect("/dashboard");
 
   const { data: usuarios } = await supabase
     .from("profiles")
@@ -34,7 +35,7 @@ export default async function UsuariosPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Usuarios</h1>
           <p className="text-sm text-slate-600">
-            Creá el acceso de una persona nueva. Solo los administradores ven esta pantalla.
+            Creá el acceso de una persona nueva o cambiá la contraseña de un usuario existente. Solo los administradores ven esta pantalla.
           </p>
         </div>
 
@@ -44,15 +45,7 @@ export default async function UsuariosPage() {
           <h2 className="mb-3 text-lg font-bold text-slate-900">Usuarios actuales</h2>
           <ul className="divide-y divide-slate-100">
             {(usuarios || []).map((u: any) => (
-              <li key={u.id} className="flex items-center justify-between py-2 text-sm">
-                <span className="font-medium text-slate-900">
-                  {`${u.nombre || ""} ${u.apellido || ""}`.trim() || "Sin nombre"}
-                </span>
-                <span className="text-xs font-semibold text-slate-500">
-                  {u.rol}
-                  {u.activo === false ? " · inactivo" : ""}
-                </span>
-              </li>
+              <FilaUsuario key={u.id} u={u} />
             ))}
           </ul>
         </div>

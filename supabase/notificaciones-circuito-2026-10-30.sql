@@ -52,8 +52,7 @@ create or replace function public.aviso_cambio_asignacion() returns trigger
 language plpgsql security definer set search_path=public as $$
 begin perform public.aviso_encolar_asignacion(new.id); return new; end $$;
 drop trigger if exists aviso_cambio_asignacion on public.asignaciones;
-create trigger aviso_cambio_asignacion after insert or update of usuario_id,tipo,fecha on public.asignaciones
- for each row execute function public.aviso_cambio_asignacion();
+-- El vendedor espera al UPDATE final del trabajo, no al guardado parcial de asignación.
 
 create or replace function public.aviso_cambio_trabajo() returns trigger
 language plpgsql security definer set search_path=public as $$

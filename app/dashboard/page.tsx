@@ -52,6 +52,7 @@ export default function DashboardPage() {
   });
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
   const avisosAsignacionConocidos = useRef(new Set<string>());
+  const eventosAsignacionAnunciados = useRef(new Set<string>());
   const [errorAvisos, setErrorAvisos] = useState(false);
   const [novedadEnVivo, setNovedadEnVivo] = useState<any | null>(null);
   const [stockBajo, setStockBajo] = useState<{ id: number; nombre: string; cantidad: number; minimo: number }[]>([]);
@@ -87,16 +88,24 @@ export default function DashboardPage() {
       setNovedadEnVivo(n);
     }
 
-    async function actualizarAsignaciones() {
+    async function actualizarAsignaciones(eventoFinal?: any) {
       if (rol !== "OFICINA") return;
       const avisos = await cargarAvisosAsignacion(perfil.id);
       if (!avisos) return;
       setNotificaciones(prev => [...prev.filter(n => !n.id.startsWith("asignacion-vendedor-")), ...avisos]
         .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()).slice(0, 8));
       // No repetir avisos al cambiar otra solicitud o al recibir el mismo evento.
-      const nuevos = avisos.filter(n => !avisosAsignacionConocidos.current.has(n.id));
       avisosAsignacionConocidos.current = new Set(avisos.map(n => n.id));
-      if (nuevos.length) setNovedadEnVivo(nuevos[0]);
+      // El cartel sólo se anuncia tras el evento del guardado final. Los cambios
+      // de asignación refrescan el listado, pero pueden estar pendientes de deshacer.
+      if (eventoFinal && !eventosAsignacionAnunciados.current.has(String(eventoFinal.id))) {
+        const id = `asignacion-vendedor-${eventoFinal.asignacion_id}-${eventoFinal.tecnico_id}-${String(eventoFinal.fecha).slice(0, 10)}`;
+        const avisoFinal = avisos.find(n => n.id === id);
+        if (avisoFinal) {
+          eventosAsignacionAnunciados.current.add(String(eventoFinal.id));
+          setNovedadEnVivo(avisoFinal);
+        }
+      }
     }
 
     const canal = supabase
@@ -156,6 +165,8 @@ export default function DashboardPage() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "avisos_circuito", filter: `usuario_id=eq.${perfil.id}` },
         (payload) => {
           const n: any = payload.new;
+          if (n.tipo === "asignacion_vendedor") void actualizarAsignaciones(n);
+          if (n.tipo === "fabrica_lista") agregarNovedad({id:`fabrica-lista-${n.id}`, titulo:"Tu trabajo está listo para colocar", detalle:"Fábrica terminó el trabajo y lo pasó a Listos para colocar.", fecha:n.created_at, link:`/ficha/remito/${n.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
           if (n.tipo === "fabrica_aprobada") agregarNovedad({id:`fabrica-aprobada-${n.id}`, titulo:"Tu trabajo de fábrica fue aprobado", detalle:"El pedido fue aprobado y enviado a cortar.", fecha:n.created_at, link:`/ficha/remito/${n.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
         })
       .subscribe();
@@ -483,6 +494,10 @@ export default function DashboardPage() {
               detalle: "El pedido fue aprobado y enviado a cortar.", fecha: aviso.created_at,
               link: `/ficha/remito/${aviso.solicitud_fabrica_id}`, icono: CheckCircle2, colorIcono: "bg-emerald-100 text-emerald-600" });
           }
+        }
+        const listos = await supabase.from("avisos_circuito").select("id,solicitud_fabrica_id,created_at").eq("usuario_id", user.id).eq("tipo", "fabrica_lista").order("created_at", {ascending:false}).limit(8);
+        if (!listos.error) {
+          for (const aviso of listos.data || []) eventos.push({id:`fabrica-lista-${aviso.id}`, titulo:"Tu trabajo está listo para colocar", detalle:"Fábrica terminó el trabajo y lo pasó a Listos para colocar.", fecha:aviso.created_at, link:`/ficha/remito/${aviso.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
         }
         const avisos = await cargarAvisosAsignacion(user.id);
         if (avisos) {

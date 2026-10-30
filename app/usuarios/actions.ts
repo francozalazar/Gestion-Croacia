@@ -114,3 +114,65 @@ export async function crearUsuarioAction(
     mensaje: `Usuario creado: ${nombre} (${rol}). Pasale este nombre y la contraseña para que entre.`,
   };
 }
+
+export async function cambiarClaveUsuarioAction(
+  _prev: ResultadoAlta | null,
+  formData: FormData
+): Promise<ResultadoAlta> {
+  // Solo un administrador logueado puede cambiar contraseñas (se verifica acá, en el servidor).
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, mensaje: "Tu sesión venció. Entrá de nuevo." };
+
+  const { data: yo } = await supabase
+    .from("profiles")
+    .select("rol, activo")
+    .eq("id", user.id)
+    .single();
+  if (!yo || yo.activo !== true || String(yo.rol).toUpperCase() !== "ADMIN") {
+    return { ok: false, mensaje: "Solo un administrador puede cambiar contraseñas." };
+  }
+
+  const usuarioId = String(formData.get("usuario_id") || "").trim();
+  const password = String(formData.get("password") || "");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(usuarioId)) return { ok: false, mensaje: "Indicá un usuario válido." };
+  if (password.length < 6)
+    return { ok: false, mensaje: "La contraseña tiene que tener al menos 6 caracteres." };
+  if (password.length > 72)
+    return { ok: false, mensaje: "La contraseña no puede superar los 72 caracteres." };
+
+  // Clave de servidor (nunca va al navegador)
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const clave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !clave) {
+    return {
+      ok: false,
+      mensaje:
+        "Falta configurar la clave de servidor para cambiar contraseñas (SUPABASE_SERVICE_ROLE_KEY en Vercel). No se cambió nada.",
+    };
+  }
+  const admin = createAdminClient(url, clave, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  // Confirmar que el usuario destino existe antes de tocar su acceso.
+  const { data: destino, error: errDestino } = await admin
+    .from("profiles")
+    .select("id, nombre, apellido")
+    .eq("id", usuarioId)
+    .single();
+  if (errDestino || !destino)
+    return { ok: false, mensaje: "No se encontró ese usuario. No se cambió nada." };
+
+  const { error } = await admin.auth.admin.updateUserById(usuarioId, { password });
+  if (error)
+    return { ok: false, mensaje: "No se pudo cambiar la contraseña. Probá de nuevo." };
+
+  const nombre = `${destino.nombre || ""} ${destino.apellido || ""}`.trim() || "el usuario";
+  return {
+    ok: true,
+    mensaje: `Contraseña actualizada para ${nombre}. Pasale la nueva contraseña para que entre.`,
+  };
+}
