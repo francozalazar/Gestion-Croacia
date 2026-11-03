@@ -24,6 +24,15 @@ type Props = {
   } | null;
 };
 
+function hoyArgentina(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export default function AsignarSolicitud({
   solicitudId,
   numeroRemito,
@@ -37,9 +46,7 @@ export default function AsignarSolicitud({
   const [usuarioId, setUsuarioId] = useState(
     asignacion?.usuario_id || ""
   );
-  const [fechaPactada, setFechaPactada] = useState(
-    fecha || new Date().toISOString().split("T")[0]
-  );
+  const [fechaPactada, setFechaPactada] = useState(hoyArgentina());
   const [prioridad, setPrioridad] = useState("3");
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
