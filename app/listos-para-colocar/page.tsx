@@ -76,7 +76,7 @@ export default async function ListosParaColocarPage() {
               </p>
 
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-                Listos para colocar
+                Instalación
               </h1>
             </div>
           </div>
@@ -97,7 +97,7 @@ export default async function ListosParaColocarPage() {
               />
 
               <h2 className="mt-4 text-lg font-bold text-slate-900">
-                No hay trabajos listos para colocar
+                No hay trabajos en Instalación
               </h2>
 
               <p className="mt-2 text-sm text-slate-500">
