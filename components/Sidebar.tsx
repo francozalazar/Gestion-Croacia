@@ -158,7 +158,7 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
               {[
                 { t: "Visitas", icono: <TrendingUp size={18} className="text-blue-400" />, items: ["Recorrido de camiones", "Coordinación"] },
                 { t: "Mi recorrido", icono: <FileText size={18} className="text-blue-400" />, items: ["Mi recorrido"] },
-                { t: "Fábrica", icono: <Factory size={18} className="text-amber-400" />, items: ["Producción", "Stock de motores", "Listos para colocar"] },
+                { t: "Fábrica", icono: <Factory size={18} className="text-amber-400" />, items: ["Producción", "Stock de motores", "Instalación"] },
               ].map((g) => {
                 const actual = seccionActiva || "Inicio";
                 const abierto = seccionAbierta === `enc-${g.t}` || g.items.includes(actual);
@@ -503,7 +503,7 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
                           : "text-slate-400 hover:text-white"
                       }`}
                     >
-                      • Solicitudes para fábrica
+                      • Para cortar
                     </Link>
 
                     {rol === "ADMIN" && (
@@ -538,7 +538,7 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
                           : "text-slate-400 hover:text-white"
                       }`}
                     >
-                      • Listos para colocar
+                      • Instalación
                     </Link>
 
                     <Link
