@@ -62,6 +62,15 @@ function textoFranjaPactada(
   return `🕐 ${(desde || "").slice(0, 5) || "--:--"} a ${(hasta || "").slice(0, 5) || "--:--"} hs`;
 }
 
+function hoyArgentina(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export default function CoordinacionPage() {
   const supabase = createClient();
 
@@ -381,8 +390,7 @@ export default function CoordinacionPage() {
     setSolicitudModal(s);
 
     setFechaPactada(
-      s.fecha ||
-        new Date().toISOString().split("T")[0]
+      hoyArgentina()
     );
 
     setFranjaSeleccionada(
