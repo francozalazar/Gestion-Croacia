@@ -27,3 +27,18 @@ export async function operarEncargado(
   revalidatePath("/encargado");
   return { ok: true, mensaje: "Guardado." };
 }
+
+// Trabajos asignados a un técnico un día (para cargar motores usados). Sólo datos operativos.
+export async function trabajosTecnicoEncargado(tecnicoId: string, fecha: string) {
+  const db = await createClient();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
+  if (!user) return { ok: false, trabajos: [] as unknown[] };
+  const { data, error } = await db.rpc("encargado_trabajos_tecnico", {
+    p_tecnico: tecnicoId,
+    p_fecha: fecha,
+  });
+  if (error) return { ok: false, trabajos: [] as unknown[] };
+  return { ok: true, trabajos: (data || []) as unknown[] };
+}
