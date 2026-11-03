@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { Package, ArrowLeft } from "lucide-react";
-import { FormularioModelo, CardStockMotor } from "./StockForms";
+import { FormularioModelo } from "./StockForms";
+import StockVista from "@/components/StockVista";
 import CargaPorTecnico from "./CargaPorTecnico";
 import MovimientosLista from "./MovimientosLista";
 
@@ -140,54 +139,7 @@ export default async function StockPage() {
       />
 
       <main className="ml-0 md:ml-64 min-h-screen p-4 md:p-8 pt-20 md:pt-8">
-        <div className="mb-6">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
-          >
-            <ArrowLeft size={18} />
-            Volver al inicio
-          </Link>
-        </div>
-
-        {/* ENCABEZADO */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white">
-              <Package size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Administración</p>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-                Stock de motores
-              </h1>
-            </div>
-          </div>
-          <p className="mt-2 text-sm text-slate-600">
-            Cada modelo se cuenta por separado. Sumá cuando llegan motores y descontá cuando se usa uno en un trabajo.
-          </p>
-        </div>
-
-        {eMotores && (
-          <div className="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">
-            No se pudo cargar el stock. Si es la primera vez, falta aplicar la tabla en la base.
-          </div>
-        )}
-
-        {/* MODELOS */}
-        <div className="mb-8">
-          {motores.length === 0 && !eMotores && (
-            <div className="rounded-xl bg-white p-6 text-sm text-slate-600 shadow-sm">
-              Todavía no hay modelos cargados. Agregá el primero abajo con el conteo inicial.
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-            {motores.map((m) => (
-              <CardStockMotor key={m.id} motor={m} pedidos={pedidos} />
-            ))}
-          </div>
-        </div>
-
+        <StockVista motores={motores} pedidos={pedidos} error={!!eMotores} volverHref="/dashboard">
         {/* CARGA POR TECNICO */}
         <CargaPorTecnico tecnicos={tecnicosData || []} motores={motores} />
 
@@ -214,6 +166,7 @@ export default async function StockPage() {
             }))}
           />
         </div>
+        </StockVista>
       </main>
     </div>
   );
