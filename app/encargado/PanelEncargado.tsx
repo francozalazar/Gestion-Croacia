@@ -35,9 +35,27 @@ type Datos = {
   pedidos: Trabajo[];
   motores: { id: number; nombre: string; cantidad: number; minimo: number }[];
 };
-const campo = "w-full rounded-lg border border-slate-300 bg-white p-2.5";
+const campo =
+  "w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm font-medium outline-none focus:border-blue-500";
+const etiqueta =
+  "block text-xs font-semibold uppercase text-slate-400 mb-1";
 const boton =
-  "rounded-lg bg-slate-900 px-4 py-2.5 text-white disabled:opacity-50";
+  "rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50";
+function hoyArgentina() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+const descripciones: Record<string, string> = {
+  "Coordinación": "Asigná los trabajos pendientes a un técnico.",
+  "Recorrido de camiones": "Trabajos asignados a cada técnico por día.",
+  "Producción": "Estado de los pedidos en fábrica.",
+  "Stock de motores": "Movimientos y stock mínimo de motores.",
+  "Mis trabajos": "Remitos asignados a tu usuario.",
+};
 const coord = [
   "PENDIENTE_COORDINACION",
   "COORDINACION",
@@ -79,14 +97,19 @@ export default function PanelEncargado({
   const [mensaje, setMensaje] = useState("");
   const [buscar, setBuscar] = useState("");
   const [tecnico, setTecnico] = useState(datos.tecnicos[0]?.id || "");
-  const [fecha, setFecha] = useState(
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Argentina/Buenos_Aires",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date()),
-  );
+  const [fecha, setFecha] = useState(hoyArgentina());
+  // Fecha de hoy (Argentina): se vuelve a calcular al volver a la pestaña,
+  // para que el formulario no muestre el día de ayer si quedó abierto.
+  const [hoy, setHoy] = useState(hoyArgentina());
+  useEffect(() => {
+    const actualizar = () => setHoy(hoyArgentina());
+    document.addEventListener("visibilitychange", actualizar);
+    window.addEventListener("focus", actualizar);
+    return () => {
+      document.removeEventListener("visibilitychange", actualizar);
+      window.removeEventListener("focus", actualizar);
+    };
+  }, []);
   useEffect(() => {
     if (
       seccion &&
@@ -131,36 +154,20 @@ export default function PanelEncargado({
   }
   return (
     <>
-      <nav className="flex flex-wrap gap-2 mb-5" aria-label="Operaciones">
-        {[
-          "Coordinación",
-          "Recorrido de camiones",
-          "Producción",
-          "Stock de motores",
-          "Mis trabajos",
-        ].map((x) => (
-          <button
-            key={x}
-            onClick={() => {
-              setTab(x);
-              setMensaje("");
-            }}
-            className={
-              tab === x ? boton : "rounded-lg border bg-white px-4 py-2.5"
-            }
-          >
-            {x}
-          </button>
-        ))}
-      </nav>
-      <p role="status" className="mb-4">
+      <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+        {tab}
+      </h1>
+      <p className="mt-1 mb-6 text-xs md:text-sm text-slate-500">
+        {descripciones[tab]}
+      </p>
+      <p role="status" className="mb-4 text-sm text-slate-600">
         {mensaje}
       </p>
       {tab === "Stock de motores" ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {datos.motores.map((m) => (
-            <section key={m.id} className="rounded-xl border bg-white p-5">
-              <h2 className="font-bold">{m.nombre}</h2>
+            <section key={m.id} className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
+              <h2 className="font-bold text-lg text-slate-800">{m.nombre}</h2>
               <p
                 className={
                   m.cantidad <= m.minimo ? "text-red-700 font-semibold" : ""
@@ -183,7 +190,7 @@ export default function PanelEncargado({
                   });
                 }}
               >
-                <label>
+                <label className={etiqueta}>
                   Movimiento
                   <Desplegable
                   name="tipo"
@@ -196,7 +203,7 @@ export default function PanelEncargado({
                   ]}
                   />
                 </label>
-                <label>
+                <label className={etiqueta}>
                   Cantidad
                   <input
                     name="cantidad"
@@ -207,7 +214,7 @@ export default function PanelEncargado({
                     className={campo}
                   />
                 </label>
-                <label>
+                <label className={etiqueta}>
                   Motivo
                   <input
                     name="detalle"
@@ -232,7 +239,7 @@ export default function PanelEncargado({
                   });
                 }}
               >
-                <label>
+                <label className={etiqueta}>
                   Mínimo
                   <input
                     name="minimo"
@@ -254,7 +261,7 @@ export default function PanelEncargado({
         <>
           {tab === "Recorrido de camiones" && (
             <div className="grid sm:grid-cols-2 gap-3 mb-5">
-              <label>
+              <label className={etiqueta}>
                 Técnico
                 <Desplegable
                 className={campo}
@@ -264,7 +271,7 @@ export default function PanelEncargado({
                 opciones={datos.tecnicos.map((t) => ({ value: String(t.id), label: t.nombre }))}
                 />
               </label>
-              <label>
+              <label className={etiqueta}>
                 Fecha
                 <input
                   type="date"
@@ -275,7 +282,7 @@ export default function PanelEncargado({
               </label>
             </div>
           )}
-          <label className="block mb-5">
+          <label className={`${etiqueta} mb-5`}>
             Buscar cliente, dirección o remito
             <input
               className={campo}
@@ -310,12 +317,12 @@ export default function PanelEncargado({
                 return (
                   <section
                     key={`${t.fabrica}-${t.id}`}
-                    className="rounded-xl border bg-white p-5"
+                    className="rounded-xl bg-white p-5 shadow-sm border border-slate-200"
                   >
-                    <p className="text-sm text-slate-600">
+                    <p className="text-xs font-semibold uppercase text-slate-400">
                       #{t.numero} · {t.estado.replaceAll("_", " ")}
                     </p>
-                    <h2 className="font-bold text-lg">{t.cliente_nombre}</h2>
+                    <h2 className="font-bold text-lg text-slate-800">{t.cliente_nombre}</h2>
                     <p>
                       {t.direccion}
                       {t.localidad ? ` · ${t.localidad}` : ""}
@@ -354,7 +361,7 @@ export default function PanelEncargado({
                           });
                         }}
                       >
-                        <label>
+                        <label className={etiqueta}>
                           Técnico
                           <Desplegable
                           name="tecnico"
@@ -366,18 +373,19 @@ export default function PanelEncargado({
                           opciones={datos.tecnicos.map((x) => ({ value: String(x.id), label: x.nombre }))}
                           />
                         </label>
-                        <label>
+                        <label className={etiqueta}>
                           Fecha pactada
                           <input
+                            key={`fecha-${t.id}-${hoy}`}
                             name="fecha"
                             type="date"
                             required
-                            defaultValue={a?.fecha || t.fecha || ""}
+                            defaultValue={a?.fecha || hoy}
                             className={campo}
                           />
                         </label>
                         {!t.horario_desde && !t.horario_hasta && (
-                          <label>
+                          <label className={etiqueta}>
                             Horario
                             <Desplegable
                             name="franja"
@@ -392,7 +400,7 @@ export default function PanelEncargado({
                             />
                           </label>
                         )}
-                        <label>
+                        <label className={etiqueta}>
                           Prioridad
                           <Desplegable
                           name="prioridad"
