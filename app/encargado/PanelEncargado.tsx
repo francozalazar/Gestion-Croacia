@@ -8,6 +8,8 @@ import Desplegable from "@/components/Desplegable";
 import CabeceraTarjeta from "@/components/TarjetaSolicitud";
 import CoordinacionVista from "@/components/CoordinacionVista";
 import RecorridoVista from "@/components/RecorridoVista";
+import ProduccionVista from "@/components/ProduccionVista";
+import ListosVista from "@/components/ListosVista";
 import MisTrabajosVista from "@/components/MisTrabajosVista";
 import AvisosAndroid from "@/components/AvisosAndroid";
 import { Calendar, Bell, ClipboardList, Truck, ArrowRight } from "lucide-react";
@@ -330,6 +332,41 @@ export default function PanelEncargado({
           </div>
         </div>
       </>
+    );
+  }
+  if (tab === "Producción") {
+    return (
+      <ProduccionVista
+        trabajos={datos.pedidos
+          .filter((t) => prod.includes(t.estado))
+          .map((t) => ({ ...t, numero_remito: t.numero }))}
+        rol="ENCARGADO"
+        verFicha={false}
+        onCambiarEstado={async (id, estado) => {
+          try {
+            const r = await operarEncargado("produccion", { id, fabrica: true, estado });
+            if (!r.ok) {
+              alert(r.mensaje);
+              return;
+            }
+            router.refresh();
+          } catch {
+            alert("No se pudo confirmar. Actualizá antes de reintentar.");
+          }
+        }}
+      />
+    );
+  }
+  if (tab === "Instalación") {
+    return (
+      <ListosVista
+        solicitudes={trabajos
+          .filter((t) => t.fabrica && t.estado === "LISTO_PARA_COLOCAR")
+          .map((t) => ({ ...t, numero_remito: t.numero }))}
+        nombresCreadores={{}}
+        soloLectura
+        volverHref="/encargado"
+      />
     );
   }
   if (tab === "Mi recorrido") {
