@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
         admin.from("profiles").select("rol, activo").eq("id", evento.usuario_id).maybeSingle(),
       ]);
       if (errA || errP) return null;
-      return a?.usuario_id === evento.usuario_id && a?.tipo === "TECNICO" && p?.rol === "TECNICO" && p.activo === true;
+      return a?.usuario_id === evento.usuario_id && a?.tipo === "TECNICO" && (p?.rol === "TECNICO" || p?.rol === "ENCARGADO") && p.activo === true;
     };
     const cerrar = () => admin.from("push_eventos").update({ procesado_at: new Date().toISOString() }).eq("id", evento.id);
     const estado = await vigente();
