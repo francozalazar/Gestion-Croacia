@@ -21,17 +21,14 @@ export default async function EncargadoPage({
   if (perfil?.rol !== "ENCARGADO" || !perfil.activo) redirect("/dashboard");
   const { data, error } = await db.rpc("encargado_datos");
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="flex min-h-screen bg-slate-50 text-slate-800">
       <Sidebar
         nombre={perfil.nombre}
         apellido={perfil.apellido || ""}
         rol={perfil.rol}
+        seccionActiva={seccion}
       />
-      <main className="md:ml-64 p-5 pt-20 md:p-10">
-        <h1 className="text-2xl font-bold">Operaciones</h1>
-        <p className="mt-2 mb-6 text-slate-600">
-          Coordinación, recorridos, producción, motores y tus remitos asignados.
-        </p>
+      <main className="ml-0 md:ml-64 flex-1 p-6 pt-20 md:p-10">
         {error ? (
           <p role="alert">
             No se pudo cargar el panel operativo. Probá de nuevo.
