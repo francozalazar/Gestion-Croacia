@@ -53,13 +53,22 @@ function franjaDesdeHorario(
   return "custom";
 }
 
+function hoyArgentina(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export default function EnviarACoordinacion({ solicitud }: Props) {
   const router = useRouter();
   const supabase = createClient();
 
   const [abierto, setAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [fecha, setFecha] = useState(solicitud.fecha || "");
+  const [fecha, setFecha] = useState(hoyArgentina());
   const [franja, setFranja] = useState(() =>
     franjaDesdeHorario(solicitud.horario_desde, solicitud.horario_hasta)
   );
@@ -105,7 +114,10 @@ export default function EnviarACoordinacion({ solicitud }: Props) {
   return (
     <>
       <button
-        onClick={() => setAbierto(true)}
+        onClick={() => {
+          setFecha(hoyArgentina());
+          setAbierto(true);
+        }}
         className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
       >
         <Send size={15} />
