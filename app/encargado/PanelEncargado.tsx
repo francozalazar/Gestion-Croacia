@@ -5,6 +5,7 @@ import Link from "next/link";
 import { operarEncargado } from "./actions";
 import { fechaLinda as fechaCivil } from "@/lib/fechasFicha";
 import Desplegable from "@/components/Desplegable";
+import { VerDetallesInstalacion } from "@/components/EnviarACoordinacion";
 type Trabajo = {
   id: number;
   numero: number;
@@ -56,7 +57,7 @@ const SECCIONES = [
   "Mi recorrido",
   "Producción",
   "Stock de motores",
-  "Listos para colocar",
+  "Instalación",
 ];
 const descripciones: Record<string, string> = {
   "Inicio": "Novedades y notificaciones de tus trabajos de hoy.",
@@ -65,7 +66,7 @@ const descripciones: Record<string, string> = {
   "Producción": "Qué hay en producción y en qué estado está.",
   "Stock de motores": "Movimientos y stock mínimo de motores.",
   "Mi recorrido": "Lo que tenés asignado para completar.",
-  "Listos para colocar": "Pedidos terminados por fábrica. Sólo lectura.",
+  "Instalación": "Pedidos terminados por fábrica. Sólo lectura.",
 };
 const coord = [
   "PENDIENTE_COORDINACION",
@@ -307,7 +308,7 @@ export default function PanelEncargado({
                 )
                   return false;
                 if (
-                  tab === "Listos para colocar" &&
+                  tab === "Instalación" &&
                   (!t.fabrica || t.estado !== "LISTO_PARA_COLOCAR")
                 )
                   return false;
@@ -483,6 +484,11 @@ export default function PanelEncargado({
                           Guardar prioridad
                         </button>
                       </form>
+                    )}
+                    {tab === "Instalación" && (
+                      <div className="mt-4">
+                        <VerDetallesInstalacion observaciones={t.observaciones} />
+                      </div>
                     )}
                     {a?.usuario_id === usuarioId && (
                       <Link
