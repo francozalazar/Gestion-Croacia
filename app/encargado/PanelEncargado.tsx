@@ -7,6 +7,7 @@ import { fechaLinda as fechaCivil } from "@/lib/fechasFicha";
 import Desplegable from "@/components/Desplegable";
 import CabeceraTarjeta from "@/components/TarjetaSolicitud";
 import CoordinacionVista from "@/components/CoordinacionVista";
+import RecorridoVista from "@/components/RecorridoVista";
 import AvisosAndroid from "@/components/AvisosAndroid";
 import { Calendar, Bell, ClipboardList, Truck, ArrowRight } from "lucide-react";
 import { VerDetallesInstalacion } from "@/components/EnviarACoordinacion";
@@ -328,6 +329,65 @@ export default function PanelEncargado({
           </div>
         </div>
       </>
+    );
+  }
+  if (tab === "Recorrido de camiones") {
+    const propio = false;
+    const idTec = tecnico;
+    const lista = trabajos
+      .map((t) => ({ t, a: asignacion(t) }))
+      .filter(
+        ({ t, a }) =>
+          a &&
+          a.usuario_id === idTec &&
+          a.fecha === fecha &&
+          !["FINALIZADO", "PENDIENTE_PRECIO", "PRESUPUESTADO", "ANULADO"].includes(t.estado),
+      )
+      .map(({ t, a }) => ({
+        ...t,
+        _clave: `${t.fabrica ? "fabrica" : "solicitud"}-${t.id}`,
+        _esFabrica: t.fabrica,
+        prioridad: a?.prioridad ?? null,
+      }))
+      .sort(
+        (x, y) =>
+          (x.prioridad ?? 9999) - (y.prioridad ?? 9999) || (x.numero ?? 0) - (y.numero ?? 0),
+      );
+    return (
+      <RecorridoVista
+        esTecnico={propio}
+        esAdmin={false}
+        tecnicos={datos.tecnicos.map((x) => ({ id: x.id, nombre: x.nombre, apellido: "" }))}
+        tecnicoSeleccionado={idTec}
+        setTecnicoSeleccionado={setTecnico}
+        fecha={fecha}
+        setFecha={setFecha}
+        onBuscar={() => router.refresh()}
+        trabajos={lista}
+        cargando={false}
+        puedeCambiarPrioridad={!propio}
+        onCambiarPrioridad={async (t, prioridad, cerrar) => {
+          try {
+            const r = await operarEncargado("prioridad", {
+              id: t.id,
+              fabrica: !!t._esFabrica,
+              tecnico: idTec,
+              fecha,
+              prioridad: prioridad ? String(prioridad) : "",
+            });
+            if (!r.ok) {
+              alert(r.mensaje);
+              return;
+            }
+            cerrar();
+            router.refresh();
+          } catch {
+            alert("No se pudo confirmar. Actualizá antes de reintentar.");
+          }
+        }}
+        onQuitar={() => {}}
+        onAnular={() => {}}
+      />
     );
   }
   if (tab === "Coordinación") {
