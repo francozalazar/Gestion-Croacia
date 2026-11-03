@@ -7,7 +7,7 @@ import { fechaLinda as fechaCivil } from "@/lib/fechasFicha";
 import Desplegable from "@/components/Desplegable";
 import CabeceraTarjeta from "@/components/TarjetaSolicitud";
 import AvisosAndroid from "@/components/AvisosAndroid";
-import { Bell, ClipboardList, Truck, ArrowRight } from "lucide-react";
+import { Calendar, Bell, ClipboardList, Truck, ArrowRight } from "lucide-react";
 import { VerDetallesInstalacion } from "@/components/EnviarACoordinacion";
 type Trabajo = {
   id: number;
@@ -167,6 +167,42 @@ export default function PanelEncargado({
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Panel principal</h1>
         </div>
         <AvisosAndroid />
+        <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <div className="rounded-lg bg-red-50 p-2 text-red-600">
+              <Calendar size={16} />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Para hoy</h2>
+              <p className="text-xs text-slate-400">
+                Lo urgente del día, arriba de todo
+              </p>
+            </div>
+          </div>
+          {deHoy.length === 0 ? (
+            <p className="py-3 text-center text-xs text-slate-400">
+              Nada urgente para hoy.
+            </p>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {deHoy.slice(0, 6).map((t) => (
+                <button
+                  key={`hoy-${t.fabrica}-${t.id}`}
+                  onClick={() => setTab("Mi recorrido")}
+                  className="flex w-full items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0 hover:bg-slate-50/60 rounded-lg px-2 -mx-2 text-left"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-800">
+                      {t.fabrica ? "Remito" : "Visita"} #{t.numero} - {t.cliente_nombre || "Cliente"}
+                    </p>
+                    <p className="truncate text-xs text-slate-500">{t.direccion || "Sin dirección"}</p>
+                  </div>
+                  <ArrowRight size={14} className="shrink-0 text-slate-300" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="grid gap-4 sm:grid-cols-3 mb-8">
           <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
             <p className="text-xs font-medium text-slate-400">Asignados para hoy</p>
