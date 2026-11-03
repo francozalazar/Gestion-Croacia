@@ -166,7 +166,7 @@ export default function DashboardPage() {
         (payload) => {
           const n: any = payload.new;
           if (n.tipo === "asignacion_vendedor") void actualizarAsignaciones(n);
-          if (n.tipo === "fabrica_lista") agregarNovedad({id:`fabrica-lista-${n.id}`, titulo:"Tu trabajo está listo para colocar", detalle:"Fábrica terminó el trabajo y lo pasó a Listos para colocar.", fecha:n.created_at, link:`/ficha/remito/${n.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
+          if (n.tipo === "fabrica_lista") agregarNovedad({id:`fabrica-lista-${n.id}`, titulo:"Tu trabajo está listo para colocar", detalle:"Fábrica terminó el trabajo y lo pasó a Instalación.", fecha:n.created_at, link:`/ficha/remito/${n.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
           if (n.tipo === "fabrica_aprobada") agregarNovedad({id:`fabrica-aprobada-${n.id}`, titulo:"Tu trabajo de fábrica fue aprobado", detalle:"El pedido fue aprobado y enviado a cortar.", fecha:n.created_at, link:`/ficha/remito/${n.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
         })
       .subscribe();
@@ -497,7 +497,7 @@ export default function DashboardPage() {
         }
         const listos = await supabase.from("avisos_circuito").select("id,solicitud_fabrica_id,created_at").eq("usuario_id", user.id).eq("tipo", "fabrica_lista").order("created_at", {ascending:false}).limit(8);
         if (!listos.error) {
-          for (const aviso of listos.data || []) eventos.push({id:`fabrica-lista-${aviso.id}`, titulo:"Tu trabajo está listo para colocar", detalle:"Fábrica terminó el trabajo y lo pasó a Listos para colocar.", fecha:aviso.created_at, link:`/ficha/remito/${aviso.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
+          for (const aviso of listos.data || []) eventos.push({id:`fabrica-lista-${aviso.id}`, titulo:"Tu trabajo está listo para colocar", detalle:"Fábrica terminó el trabajo y lo pasó a Instalación.", fecha:aviso.created_at, link:`/ficha/remito/${aviso.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
         }
         const avisos = await cargarAvisosAsignacion(user.id);
         if (avisos) {
