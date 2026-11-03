@@ -3,6 +3,7 @@
 import FotoTrabajo from "@/components/FotoTrabajo";
 import PortadaFotoTrabajo from "@/components/PortadaFotoTrabajo";
 import { requierePrecio } from "@/lib/tipoVisita";
+import { rutaMiniatura } from "@/lib/fotoTrabajo";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
@@ -13,6 +14,7 @@ export default function InboxPresupuestoOficinaPage() {
 
   const [perfil, setPerfil] = useState<any>(null);
   const [presupuestos, setPresupuestos] = useState<any[]>([]);
+  const [portadas, setPortadas] = useState<Record<number, { mini?: string; completa?: string }>>({});
   const [cargando, setCargando] = useState(true);
   const [modalPrincipal, setModalPrincipal] = useState<any | null>(null);
 
@@ -34,23 +36,21 @@ export default function InboxPresupuestoOficinaPage() {
       return;
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id, nombre, apellido, rol")
-      .eq("id", user.id)
-      .single();
+    // Consultas independientes en paralelo: perfil, trabajos propios y archivados.
+    const [perfilRes, solRes, archRes] = await Promise.all([
+      supabase.from("profiles").select("id, nombre, apellido, rol").eq("id", user.id).single(),
+      supabase
+        .from("solicitudes")
+        .select("id, numero, estado, cliente_nombre, direccion, localidad, trabajo_realizado, detalles_tecnico, observaciones, detalles, tipo_visita, subtotal, precio, adicionales_visita, adicionales_precio, creado_por, creador:profiles!creado_por(nombre, apellido)")
+        .eq("creado_por", user.id)
+        .in("estado", ["PENDIENTE_PRECIO", "PRESUPUESTADO"])
+        .order("id", { ascending: false }),
+      supabase.from("presupuestos_archivados").select("solicitud_id").eq("vendedor_id", user.id),
+    ]);
 
-    setPerfil(profile);
-
-    // Presupuestos es una bandeja personal para todos los roles, incluido ADMIN.
-    const query = supabase
-      .from("solicitudes")
-      .select("*, creador:profiles!creado_por(nombre, apellido)")
-      .eq("creado_por", user.id)
-      .in("estado", ["PENDIENTE_PRECIO", "PRESUPUESTADO"])
-      .order("id", { ascending: false });
-
-    const { data: solData, error: errSol } = await query;
+    setPerfil(perfilRes.data);
+    const solData = solRes.data;
+    const errSol = solRes.error;
 
     if (errSol) {
       alert("Error al cargar Inbox de presupuestos: " + errSol.message);
@@ -60,30 +60,61 @@ export default function InboxPresupuestoOficinaPage() {
       return;
     }
 
-    const { data: archivos, error: errArchivo } = await supabase
-      .from("presupuestos_archivados").select("solicitud_id").eq("vendedor_id", user.id);
-    if (errArchivo) {
+    if (archRes.error) {
       setErrorArchivo("No se pudo consultar el archivo. Reintentá recargando la página.");
       setCargando(false);
       return;
     }
     setErrorArchivo("");
-    const archivados = new Set((archivos || []).map((a) => a.solicitud_id));
+    const archivados = new Set((archRes.data || []).map((a) => a.solicitud_id));
     // Defensa adicional: listas, conteos y detalles parten solo de registros propios.
     const lista = (solData || []).filter((s) => s.creado_por === user.id)
       .map((s) => ({ ...s, archivado: archivados.has(s.id) }));
 
     if (lista.length > 0) {
       const ids = lista.map((s) => s.id);
-      
-      const { data: asignaciones, error: errAsig } = await supabase
-        .from("asignaciones")
-        .select("solicitud_id, tecnico:profiles!usuario_id(nombre, apellido)")
-        .in("solicitud_id", ids);
 
-      if (errAsig) {
-        console.error("Error al traer asignaciones en Inbox:", errAsig);
+      // Asignaciones y fotos de todos los trabajos juntos: una consulta por tabla.
+      const [asigRes, fotosRes] = await Promise.all([
+        supabase
+          .from("asignaciones")
+          .select("solicitud_id, tecnico:profiles!usuario_id(nombre, apellido)")
+          .in("solicitud_id", ids),
+        supabase
+          .from("fotos_trabajos")
+          .select("solicitud_id, storage_path")
+          .in("solicitud_id", ids),
+      ]);
+
+      if (asigRes.error) {
+        console.error("Error al traer asignaciones en Inbox:", asigRes.error);
       }
+      const asignaciones = asigRes.data;
+
+      // URLs firmadas en lote: miniatura si existe; las fotos viejas sin miniatura usan la imagen completa.
+      const fotosPorId = new Map<number, string>();
+      for (const f of fotosRes.data || []) {
+        if (f.storage_path) fotosPorId.set(f.solicitud_id, f.storage_path);
+      }
+      const entradas = [...fotosPorId.entries()];
+      const mapaPortadas: Record<number, { mini?: string; completa?: string }> = {};
+      if (entradas.length > 0) {
+        // Una sola llamada en lote para miniaturas y otra para completas, en paralelo.
+        const [firmMin, firmFull] = await Promise.all([
+          supabase.storage.from("fotos-trabajos")
+            .createSignedUrls(entradas.map(([, ruta]) => rutaMiniatura(ruta)), 3600),
+          supabase.storage.from("fotos-trabajos")
+            .createSignedUrls(entradas.map(([, ruta]) => ruta), 3600),
+        ]);
+        entradas.forEach(([solicitudId], i) => {
+          const itemMin = firmMin.data?.[i];
+          const itemFull = firmFull.data?.[i];
+          const mini = itemMin && !itemMin.error && itemMin.signedUrl ? itemMin.signedUrl : undefined;
+          const completa = itemFull && !itemFull.error && itemFull.signedUrl ? itemFull.signedUrl : undefined;
+          if (mini || completa) mapaPortadas[solicitudId] = { mini, completa };
+        });
+      }
+      setPortadas(mapaPortadas);
 
       const mapeadas = lista.map((s) => {
         const asig = asignaciones?.find((a) => a.solicitud_id === s.id);
@@ -107,6 +138,7 @@ export default function InboxPresupuestoOficinaPage() {
       setPresupuestos(mapeadas);
     } else {
       setPresupuestos([]);
+      setPortadas({});
     }
 
     setCargando(false);
@@ -181,7 +213,7 @@ export default function InboxPresupuestoOficinaPage() {
                   onClick={() => setModalPrincipal(p)}
                   className="cursor-pointer rounded-xl bg-white p-6 shadow-sm border border-slate-200 transition hover:shadow-md hover:border-emerald-400"
                 >
-                  <PortadaFotoTrabajo solicitudId={p.id} />
+                  {portadas[p.id] ? <PortadaFotoTrabajo solicitudId={p.id} urlInicial={portadas[p.id].mini || portadas[p.id].completa} urlFallback={portadas[p.id].mini ? portadas[p.id].completa : undefined} /> : null}
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
                       Remito #{p.numero || p.id}
