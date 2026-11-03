@@ -12,6 +12,7 @@ import {
 // Permite que otro rol (encargado) use estos mismos formularios con sus propias acciones.
 export type AccionesStock = {
   registrarMovimiento?: (prev: ResultadoStock | null, formData: FormData) => Promise<ResultadoStock>;
+  crearModelo?: (prev: ResultadoStock | null, formData: FormData) => Promise<ResultadoStock>;
   actualizarMinimo?: (prev: ResultadoStock | null, formData: FormData) => Promise<ResultadoStock>;
 };
 
@@ -31,9 +32,9 @@ function Mensaje({ res }: { res: ResultadoStock | null }) {
   );
 }
 
-export function FormularioModelo() {
+export function FormularioModelo({ acciones }: { acciones?: AccionesStock } = {}) {
   const [res, accion, pendiente] = useActionState<ResultadoStock | null, FormData>(
-    crearModeloAction,
+    acciones?.crearModelo ?? crearModeloAction,
     null
   );
   const form = useRef<HTMLFormElement>(null);
