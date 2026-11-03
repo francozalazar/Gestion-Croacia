@@ -1,6 +1,6 @@
 "use client";
 
-import { prepararFotoTrabajo } from "@/lib/fotoTrabajo";
+import { prepararFotosTrabajo, rutaMiniatura } from "@/lib/fotoTrabajo";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { useRouter } from "next/navigation";
@@ -53,6 +53,8 @@ export default function CompletarTrabajo({
   const [procesandoFoto, setProcesandoFoto] = useState(false);
   const guardandoRef = useRef(false);
   const rutaFoto = useRef<string | null>(null);
+  const rutaThumb = useRef<string | null>(null);
+  const miniaturaRef = useRef<Blob | null>(null);
   useEffect(() => {
     if (!foto) { setPreview(""); return; }
     const url = URL.createObjectURL(foto); setPreview(url);
@@ -61,8 +63,8 @@ export default function CompletarTrabajo({
   async function elegirFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setProcesandoFoto(true); setMensaje(""); setFoto(null); rutaFoto.current = null;
-    try { setFoto(await prepararFotoTrabajo(file)); }
+    setProcesandoFoto(true); setMensaje(""); setFoto(null); rutaFoto.current = null; rutaThumb.current = null; miniaturaRef.current = null;
+    try { const preparadas = await prepararFotosTrabajo(file); setFoto(preparadas.foto); miniaturaRef.current = preparadas.miniatura; }
     catch (error) { setMensaje(error instanceof Error ? error.message : "No se pudo procesar la foto."); }
     finally { setProcesandoFoto(false); e.target.value = ""; }
   }
@@ -169,6 +171,15 @@ export default function CompletarTrabajo({
           { contentType: "image/jpeg", upsert: false });
         if (error) throw new Error("No se pudo subir la foto: " + error.message);
         rutaFoto.current = path;
+      }
+      if (miniaturaRef.current && !rutaThumb.current) {
+        try {
+          const rutaMin = rutaMiniatura(path);
+          const { error: errorMin } = await supabase.storage.from("fotos-trabajos").upload(rutaMin, miniaturaRef.current,
+            { contentType: "image/jpeg", upsert: true });
+          if (!errorMin) rutaThumb.current = rutaMin;
+          else console.error("No se pudo subir la miniatura:", errorMin.message);
+        } catch (e) { console.error("No se pudo subir la miniatura:", e); }
       }
       const { error } = await supabase.rpc("finalizar_trabajo_con_foto", {
         p_solicitud_id: solicitudPrincipalId, p_es_fabrica: esFabrica,
