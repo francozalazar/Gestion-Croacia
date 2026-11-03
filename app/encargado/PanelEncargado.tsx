@@ -10,6 +10,7 @@ import CoordinacionVista from "@/components/CoordinacionVista";
 import RecorridoVista from "@/components/RecorridoVista";
 import StockVista from "@/components/StockVista";
 import ProduccionVista from "@/components/ProduccionVista";
+import InicioVista from "@/components/InicioVista";
 import ListosVista from "@/components/ListosVista";
 import MisTrabajosVista from "@/components/MisTrabajosVista";
 import AvisosAndroid from "@/components/AvisosAndroid";
@@ -154,185 +155,53 @@ export default function PanelEncargado({
     }
   }
   if (tab === "Inicio") {
-    const deHoy = trabajos.filter((t) => {
-      const a = asignacion(t);
-      return a?.usuario_id === usuarioId && a.fecha === hoy;
-    });
-    const finalizados = deHoy.filter((t) => t.estado === "FINALIZADO").length;
+    const deHoy = trabajos
+      .map((t) => ({ t, a: asignacion(t) }))
+      .filter(({ a }) => a?.usuario_id === usuarioId && a.fecha === hoy);
+    const finalizados = deHoy.filter(({ t }) => t.estado === "FINALIZADO").length;
     const enProd = datos.pedidos;
-    const mProd = {
-      pendientes: enProd.filter((t) => ["ENVIADO_A_CORTAR", "EN_CORTE"].includes(t.estado)).length,
-      enProceso: enProd.filter((t) => ["EN_FABRICACION", "EN_FABRICA"].includes(t.estado)).length,
-      faltantes: enProd.filter((t) => t.estado === "FALTANTES").length,
-      anulados: enProd.filter((t) => t.estado === "ANULADO").length,
-    };
+    const sec = (n: string) => `/encargado?seccion=${encodeURIComponent(n)}`;
     return (
-      <>
-        <div className="mb-6">
-          <p className="text-xs font-semibold text-slate-400">Bienvenido nuevamente</p>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Panel principal</h1>
-        </div>
-        <AvisosAndroid />
-        <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="rounded-lg bg-red-50 p-2 text-red-600">
-              <Calendar size={16} />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Para hoy</h2>
-              <p className="text-xs text-slate-400">
-                Lo urgente del día, arriba de todo
-              </p>
-            </div>
-          </div>
-          {deHoy.length === 0 ? (
-            <p className="py-3 text-center text-xs text-slate-400">
-              Nada urgente para hoy.
-            </p>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {deHoy.slice(0, 6).map((t) => (
-                <button
-                  key={`hoy-${t.fabrica}-${t.id}`}
-                  onClick={() => setTab("Mi recorrido")}
-                  className="flex w-full items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0 hover:bg-slate-50/60 rounded-lg px-2 -mx-2 text-left"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-800">
-                      {t.fabrica ? "Remito" : "Visita"} #{t.numero} - {t.cliente_nombre || "Cliente"}
-                    </p>
-                    <p className="truncate text-xs text-slate-500">{t.direccion || "Sin dirección"}</p>
-                  </div>
-                  <ArrowRight size={14} className="shrink-0 text-slate-300" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3 mb-8">
-          <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-            <p className="text-xs font-medium text-slate-400">Asignados para hoy</p>
-            <p className="text-3xl font-bold text-slate-900 mt-1">{deHoy.length}</p>
-          </div>
-          <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-            <p className="text-xs font-medium text-slate-400">Pendientes de hoy</p>
-            <p className="text-3xl font-bold text-slate-900 mt-1">{deHoy.length - finalizados}</p>
-          </div>
-          <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-            <p className="text-xs font-medium text-slate-400">Finalizados de hoy</p>
-            <p className="text-3xl font-bold text-slate-900 mt-1">{finalizados}</p>
-          </div>
-        </div>
-        <div className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Producción en fábrica
-              </p>
-              <h2 className="mt-1 text-xl font-bold text-slate-900">Estado de los trabajos</h2>
-            </div>
-            <button
-              onClick={() => setTab("Producción")}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700"
-            >
-              Ver todos
-              <ArrowRight size={14} />
-            </button>
-          </div>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs text-slate-500">Pendientes</p>
-              <p className="mt-2 text-2xl font-bold text-slate-900">{mProd.pendientes}</p>
-            </div>
-            <div className="rounded-xl bg-blue-50 p-4">
-              <p className="text-xs text-blue-700">En producción</p>
-              <p className="mt-2 text-2xl font-bold text-blue-700">{mProd.enProceso}</p>
-            </div>
-            <div className="rounded-xl bg-amber-50 p-4">
-              <p className="text-xs text-amber-700">Faltantes</p>
-              <p className="mt-2 text-2xl font-bold text-amber-700">{mProd.faltantes}</p>
-            </div>
-            <div className="rounded-xl bg-red-50 p-4">
-              <p className="text-xs text-red-700">Anulados</p>
-              <p className="mt-2 text-2xl font-bold text-red-700">{mProd.anulados}</p>
-            </div>
-          </div>
-        </div>
-        <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-1 space-y-6">
-            <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100">
-              <h2 className="text-xl font-bold text-slate-900">Hola, {datos.tecnicos.find((x) => x.id === usuarioId)?.nombre || "Usuario"}</h2>
-              <p className="text-xs text-slate-500 mt-1">
-                Panel de trabajo para el rol de <strong className="text-slate-800">ENCARGADO</strong>.
-              </p>
-            </div>
-            <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
-                Accesos Directos
-              </h3>
-              <div className="flex flex-col gap-2.5">
-                <button
-                  onClick={() => setTab("Mi recorrido")}
-                  className="flex items-center justify-between rounded-xl bg-blue-600 px-4 py-3 text-xs font-semibold text-white hover:bg-blue-700"
-                >
-                  <span className="flex items-center gap-2"><ClipboardList size={16} /> Ver Mis Trabajos Pendientes</span>
-                  <ArrowRight size={14} />
-                </button>
-                <button
-                  onClick={() => setTab("Recorrido de camiones")}
-                  className="flex items-center justify-between rounded-xl bg-slate-100 text-slate-700 px-4 py-3 text-xs font-semibold hover:bg-slate-200"
-                >
-                  <span className="flex items-center gap-2"><Truck size={16} /> Consultar Mi Recorrido</span>
-                  <ArrowRight size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="lg:col-span-2 rounded-xl bg-white p-6 shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
-                  <Bell size={18} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Nuevos Trabajos Asignados</h3>
-                  <p className="text-xs text-slate-400">Avisos de tareas listas para realizar</p>
-                </div>
-              </div>
-            </div>
-            {deHoy.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 text-xs">
-                No hay notificaciones pendientes en este momento.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {deHoy.map((t) => (
-                  <button
-                    key={`${t.fabrica}-${t.id}`}
-                    onClick={() => setTab("Mi recorrido")}
-                    className="flex w-full items-center justify-between p-3.5 rounded-xl border border-slate-100 text-left hover:border-slate-300 hover:bg-slate-50"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div className="p-2.5 rounded-xl shrink-0 bg-blue-50 text-blue-600">
-                        <ClipboardList size={18} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-800">
-                          Te asignaron el trabajo #{t.numero} - {t.cliente_nombre}
-                        </p>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {t.direccion}
-                          {t.localidad ? ` - ${t.localidad}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </>
+      <InicioVista
+        perfil={{ nombre: datos.tecnicos.find((x) => x.id === usuarioId)?.nombre || "Usuario", rol: "TECNICO" }}
+        rolMostrado="ENCARGADO"
+        barraProduccion
+        stockBajo={[]}
+        errorStock={false}
+        paraHoy={deHoy.slice(0, 6).map(({ t }) => ({
+          id: `hoy-${t.fabrica}-${t.id}`,
+          link: sec("Mi recorrido"),
+          titulo: `${t.fabrica ? "Remito" : "Visita"} #${t.numero} - ${t.cliente_nombre || "Cliente"}`,
+          detalle: t.direccion || "Sin dirección",
+        }))}
+        metricasTecnico={{ asignadas: deHoy.length, pendientes: deHoy.length - finalizados, finalizados }}
+        metricasAdmin={{}}
+        metricasFabrica={{}}
+        metricasProduccion={{
+          pendientes: enProd.filter((t) => ["ENVIADO_A_CORTAR", "EN_CORTE"].includes(t.estado)).length,
+          enProceso: enProd.filter((t) => ["EN_FABRICACION", "EN_FABRICA"].includes(t.estado)).length,
+          faltantes: enProd.filter((t) => t.estado === "FALTANTES").length,
+          anulados: enProd.filter((t) => t.estado === "ANULADO").length,
+        }}
+        notificaciones={deHoy.map(({ t, a }) => ({
+          id: `asig-${t.fabrica}-${t.id}`,
+          titulo: `Te asignaron el trabajo #${t.numero} - ${t.cliente_nombre}`,
+          detalle: `${t.direccion}${t.localidad ? ` - ${t.localidad}` : ""}`,
+          fecha: a?.fecha ? `${a.fecha}T12:00:00` : new Date().toISOString(),
+          link: sec("Mi recorrido"),
+          icono: ClipboardList,
+          colorIcono: "bg-blue-50 text-blue-600",
+        }))}
+        errorAvisos={false}
+        novedadEnVivo={null}
+        setNovedadEnVivo={() => {}}
+        cargando={false}
+        rutas={{
+          "/trabajos": sec("Mi recorrido"),
+          "/recorrido-camiones": sec("Recorrido de camiones"),
+          "/produccion": sec("Producción"),
+        }}
+      />
     );
   }
   if (tab === "Stock de motores") {
