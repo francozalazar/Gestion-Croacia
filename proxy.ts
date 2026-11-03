@@ -45,6 +45,8 @@ export async function proxy(request: NextRequest) {
       const path = request.nextUrl.pathname;
       const permitido =
         path === "/encargado" ||
+        path === "/api/push/suscripcion" ||
+        path === "/push-sw.js" ||
         path.startsWith("/encargado/") ||
         path.startsWith("/_next/");
       if (!perfil.activo || !permitido) {
