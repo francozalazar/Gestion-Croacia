@@ -5,6 +5,7 @@ import Link from "next/link";
 import { operarEncargado } from "./actions";
 import { fechaLinda as fechaCivil } from "@/lib/fechasFicha";
 import Desplegable from "@/components/Desplegable";
+import AvisosAndroid from "@/components/AvisosAndroid";
 import { VerDetallesInstalacion } from "@/components/EnviarACoordinacion";
 type Trabajo = {
   id: number;
@@ -152,6 +153,14 @@ export default function PanelEncargado({
       <p className="mt-1 mb-6 text-xs md:text-sm text-slate-500">
         {descripciones[tab]}
       </p>
+      {tab === "Inicio" && (
+        <>
+          <AvisosAndroid />
+          <h2 className="mb-3 text-lg font-bold text-slate-900">
+            Novedades y notificaciones
+          </h2>
+        </>
+      )}
       <p role="status" className="mb-4 text-sm text-slate-600">
         {mensaje}
       </p>
