@@ -7,7 +7,7 @@ import { fechaLinda as fechaCivil } from "@/lib/fechasFicha";
 import Desplegable from "@/components/Desplegable";
 import CabeceraTarjeta from "@/components/TarjetaSolicitud";
 import AvisosAndroid from "@/components/AvisosAndroid";
-import { Calendar, Bell, ClipboardList, Truck, ArrowRight } from "lucide-react";
+import { Search, X, Calendar, Bell, ClipboardList, Truck, ArrowRight } from "lucide-react";
 import { VerDetallesInstalacion } from "@/components/EnviarACoordinacion";
 type Trabajo = {
   id: number;
@@ -64,7 +64,7 @@ const SECCIONES = [
 ];
 const descripciones: Record<string, string> = {
   "Inicio": "Novedades y notificaciones de tus trabajos de hoy.",
-  "Coordinación": "Asigná los trabajos pendientes a un técnico.",
+  "Coordinación": "Asigna fecha y técnico responsable para derivar las órdenes a la hoja de ruta de los camiones.",
   "Recorrido de camiones": "Trabajos asignados a cada técnico por día.",
   "Producción": "Qué hay en producción y en qué estado está.",
   "Stock de motores": "Movimientos y stock mínimo de motores.",
@@ -99,6 +99,7 @@ export default function PanelEncargado({
     seccion && SECCIONES.includes(seccion) ? seccion : "Inicio",
   );
   const [ocupado, setOcupado] = useState(false);
+  const [modal, setModal] = useState<(Trabajo & { fabrica: boolean }) | null>(null);
   const [mensaje, setMensaje] = useState("");
   const [buscar, setBuscar] = useState("");
   const [tecnico, setTecnico] = useState(datos.tecnicos[0]?.id || "");
@@ -138,6 +139,7 @@ export default function PanelEncargado({
       const r = await operarEncargado(accion, datos);
       setMensaje(r.mensaje);
       if (r.ok) {
+        setModal(null);
         if (accion === "stock") delete operaciones.current[Number(datos.motor)];
         router.refresh();
       }
@@ -146,6 +148,83 @@ export default function PanelEncargado({
     } finally {
       setOcupado(false);
     }
+  }
+  function formAsignar(t: Trabajo & { fabrica: boolean }) {
+    const a = asignacion(t);
+    return (
+      <form
+                          className="grid gap-3 mt-4"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const f = new FormData(e.currentTarget);
+                            ejecutar("asignar", {
+                              id: t.id,
+                              fabrica: t.fabrica,
+                              tecnico: f.get("tecnico"),
+                              fecha: f.get("fecha"),
+                              franja: f.get("franja"),
+                              prioridad: f.get("prioridad"),
+                            });
+                          }}
+                        >
+                          <label className={etiqueta}>
+                            Técnico
+                            <Desplegable
+                            name="tecnico"
+                            required
+                            defaultValue={a?.usuario_id || ""}
+                            className={campo}
+                            ariaLabel="Técnico"
+                            placeholder="Seleccionar"
+                            opciones={datos.tecnicos.map((x) => ({ value: String(x.id), label: x.nombre }))}
+                            />
+                          </label>
+                          <label className={etiqueta}>
+                            Fecha pactada
+                            <input
+                              key={`fecha-${t.id}-${hoy}`}
+                              name="fecha"
+                              type="date"
+                              required
+                              defaultValue={a?.fecha || hoy}
+                              className={campo}
+                            />
+                          </label>
+                          {!t.horario_desde && !t.horario_hasta && (
+                            <label className={etiqueta}>
+                              Horario
+                              <Desplegable
+                              name="franja"
+                              defaultValue="DIA_COMPLETO"
+                              className={campo}
+                              ariaLabel="Horario"
+                              opciones={[
+                              { value: "DIA_COMPLETO", label: "Día completo" },
+                              { value: "MANANA", label: "Mañana08:30–12:30" },
+                              { value: "TARDE", label: "Tarde13–17" },
+                              ]}
+                              />
+                            </label>
+                          )}
+                          <label className={etiqueta}>
+                            Prioridad
+                            <Desplegable
+                            name="prioridad"
+                            defaultValue={String(a?.prioridad || "")}
+                            className={campo}
+                            ariaLabel="Prioridad"
+                            placeholder="Sin prioridad"
+                            opciones={[
+                            { value: "", label: "Sin prioridad" },
+                            ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) })),
+                            ]}
+                            />
+                          </label>
+                          <button disabled={ocupado} className={boton}>
+                            {a ? "Actualizar asignación" : "Asignar trabajo"}
+                          </button>
+                        </form>
+    );
   }
   if (tab === "Inicio") {
     const deHoy = trabajos.filter((t) => {
@@ -332,7 +411,7 @@ export default function PanelEncargado({
   return (
     <>
       <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-        {tab}
+        {tab === "Coordinación" ? "Coordinación de Trabajos" : tab}
       </h1>
       <p className="mt-1 mb-6 text-xs md:text-sm text-slate-500">
         {descripciones[tab]}
@@ -467,13 +546,25 @@ export default function PanelEncargado({
               </label>
             </div>
           )}
-{tab !== "Inicio" && (
+{tab === "Coordinación" ? (
+          <div className="relative mb-8 max-w-4xl">
+            <input
+              type="text"
+              placeholder="Buscar por cliente o dirección..."
+              value={buscar}
+              onChange={(e) => setBuscar(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-10 text-sm outline-none shadow-sm focus:border-blue-500"
+            />
+            <Search className="absolute right-3 top-3.5 text-slate-400" size={18} />
+          </div>
+        ) : (
           <label className={`${etiqueta} mb-5`}>
             Buscar cliente, dirección o remito
             <input
               className={campo}
               value={buscar}
-              onChange={(e) => setBuscar(e.target.value)}
+              onChange={(e) => setBuscar(e.target.value
+        )}
             />
           </label>
 )}
@@ -511,6 +602,29 @@ export default function PanelEncargado({
               })
               .map((t) => {
                 const a = asignacion(t);
+                if (tab === "Coordinación")
+                  return (
+                    <div
+                      key={`${t.fabrica}-${t.id}`}
+                      onClick={() => setModal(t)}
+                      className="cursor-pointer rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+                    >
+                      <CabeceraTarjeta
+                        numero={t.numero}
+                        etiqueta={t.fabrica ? "Instalación" : t.tipo_visita || "Visita"}
+                        esFabrica={!!t.fabrica}
+                        cliente={t.cliente_nombre}
+                        direccion={t.direccion}
+                        localidad={t.localidad}
+                      />
+                      {a && (
+                        <p className="mt-3 border-t border-slate-100 pt-2 text-xs font-semibold text-slate-800">
+                          Asignado:{" "}
+                          {datos.tecnicos.find((x) => x.id === a.usuario_id)?.nombre || "Técnico"}
+                        </p>
+                      )}
+                    </div>
+                  );
                 return (
                   <section
                     key={`${t.fabrica}-${t.id}`}
@@ -547,80 +661,6 @@ export default function PanelEncargado({
                           ?.nombre || "Técnico"}{" "}
                         · Prioridad: {a.prioridad || "Sin prioridad"}
                       </p>
-                    )}
-                    {tab === "Coordinación" && (
-                      <form
-                        className="grid gap-3 mt-4"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          const f = new FormData(e.currentTarget);
-                          ejecutar("asignar", {
-                            id: t.id,
-                            fabrica: t.fabrica,
-                            tecnico: f.get("tecnico"),
-                            fecha: f.get("fecha"),
-                            franja: f.get("franja"),
-                            prioridad: f.get("prioridad"),
-                          });
-                        }}
-                      >
-                        <label className={etiqueta}>
-                          Técnico
-                          <Desplegable
-                          name="tecnico"
-                          required
-                          defaultValue={a?.usuario_id || ""}
-                          className={campo}
-                          ariaLabel="Técnico"
-                          placeholder="Seleccionar"
-                          opciones={datos.tecnicos.map((x) => ({ value: String(x.id), label: x.nombre }))}
-                          />
-                        </label>
-                        <label className={etiqueta}>
-                          Fecha pactada
-                          <input
-                            key={`fecha-${t.id}-${hoy}`}
-                            name="fecha"
-                            type="date"
-                            required
-                            defaultValue={a?.fecha || hoy}
-                            className={campo}
-                          />
-                        </label>
-                        {!t.horario_desde && !t.horario_hasta && (
-                          <label className={etiqueta}>
-                            Horario
-                            <Desplegable
-                            name="franja"
-                            defaultValue="DIA_COMPLETO"
-                            className={campo}
-                            ariaLabel="Horario"
-                            opciones={[
-                            { value: "DIA_COMPLETO", label: "Día completo" },
-                            { value: "MANANA", label: "Mañana08:30–12:30" },
-                            { value: "TARDE", label: "Tarde13–17" },
-                            ]}
-                            />
-                          </label>
-                        )}
-                        <label className={etiqueta}>
-                          Prioridad
-                          <Desplegable
-                          name="prioridad"
-                          defaultValue={String(a?.prioridad || "")}
-                          className={campo}
-                          ariaLabel="Prioridad"
-                          placeholder="Sin prioridad"
-                          opciones={[
-                          { value: "", label: "Sin prioridad" },
-                          ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) })),
-                          ]}
-                          />
-                        </label>
-                        <button disabled={ocupado} className={boton}>
-                          {a ? "Actualizar asignación" : "Asignar trabajo"}
-                        </button>
-                      </form>
                     )}
                     {tab === "Producción" && (
                       <form
@@ -715,6 +755,35 @@ export default function PanelEncargado({
             completan únicamente cuando están asignados a tu usuario.
           </p>
         </>
+      )}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl">
+            <button
+              onClick={() => setModal(null)}
+              className="absolute right-6 top-6 text-slate-400 hover:text-slate-600"
+              aria-label="Cerrar"
+            >
+              <X size={20} />
+            </button>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+              {modal.cliente_nombre || "Cliente sin nombre"}
+            </h1>
+            <p className="mt-1 text-lg font-medium text-slate-700">
+              {modal.direccion}
+              {modal.localidad ? ` - ${modal.localidad}` : ""}
+            </p>
+            <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-xs text-slate-600">
+              <p>
+                <strong>Detalle:</strong> {modal.observaciones || "Sin especificaciones"}
+              </p>
+            </div>
+            <div className="mt-6 border-t border-slate-100 pt-4">
+              {mensaje && <p className="mb-3 text-sm text-slate-600">{mensaje}</p>}
+              {formAsignar(modal)}
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
