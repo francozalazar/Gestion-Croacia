@@ -102,7 +102,7 @@ export default function ListosVista({
                       {solicitud.cliente_telefono ? ` - ${solicitud.cliente_telefono}` : ""}
                     </p>
                     <p className="break-words text-xs text-slate-500">
-                      Cargado por: {nombresCreadores[solicitud.creado_por] || "Sin dato"}
+                      Cargado por: {solicitud.usuario_creador || nombresCreadores[solicitud.creado_por] || "Sin dato"}
                     </p>
                   </div>
                   <div className="min-w-0">
