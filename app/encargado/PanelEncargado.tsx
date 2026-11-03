@@ -8,6 +8,7 @@ import Desplegable from "@/components/Desplegable";
 import CabeceraTarjeta from "@/components/TarjetaSolicitud";
 import CoordinacionVista from "@/components/CoordinacionVista";
 import RecorridoVista from "@/components/RecorridoVista";
+import MisTrabajosVista from "@/components/MisTrabajosVista";
 import AvisosAndroid from "@/components/AvisosAndroid";
 import { Calendar, Bell, ClipboardList, Truck, ArrowRight } from "lucide-react";
 import { VerDetallesInstalacion } from "@/components/EnviarACoordinacion";
@@ -329,6 +330,29 @@ export default function PanelEncargado({
           </div>
         </div>
       </>
+    );
+  }
+  if (tab === "Mi recorrido") {
+    const ocultos = ["FINALIZADO", "PRESUPUESTADO", "PENDIENTE_PRECIO", "CANCELADO", "LISTO_PARA_COLOCAR", "ANULADO"];
+    const propios = trabajos
+      .map((t) => ({ t, a: asignacion(t) }))
+      .filter(({ t, a }) => a?.usuario_id === usuarioId && !ocultos.includes(t.estado))
+      .map(({ t, a }) => ({
+        ...t,
+        origen: t.fabrica ? "fabrica" : "solicitud",
+        id_unico: `${t.fabrica ? "fab" : "sol"}_${t.id}`,
+        numero_visible: t.numero || t.id,
+        prioridad: a?.prioridad ?? 99,
+        fecha_asignada: a?.fecha || t.fecha,
+      }))
+      .sort((x, y) => x.prioridad - y.prioridad);
+    return (
+      <MisTrabajosVista
+        solicitudes={propios}
+        clientes={[]}
+        volverHref="/encargado"
+        rutaTrabajo="/encargado/trabajo"
+      />
     );
   }
   if (tab === "Recorrido de camiones") {
