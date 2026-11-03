@@ -143,7 +143,7 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
           <Link
             href={esEncargado ? "/encargado" : "/dashboard"}
             className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-              pathname === "/dashboard"
+              (esEncargado ? pathname === "/encargado" && !seccionActiva : pathname === "/dashboard")
                 ? "bg-blue-600 text-white"
                 : "hover:bg-slate-800 hover:text-white"
             }`}
@@ -156,11 +156,26 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
           {esEncargado ? (
             <div className="pt-2">
               {[
-                { t: "Visitas", icono: <TrendingUp size={18} className="text-blue-400" />, items: ["Coordinación", "Recorrido de camiones"] },
-                { t: "Fábrica", icono: <Factory size={18} className="text-amber-400" />, items: ["Producción", "Stock de motores"] },
-                { t: "Mis trabajos", icono: <FileText size={18} className="text-blue-400" />, items: ["Mis trabajos"] },
+                { t: "Visitas", icono: <TrendingUp size={18} className="text-blue-400" />, items: ["Recorrido de camiones", "Coordinación"] },
+                { t: "Mi recorrido", icono: <FileText size={18} className="text-blue-400" />, items: ["Mi recorrido"] },
+                { t: "Fábrica", icono: <Factory size={18} className="text-amber-400" />, items: ["Producción", "Stock de motores", "Listos para colocar"] },
               ].map((g) => {
-                const abierto = seccionAbierta === `enc-${g.t}` || g.items.includes(seccionActiva || (pathname === "/encargado" ? "Coordinación" : ""));
+                const actual = seccionActiva || "Inicio";
+                const abierto = seccionAbierta === `enc-${g.t}` || g.items.includes(actual);
+                if (g.items.length === 1) {
+                  return (
+                    <Link
+                      key={g.t}
+                      href={`/encargado?seccion=${encodeURIComponent(g.items[0])}`}
+                      className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                        actual === g.items[0] ? "bg-blue-600 text-white" : "hover:bg-slate-800 hover:text-white"
+                      }`}
+                    >
+                      {g.icono}
+                      <span>{g.t}</span>
+                    </Link>
+                  );
+                }
                 return (
                   <div key={g.t}>
                     <button
@@ -180,7 +195,7 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
                             key={t}
                             href={`/encargado?seccion=${encodeURIComponent(t)}`}
                             className={`block py-2 text-xs font-medium transition ${
-                              (seccionActiva || "Coordinación") === t && pathname === "/encargado"
+                              actual === t && pathname === "/encargado"
                                 ? "text-blue-400 font-bold"
                                 : "text-slate-400 hover:text-white"
                             }`}
