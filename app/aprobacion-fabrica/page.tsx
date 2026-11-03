@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { cargarCuentas, fechaCarga } from "@/lib/saldoPedido";
 import Sidebar from "@/components/Sidebar";
+import { anularProduccionAction } from "@/app/produccion/actions";
 import { CheckCircle2, User, Scissors, X, ArrowRight, ShieldAlert, FileText, DollarSign, MapPin } from "lucide-react";
 
 export default function AprobacionFabricaPage() {
@@ -70,6 +71,21 @@ export default function AprobacionFabricaPage() {
       if (error) { alert("No se aprobó el pedido: " + error.message); return; }
       setModalRemito(null);
       await cargarDatos();
+    } finally { setProcesando(false); }
+  }
+
+  async function anularPedido(id: number, etiqueta: string) {
+    if (perfil?.rol !== "ADMIN" || procesando) return;
+    if (!window.confirm(`\u00bfAnular el pedido ${etiqueta}? Desaparece de Aprobaci\u00f3n y de Producci\u00f3n, y se cancela su visita si todav\u00eda no se hizo. Esta acci\u00f3n no se puede deshacer.`)) return;
+    setProcesando(true);
+    try {
+      const fd = new FormData();
+      fd.append("id", String(id));
+      await anularProduccionAction(fd);
+      setModalRemito(null);
+      await cargarDatos();
+    } catch (e: any) {
+      alert("No se anul\u00f3 el pedido: " + (e?.message || "error"));
     } finally { setProcesando(false); }
   }
 
@@ -190,6 +206,16 @@ export default function AprobacionFabricaPage() {
                     <span>Ver detalles y gestionar</span>
                     <ArrowRight size={14} />
                   </div>
+                  {perfil?.rol === "ADMIN" && (
+                    <button
+                      type="button"
+                      disabled={procesando}
+                      onClick={(e) => { e.stopPropagation(); anularPedido(s.id, `#${s.numero_remito || s.id}`); }}
+                      className="mt-3 w-full rounded-xl bg-red-50 px-4 py-2.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                    >
+                      Anular
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -333,6 +359,13 @@ export default function AprobacionFabricaPage() {
               {/* ACCIONES EXCLUSIVAS PARA ADMIN */}
               {perfil?.rol === "ADMIN" ? (
                 <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                  <button
+                    onClick={() => anularPedido(modalRemito.id, `#${modalRemito.numero_remito || modalRemito.id}`)}
+                    disabled={procesando}
+                    className="rounded-xl bg-red-50 px-6 py-3 text-xs font-semibold text-red-700 hover:bg-red-100 transition disabled:opacity-50"
+                  >
+                    Anular
+                  </button>
                   {modalRemito.estado === "PENDIENTE_APROBACION" && (
                     <button
                       onClick={() => enviarACortar(modalRemito.id)}
