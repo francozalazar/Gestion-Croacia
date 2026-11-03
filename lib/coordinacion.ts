@@ -3,8 +3,9 @@
 export function esUrgencia(s: { tipo_visita?: string | null }) {
   return (s.tipo_visita || "").trim().toLowerCase() === "urgencia";
 }
-function fechaCarga(s: { created_at?: string | null }) {
-  const fecha = Date.parse(s.created_at || "");
+// Antigüedad en Coordinación (coordinacion_desde); si falta, fecha de carga.
+function fechaCarga(s: { coordinacion_desde?: string | null; created_at?: string | null }) {
+  const fecha = Date.parse(s.coordinacion_desde || s.created_at || "");
   return Number.isFinite(fecha) ? fecha : Infinity;
 }
 // Sin fecha de carga registrada se ordena por número de remito (menor arriba,
