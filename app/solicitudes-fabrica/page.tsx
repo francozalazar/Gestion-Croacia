@@ -457,7 +457,7 @@ export default function SolicitudFabricaPage() {
 
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-            Nuevo pedido para fábrica
+            Para cortar
           </h1>
 
           <p className="mt-2 text-slate-600">
