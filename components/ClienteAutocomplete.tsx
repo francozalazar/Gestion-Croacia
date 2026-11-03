@@ -32,6 +32,7 @@ export default function ClienteAutocomplete({
   const [clienteElegido, setClienteElegido] = useState<number | null>(null);
   const [todos, setTodos] = useState<ClienteSugerido[]>([]);
   const [abierto, setAbierto] = useState(false);
+  const [nuevoConfirmado, setNuevoConfirmado] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ignorarBlur = useRef(false);
 
@@ -112,6 +113,7 @@ export default function ClienteAutocomplete({
           onChange={(e) => {
             setCliente(e.target.value);
             setClienteElegido(null);
+            setNuevoConfirmado(false);
             setDireccionesCliente([]);
             setAbierto(true);
           }}
@@ -128,6 +130,7 @@ export default function ClienteAutocomplete({
         />
         {abierto &&
           (sugerencias.length > 0 ||
+            cliente.trim().length >= 2 ||
             (cliente.trim().length === 0 && todos.length > 0)) && (
           <div
             className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg"
@@ -144,6 +147,7 @@ export default function ClienteAutocomplete({
                 type="button"
                 onClick={() => {
                   elegirCliente(c);
+                  setNuevoConfirmado(false);
                   setAbierto(false);
                 }}
                 className="block w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-xl last:rounded-b-xl"
@@ -151,7 +155,26 @@ export default function ClienteAutocomplete({
                 {c.nombre}
               </button>
             ))}
+            {cliente.trim().length >= 2 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setClienteElegido(null);
+                  setNuevoConfirmado(true);
+                  setSugerencias([]);
+                  setAbierto(false);
+                }}
+                className="block w-full border-t border-slate-100 px-4 py-2.5 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50"
+              >
+                + Cliente nuevo: {cliente.trim()}
+              </button>
+            )}
           </div>
+        )}
+        {nuevoConfirmado && clienteElegido === null && cliente.trim().length >= 2 && (
+          <p className="mt-2 text-xs font-medium text-slate-600">
+            Se va a crear un cliente nuevo con este nombre al guardar.
+          </p>
         )}
       </div>
 
