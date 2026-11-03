@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { cargarMotoresTrabajoAction } from "./actions";
 import Desplegable from "@/components/Desplegable";
 
 type Tecnico = { id: string; nombre: string | null; apellido: string | null };
 type Motor = { id: number; nombre: string; cantidad: number };
-type Trabajo = {
+export type Trabajo = {
   clave: string;
   id: number;
   esFabrica: boolean;
@@ -27,8 +27,20 @@ function hoyArgentina() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }).format(new Date());
 }
 
-export default function CargaPorTecnico({ tecnicos, motores }: { tecnicos: Tecnico[]; motores: Motor[] }) {
+// Por defecto lee y guarda como Admin. Otros roles (Encargado) pasan su propia fuente de datos y
+// su propia acción de guardado: la pantalla es la misma.
+export type FuenteCargaMotores = {
+  cargar: (tecnicoId: string, fecha: string) => Promise<{ ok: boolean; trabajos: Trabajo[] }>;
+  guardar: (datos: {
+    operacion: string; tecnicoId: string; solicitudId: number | null; pedidoId: number | null;
+    items: { motor_id: number; cantidad: number }[];
+  }) => Promise<{ ok: boolean; mensaje: string }>;
+};
+
+export default function CargaPorTecnico({ tecnicos, motores, fuente }: { tecnicos: Tecnico[]; motores: Motor[]; fuente?: FuenteCargaMotores }) {
   const supabase = createClient();
+  const fuenteRef = useRef(fuente); // la fuente se recrea en cada render: no debe relanzar la carga
+  fuenteRef.current = fuente;
   const [tecnicoId, setTecnicoId] = useState(tecnicos[0]?.id || "");
   const [fecha, setFecha] = useState(hoyArgentina());
   const [trabajos, setTrabajos] = useState<Trabajo[]>([]);
@@ -44,6 +56,18 @@ export default function CargaPorTecnico({ tecnicos, motores }: { tecnicos: Tecni
     if (!tecnicoId || !fecha) return;
     setCargando(true);
     setError("");
+    if (fuenteRef.current) {
+      try {
+        const r = await fuenteRef.current.cargar(tecnicoId, fecha);
+        setTrabajos(r.ok ? r.trabajos : []);
+        if (!r.ok) setError("No se pudo cargar los trabajos.");
+      } catch {
+        setTrabajos([]);
+        setError("No se pudo cargar los trabajos.");
+      }
+      setCargando(false);
+      return;
+    }
     const { data: asigs, error: e1 } = await supabase
       .from("asignaciones")
       .select("solicitud_id, solicitud_fabrica_id, prioridad")
@@ -139,7 +163,7 @@ export default function CargaPorTecnico({ tecnicos, motores }: { tecnicos: Tecni
       return;
     }
     iniciar(async () => {
-      const res = await cargarMotoresTrabajoAction({
+      const res = await (fuenteRef.current?.guardar ?? cargarMotoresTrabajoAction)({
         operacion,
         tecnicoId,
         solicitudId: t.esFabrica ? null : t.id,
