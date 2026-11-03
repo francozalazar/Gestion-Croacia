@@ -9,6 +9,7 @@ import CabeceraTarjeta from "@/components/TarjetaSolicitud";
 import CoordinacionVista from "@/components/CoordinacionVista";
 import RecorridoVista from "@/components/RecorridoVista";
 import StockVista from "@/components/StockVista";
+import { FormularioModelo, type AccionesStock } from "@/app/stock/StockForms";
 import ProduccionVista from "@/components/ProduccionVista";
 import InicioVista from "@/components/InicioVista";
 import ListosVista from "@/components/ListosVista";
@@ -214,12 +215,7 @@ export default function PanelEncargado({
         return { ok: false, mensaje: "No se pudo confirmar. Actualizá antes de reintentar." };
       }
     };
-    return (
-      <StockVista
-        motores={datos.motores}
-        pedidos={[]}
-        volverHref="/encargado"
-        acciones={{
+    const accionesStock: AccionesStock = {
           registrarMovimiento: async (_prev, f) => {
             const tipo = String(f.get("tipo") || "").toUpperCase();
             const cantidad = Number(f.get("cantidad"));
@@ -235,10 +231,32 @@ export default function PanelEncargado({
               tipo === "ENTRADA" ? `Entrada registrada: +${cantidad}.` : `Salida registrada: -${cantidad}.`,
             );
           },
+          crearModelo: async (_prev, f) => {
+            const nombre = String(f.get("nombre") || "").trim();
+            const r = await resultado(
+              "modelo",
+              { nombre, inicial: Number(f.get("inicial") || 0), minimo: Number(f.get("minimo") || 0) },
+              `Modelo "${nombre}" creado.`,
+            );
+            return !r.ok && /duplicate|unique/i.test(r.mensaje)
+              ? { ok: false, mensaje: "Ya existe un modelo con ese nombre." }
+              : r;
+          },
           actualizarMinimo: async (_prev, f) =>
             resultado("minimo", { motor: Number(f.get("motor_id")), cantidad: Number(f.get("minimo")) }, "Guardado."),
-        }}
-      />
+    };
+    return (
+      <StockVista
+        motores={datos.motores}
+        pedidos={[]}
+        volverHref="/encargado"
+        acciones={accionesStock}
+      >
+        <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-bold text-slate-900">Agregar modelo</h2>
+          <FormularioModelo acciones={accionesStock} />
+        </div>
+      </StockVista>
     );
   }
   if (tab === "Producción") {
