@@ -9,6 +9,12 @@ import {
   type ResultadoStock,
 } from "./actions";
 
+// Permite que otro rol (encargado) use estos mismos formularios con sus propias acciones.
+export type AccionesStock = {
+  registrarMovimiento?: (prev: ResultadoStock | null, formData: FormData) => Promise<ResultadoStock>;
+  actualizarMinimo?: (prev: ResultadoStock | null, formData: FormData) => Promise<ResultadoStock>;
+};
+
 const campo =
   "w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-900";
 
@@ -85,14 +91,16 @@ export function FormularioMovimiento({
   motorId,
   pedidos,
   compacto = false,
+  acciones,
 }: {
   motorId: number;
   pedidos: PedidoOpcion[];
   compacto?: boolean;
+  acciones?: AccionesStock;
 }) {
   const [tipo, setTipo] = useState<"ENTRADA" | "SALIDA">("ENTRADA");
   const [res, accion, pendiente] = useActionState<ResultadoStock | null, FormData>(
-    registrarMovimientoAction,
+    acciones?.registrarMovimiento ?? registrarMovimientoAction,
     null
   );
   const form = useRef<HTMLFormElement>(null);
@@ -153,12 +161,14 @@ export function FormularioMovimiento({
 export function FormularioMinimo({
   motorId,
   minimo,
+  acciones,
 }: {
   motorId: number;
   minimo: number;
+  acciones?: AccionesStock;
 }) {
   const [res, accion, pendiente] = useActionState<ResultadoStock | null, FormData>(
-    actualizarMinimoAction,
+    acciones?.actualizarMinimo ?? actualizarMinimoAction,
     null
   );
 
@@ -194,10 +204,12 @@ export function CardStockMotor({
   motor,
   pedidos,
   abiertoInicial = false,
+  acciones,
 }: {
   motor: MotorCard;
   pedidos: PedidoOpcion[];
   abiertoInicial?: boolean;
+  acciones?: AccionesStock;
 }) {
   const [abierto, setAbierto] = useState(abiertoInicial);
   const bajo = motor.cantidad <= motor.minimo;
@@ -241,8 +253,8 @@ export function CardStockMotor({
       </button>
       {abierto && (
         <div className="mt-3 space-y-3 border-t border-slate-100 pt-3">
-          <FormularioMovimiento motorId={motor.id} pedidos={pedidos} compacto />
-          <FormularioMinimo motorId={motor.id} minimo={motor.minimo} />
+          <FormularioMovimiento motorId={motor.id} pedidos={pedidos} compacto acciones={acciones} />
+          <FormularioMinimo motorId={motor.id} minimo={motor.minimo} acciones={acciones} />
         </div>
       )}
     </div>
