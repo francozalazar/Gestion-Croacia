@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import EnviarACoordinacion from "@/components/EnviarACoordinacion";
+import EnviarACoordinacion, { VerDetallesInstalacion } from "@/components/EnviarACoordinacion";
 
 // Lista de pedidos terminados por fabrica, listos para coordinar la instalacion.
 export default async function ListosLista({ solicitudes }: { solicitudes: any[] }) {
@@ -66,7 +66,8 @@ export default async function ListosLista({ solicitudes }: { solicitudes: any[] 
                       ? new Date(`${solicitud.fecha}T12:00:00`).toLocaleDateString("es-AR")
                       : "-"}
                   </span>
-                  <div className="lg:text-right">
+                  <div className="flex flex-wrap gap-2 lg:justify-end">
+                    <VerDetallesInstalacion observaciones={solicitud.observaciones} />
                     <EnviarACoordinacion solicitud={solicitud} />
                   </div>
                 </li>
