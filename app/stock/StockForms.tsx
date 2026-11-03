@@ -141,6 +141,12 @@ export function FormularioMovimiento({
           Cantidad
           <input name="cantidad" type="number" min={1} step={1} required className={campo} />
         </label>
+        {acciones?.registrarMovimiento && (
+          <label className="block text-sm font-medium text-slate-700">
+            Motivo
+            <input name="detalle" maxLength={500} required className={campo} autoComplete="off" />
+          </label>
+        )}
       </div>
       <div className="flex items-center gap-4">
         <button
