@@ -24,6 +24,7 @@ interface SidebarProps {
   nombre: string;
   apellido: string;
   rol: string;
+  seccionActiva?: string;
 }
 
 // Grupo del menu al que pertenece cada ruta (para dejar abierto el que se esta usando).
@@ -40,7 +41,7 @@ function seccionDeRuta(path: string | null): string | null {
   return null;
 }
 
-export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
+export default function Sidebar({ nombre, apellido, rol, seccionActiva }: SidebarProps) {
   const pathname = usePathname();
   const supabase = createClient();
 
@@ -153,7 +154,46 @@ export default function Sidebar({ nombre, apellido, rol }: SidebarProps) {
 
           {/* MENÚ CONDICIONAL SEGÚN EL ROL */}
           {esEncargado ? (
-            <div className="space-y-2 pt-2">{["Coordinación", "Recorrido de camiones", "Producción", "Stock de motores", "Mis trabajos"].map(t => <Link key={t} href={`/encargado?seccion=${encodeURIComponent(t)}`} className="block rounded-xl px-4 py-3 text-sm hover:bg-slate-800 hover:text-white">{t}</Link>)}</div>
+            <div className="pt-2">
+              {[
+                { t: "Visitas", icono: <TrendingUp size={18} className="text-blue-400" />, items: ["Coordinación", "Recorrido de camiones"] },
+                { t: "Fábrica", icono: <Factory size={18} className="text-amber-400" />, items: ["Producción", "Stock de motores"] },
+                { t: "Mis trabajos", icono: <FileText size={18} className="text-blue-400" />, items: ["Mis trabajos"] },
+              ].map((g) => {
+                const abierto = seccionAbierta === `enc-${g.t}` || g.items.includes(seccionActiva || (pathname === "/encargado" ? "Coordinación" : ""));
+                return (
+                  <div key={g.t}>
+                    <button
+                      onClick={() => toggleSeccion(`enc-${g.t}`)}
+                      className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        {g.icono}
+                        <span>{g.t}</span>
+                      </div>
+                      <ChevronDown size={16} className={`transition-transform duration-200 ${abierto ? "rotate-180" : ""}`} />
+                    </button>
+                    {abierto && (
+                      <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
+                        {g.items.map((t) => (
+                          <Link
+                            key={t}
+                            href={`/encargado?seccion=${encodeURIComponent(t)}`}
+                            className={`block py-2 text-xs font-medium transition ${
+                              (seccionActiva || "Coordinación") === t && pathname === "/encargado"
+                                ? "text-blue-400 font-bold"
+                                : "text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            • {t}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           ) : esFabrica ? (
             <div className="pt-2">
               <Link
