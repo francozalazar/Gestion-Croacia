@@ -165,7 +165,7 @@ export default function PanelEncargado({
         {mensaje}
       </p>
       {tab === "Stock de motores" ? (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {datos.motores.map((m) => (
             <section key={m.id} className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
               <h2 className="font-bold text-lg text-slate-800">{m.nombre}</h2>
@@ -293,7 +293,7 @@ export default function PanelEncargado({
             />
           </label>
 )}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {trabajos
               .filter((t) => {
                 const a = asignacion(t);
@@ -330,28 +330,47 @@ export default function PanelEncargado({
                 return (
                   <section
                     key={`${t.fabrica}-${t.id}`}
-                    className="rounded-xl bg-white p-5 shadow-sm border border-slate-200"
+                    className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md"
                   >
-                    <p className="text-xs font-semibold uppercase text-slate-400">
-                      #{t.numero} · {t.estado.replaceAll("_", " ")}
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                        #{t.numero}
+                      </span>
+                      <span
+                        className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
+                          t.fabrica
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {t.fabrica ? "Instalación" : t.tipo_visita || "Visita"}
+                      </span>
+                    </div>
+                    <p className="mb-1 text-xs font-semibold uppercase text-slate-400">
+                      {t.estado.replaceAll("_", " ")}
                     </p>
-                    <h2 className="font-bold text-lg text-slate-800">{t.cliente_nombre}</h2>
-                    <p>
+                    <h3 className="line-clamp-1 text-lg font-bold text-slate-900">
+                      {t.cliente_nombre || "Cliente sin nombre"}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-xs text-slate-500">
                       {t.direccion}
-                      {t.localidad ? ` · ${t.localidad}` : ""}
+                      {t.localidad ? ` - ${t.localidad}` : ""}
                     </p>
-                    <p>{t.cliente_telefono}</p>
-                    <p className="mt-2 text-sm">
-                      {t.tipo_visita} ·{" "}
+                    <p className="mt-1 text-xs text-slate-500">
+                      {t.cliente_telefono}
+                    </p>
+                    <p className="mt-2 text-xs font-medium text-slate-600">
                       {t.fecha ? fechaCivil(t.fecha) : "Sin fecha"} ·{" "}
                       {t.horario_desde?.slice(0, 5) || "--:--"} a{" "}
                       {t.horario_hasta?.slice(0, 5) || "--:--"}
                     </p>
-                    <p className="mt-2 whitespace-pre-wrap">
-                      {t.observaciones}
-                    </p>
+                    {t.observaciones && (
+                      <p className="mt-3 line-clamp-3 whitespace-pre-wrap rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
+                        {t.observaciones}
+                      </p>
+                    )}
                     {a && (
-                      <p className="mt-3 font-medium">
+                      <p className="mt-3 border-t border-slate-100 pt-2 text-xs font-semibold text-slate-800">
                         Asignado:{" "}
                         {datos.tecnicos.find((x) => x.id === a.usuario_id)
                           ?.nombre || "Técnico"}{" "}
