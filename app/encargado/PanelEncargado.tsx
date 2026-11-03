@@ -361,7 +361,7 @@ export default function PanelEncargado({
                 motor: Number(f.get("motor_id")),
                 tipo,
                 cantidad,
-                detalle: "Movimiento manual",
+                detalle: String(f.get("detalle") || ""),
               },
               tipo === "ENTRADA" ? `Entrada registrada: +${cantidad}.` : `Salida registrada: -${cantidad}.`,
             );
