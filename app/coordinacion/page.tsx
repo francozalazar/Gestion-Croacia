@@ -17,6 +17,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import Desplegable from "@/components/Desplegable";
+import CabeceraTarjeta from "@/components/TarjetaSolicitud";
 
 
 // =========================================================
@@ -495,45 +496,16 @@ export default function CoordinacionPage() {
                 className={`cursor-pointer rounded-xl border p-6 shadow-sm transition hover:shadow-md ${colorCoordinacion(s)}`}
               >
 
-                {/* CABECERA */}
-
-                <div className="mb-2 flex items-center justify-between">
-
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
-                    #{s.numero || s.numero_remito || s.id}
-                  </span>
-
-                  <span
-                    className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
-                      s.es_fabrica
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-blue-100 text-blue-800"
-                    }`}
-                  >
-                    {s.tipo_origen}
-                  </span>
-
-                </div>
-
-                {esUrgencia(s) && <p className="mb-2 text-sm font-bold text-red-700">URGENTE</p>}
-                {!s.coordinacion_desde && <p className="mb-2 text-xs text-slate-500">Antigüedad sin registro</p>}
-
-                {/* CLIENTE */}
-
-                <h3 className="line-clamp-1 text-lg font-bold text-slate-900">
-                  {s.cliente_nombre ||
-                    "Cliente sin nombre"}
-                </h3>
-
-                {/* DIRECCIÓN */}
-
-                <p className="mt-1 line-clamp-2 text-xs text-slate-500">
-                  {s.direccion}
-
-                  {s.localidad
-                    ? ` - ${s.localidad}`
-                    : ""}
-                </p>
+                <CabeceraTarjeta
+                  numero={s.numero || s.numero_remito || s.id}
+                  etiqueta={s.tipo_origen}
+                  esFabrica={s.es_fabrica}
+                  urgente={esUrgencia(s)}
+                  sinAntiguedad={!s.coordinacion_desde}
+                  cliente={s.cliente_nombre}
+                  direccion={s.direccion}
+                  localidad={s.localidad}
+                />
 
                 {/* =================================================
                     QUIÉN CARGÓ
