@@ -5,6 +5,7 @@ import Link from "next/link";
 import { operarEncargado } from "./actions";
 import { fechaLinda as fechaCivil } from "@/lib/fechasFicha";
 import Desplegable from "@/components/Desplegable";
+import CabeceraTarjeta from "@/components/TarjetaSolicitud";
 import AvisosAndroid from "@/components/AvisosAndroid";
 import { VerDetallesInstalacion } from "@/components/EnviarACoordinacion";
 type Trabajo = {
@@ -332,29 +333,16 @@ export default function PanelEncargado({
                     key={`${t.fabrica}-${t.id}`}
                     className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md"
                   >
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
-                        #{t.numero}
-                      </span>
-                      <span
-                        className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
-                          t.fabrica
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {t.fabrica ? "Instalación" : t.tipo_visita || "Visita"}
-                      </span>
-                    </div>
-                    <p className="mb-1 text-xs font-semibold uppercase text-slate-400">
+                    <CabeceraTarjeta
+                      numero={t.numero}
+                      etiqueta={t.fabrica ? "Instalación" : t.tipo_visita || "Visita"}
+                      esFabrica={!!t.fabrica}
+                      cliente={t.cliente_nombre}
+                      direccion={t.direccion}
+                      localidad={t.localidad}
+                    />
+                    <p className="mt-1 text-xs font-semibold uppercase text-slate-400">
                       {t.estado.replaceAll("_", " ")}
-                    </p>
-                    <h3 className="line-clamp-1 text-lg font-bold text-slate-900">
-                      {t.cliente_nombre || "Cliente sin nombre"}
-                    </h3>
-                    <p className="mt-1 line-clamp-2 text-xs text-slate-500">
-                      {t.direccion}
-                      {t.localidad ? ` - ${t.localidad}` : ""}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
                       {t.cliente_telefono}
