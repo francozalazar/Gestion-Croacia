@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { operarEncargado } from "./actions";
+import { operarEncargado, trabajosTecnicoEncargado } from "./actions";
 import { fechaLinda as fechaCivil } from "@/lib/fechasFicha";
 import Desplegable from "@/components/Desplegable";
 import CabeceraTarjeta from "@/components/TarjetaSolicitud";
@@ -10,6 +10,7 @@ import CoordinacionVista from "@/components/CoordinacionVista";
 import RecorridoVista from "@/components/RecorridoVista";
 import StockVista from "@/components/StockVista";
 import { FormularioModelo, type AccionesStock } from "@/app/stock/StockForms";
+import CargaPorTecnico, { type FuenteCargaMotores } from "@/app/stock/CargaPorTecnico";
 import ProduccionVista from "@/components/ProduccionVista";
 import InicioVista from "@/components/InicioVista";
 import ListosVista from "@/components/ListosVista";
@@ -245,6 +246,46 @@ export default function PanelEncargado({
           actualizarMinimo: async (_prev, f) =>
             resultado("minimo", { motor: Number(f.get("motor_id")), cantidad: Number(f.get("minimo")) }, "Guardado."),
     };
+    const fuenteMotores: FuenteCargaMotores = {
+      cargar: async (tecnicoId, fecha) => {
+        const r = await trabajosTecnicoEncargado(tecnicoId, fecha);
+        const nombre = (id: number) => datos.motores.find((m) => m.id === id)?.nombre || "Motor";
+        return {
+          ok: r.ok,
+          trabajos: (r.trabajos as any[]).map((t) => ({
+            clave: `${t.esFabrica ? "f" : "s"}-${t.id}`,
+            id: t.id,
+            esFabrica: !!t.esFabrica,
+            numero: t.numero,
+            cliente: t.cliente || "Cliente sin nombre",
+            direccion: t.direccion || "",
+            estado: t.estado || "",
+            prioridad: t.prioridad ?? null,
+            descontados: (t.descontados || []).map((d: any) => ({ motor: nombre(d.motor_id), cantidad: d.cantidad })),
+          })),
+        };
+      },
+      guardar: async (d) => {
+        const r = await operarEncargado("motores_trabajo", {
+          operacion: d.operacion,
+          tecnico: d.tecnicoId,
+          solicitud: d.solicitudId,
+          pedido: d.pedidoId,
+          items: d.items,
+        });
+        if (r.ok) router.refresh();
+        return {
+          ok: r.ok,
+          mensaje: r.ok
+            ? "Motores descontados del stock."
+            : /suficiente stock|stock/i.test(r.mensaje)
+              ? "No hay suficiente stock de uno de los motores. No se descontó nada."
+              : /no está asignado/i.test(r.mensaje)
+                ? "Ese trabajo ya no está asignado a ese técnico. Actualizá la lista."
+                : "No se pudo guardar. No se descontó nada.",
+        };
+      },
+    };
     return (
       <StockVista
         motores={datos.motores}
@@ -252,6 +293,11 @@ export default function PanelEncargado({
         volverHref="/encargado"
         acciones={accionesStock}
       >
+        <CargaPorTecnico
+          tecnicos={datos.tecnicos.map((x) => ({ id: x.id, nombre: x.nombre, apellido: "" }))}
+          motores={datos.motores}
+          fuente={fuenteMotores}
+        />
         <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-bold text-slate-900">Agregar modelo</h2>
           <FormularioModelo acciones={accionesStock} />
