@@ -68,7 +68,7 @@ export default function SelectorEstado({
           disabled={cambiando}
           className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
         >
-          {cambiando ? "Enviando..." : "Enviar a Listos para colocar"}
+          {cambiando ? "Enviando..." : "Enviar a Instalación"}
         </button>
       )}
     </div>
