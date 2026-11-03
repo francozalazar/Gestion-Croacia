@@ -8,6 +8,7 @@ import Desplegable from "@/components/Desplegable";
 import CabeceraTarjeta from "@/components/TarjetaSolicitud";
 import CoordinacionVista from "@/components/CoordinacionVista";
 import RecorridoVista from "@/components/RecorridoVista";
+import StockVista from "@/components/StockVista";
 import ProduccionVista from "@/components/ProduccionVista";
 import ListosVista from "@/components/ListosVista";
 import MisTrabajosVista from "@/components/MisTrabajosVista";
@@ -332,6 +333,43 @@ export default function PanelEncargado({
           </div>
         </div>
       </>
+    );
+  }
+  if (tab === "Stock de motores") {
+    const resultado = async (accion: string, d: Record<string, unknown>, ok: string) => {
+      try {
+        const r = await operarEncargado(accion, d);
+        if (r.ok) router.refresh();
+        return { ok: r.ok, mensaje: r.ok ? ok : r.mensaje };
+      } catch {
+        return { ok: false, mensaje: "No se pudo confirmar. Actualizá antes de reintentar." };
+      }
+    };
+    return (
+      <StockVista
+        motores={datos.motores}
+        pedidos={[]}
+        volverHref="/encargado"
+        acciones={{
+          registrarMovimiento: async (_prev, f) => {
+            const tipo = String(f.get("tipo") || "").toUpperCase();
+            const cantidad = Number(f.get("cantidad"));
+            return resultado(
+              "stock",
+              {
+                operacion: crypto.randomUUID(),
+                motor: Number(f.get("motor_id")),
+                tipo,
+                cantidad,
+                detalle: "Movimiento manual",
+              },
+              tipo === "ENTRADA" ? `Entrada registrada: +${cantidad}.` : `Salida registrada: -${cantidad}.`,
+            );
+          },
+          actualizarMinimo: async (_prev, f) =>
+            resultado("minimo", { motor: Number(f.get("motor_id")), cantidad: Number(f.get("minimo")) }, "Guardado."),
+        }}
+      />
     );
   }
   if (tab === "Producción") {
