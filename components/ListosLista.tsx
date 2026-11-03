@@ -1,7 +1,23 @@
+import { createClient } from "@/lib/supabase/server";
 import EnviarACoordinacion from "@/components/EnviarACoordinacion";
 
 // Lista de pedidos terminados por fabrica, listos para coordinar la instalacion.
-export default function ListosLista({ solicitudes }: { solicitudes: any[] }) {
+export default async function ListosLista({ solicitudes }: { solicitudes: any[] }) {
+  // La autoria es la carga original del pedido, nunca su aprobacion.
+  const idsCreadores = [...new Set(solicitudes.map((s) => s.creado_por).filter(Boolean))];
+  const nombresCreadores = new Map<string, string>();
+  if (idsCreadores.length > 0) {
+    const supabase = await createClient();
+    const { data: creadores } = await supabase
+      .from("profiles")
+      .select("id, nombre, apellido")
+      .in("id", idsCreadores);
+    for (const creador of creadores || []) {
+      const nombre = [creador.nombre, creador.apellido].filter(Boolean).join(" ").trim();
+      if (nombre) nombresCreadores.set(creador.id, nombre);
+    }
+  }
+
   return (
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
             <div className="hidden grid-cols-[90px_1.2fr_1.4fr_110px_auto] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase text-slate-500 lg:grid">
@@ -28,6 +44,9 @@ export default function ListosLista({ solicitudes }: { solicitudes: any[] }) {
                     <p className="break-words text-xs text-slate-500">
                       {solicitud.tipo_visita || "Sin tipo especificado"}
                       {solicitud.cliente_telefono ? ` - ${solicitud.cliente_telefono}` : ""}
+                    </p>
+                    <p className="break-words text-xs text-slate-500">
+                      Cargado por: {nombresCreadores.get(solicitud.creado_por) || "Sin dato"}
                     </p>
                   </div>
                   <div className="min-w-0">
