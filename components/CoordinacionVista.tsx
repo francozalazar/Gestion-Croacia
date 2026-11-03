@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { colorCoordinacion, esUrgencia } from "@/lib/coordinacion";
+import { colorCoordinacion, esUrgencia, compararCoordinacion } from "@/lib/coordinacion";
 import { Search, X, User, ShieldAlert } from "lucide-react";
 import Desplegable from "@/components/Desplegable";
 import CabeceraTarjeta from "@/components/TarjetaSolicitud";
@@ -122,7 +122,7 @@ export default function CoordinacionVista({
           .toLowerCase()
           .includes(termino))
     );
-  });
+  }).sort(compararCoordinacion); // urgencias primero, después por fecha de carga: más viejo arriba, más nuevo abajo
 
   async function handleConfirmarCoordinacion() {
     if (!solicitudModal || !fechaPactada || !tecnicoId) return;
