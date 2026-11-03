@@ -49,18 +49,28 @@ function hoyArgentina() {
     day: "2-digit",
   }).format(new Date());
 }
+const SECCIONES = [
+  "Inicio",
+  "Recorrido de camiones",
+  "Coordinación",
+  "Mi recorrido",
+  "Producción",
+  "Stock de motores",
+  "Listos para colocar",
+];
 const descripciones: Record<string, string> = {
+  "Inicio": "Novedades y notificaciones de tus trabajos de hoy.",
   "Coordinación": "Asigná los trabajos pendientes a un técnico.",
   "Recorrido de camiones": "Trabajos asignados a cada técnico por día.",
-  "Producción": "Estado de los pedidos en fábrica.",
+  "Producción": "Qué hay en producción y en qué estado está.",
   "Stock de motores": "Movimientos y stock mínimo de motores.",
-  "Mis trabajos": "Remitos asignados a tu usuario.",
+  "Mi recorrido": "Lo que tenés asignado para completar.",
+  "Listos para colocar": "Pedidos terminados por fábrica. Sólo lectura.",
 };
 const coord = [
   "PENDIENTE_COORDINACION",
   "COORDINACION",
   "ENVIADO_COORDINACION",
-  "LISTO_PARA_COLOCAR",
   "ASIGNADO",
   "ASIGNADO_FABRICA",
 ];
@@ -82,16 +92,7 @@ export default function PanelEncargado({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState(
-    seccion &&
-      [
-        "Coordinación",
-        "Recorrido de camiones",
-        "Producción",
-        "Stock de motores",
-        "Mis trabajos",
-      ].includes(seccion)
-      ? seccion
-      : "Coordinación",
+    seccion && SECCIONES.includes(seccion) ? seccion : "Inicio",
   );
   const [ocupado, setOcupado] = useState(false);
   const [mensaje, setMensaje] = useState("");
@@ -111,17 +112,7 @@ export default function PanelEncargado({
     };
   }, []);
   useEffect(() => {
-    if (
-      seccion &&
-      [
-        "Coordinación",
-        "Recorrido de camiones",
-        "Producción",
-        "Stock de motores",
-        "Mis trabajos",
-      ].includes(seccion)
-    )
-      setTab(seccion);
+    setTab(seccion && SECCIONES.includes(seccion) ? seccion : "Inicio");
   }, [seccion]);
   const operaciones = useRef<Record<number, string>>({});
   const trabajos = [
@@ -282,6 +273,7 @@ export default function PanelEncargado({
               </label>
             </div>
           )}
+{tab !== "Inicio" && (
           <label className={`${etiqueta} mb-5`}>
             Buscar cliente, dirección o remito
             <input
@@ -290,6 +282,7 @@ export default function PanelEncargado({
               onChange={(e) => setBuscar(e.target.value)}
             />
           </label>
+)}
           <div className="grid gap-4 lg:grid-cols-2">
             {trabajos
               .filter((t) => {
@@ -306,7 +299,17 @@ export default function PanelEncargado({
                   (!a || a.usuario_id !== tecnico || a.fecha !== fecha)
                 )
                   return false;
-                if (tab === "Mis trabajos" && a?.usuario_id !== usuarioId)
+                if (tab === "Mi recorrido" && a?.usuario_id !== usuarioId)
+                  return false;
+                if (
+                  tab === "Inicio" &&
+                  (a?.usuario_id !== usuarioId || a.fecha !== hoy)
+                )
+                  return false;
+                if (
+                  tab === "Listos para colocar" &&
+                  (!t.fabrica || t.estado !== "LISTO_PARA_COLOCAR")
+                )
                   return false;
                 return `${t.numero} ${t.cliente_nombre} ${t.direccion}`
                   .toLowerCase()
@@ -493,6 +496,15 @@ export default function PanelEncargado({
                 );
               })}
           </div>
+          {tab === "Inicio" &&
+            !trabajos.some((t) => {
+              const a = asignacion(t);
+              return a?.usuario_id === usuarioId && a.fecha === hoy;
+            }) && (
+            <p className="mt-5 text-sm text-slate-500">
+              {"No hay novedades para hoy."}
+            </p>
+          )}
           <p className="mt-5 text-sm text-slate-500">
             Sólo se muestran trabajos operativos activos. Los remitos se
             completan únicamente cuando están asignados a tu usuario.
