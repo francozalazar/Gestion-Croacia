@@ -44,10 +44,16 @@ const opcionesEstado = [
 export default function ProduccionLista({
   trabajos,
   rol,
+  onCambiarEstado,
+  verFicha = true,
 }: {
   trabajos: Trabajo[];
   rol: string;
+  // Si se pasa, el cambio de estado lo hace esta función (encargado) en vez de la acción de admin.
+  onCambiarEstado?: (id: number, estado: string) => void | Promise<void>;
+  verFicha?: boolean;
 }) {
+  const puedeCambiar = rol === "ADMIN" || !!onCambiarEstado;
   const [seleccionado, setSeleccionado] = useState<Trabajo | null>(null);
   const [nuevoEstado, setNuevoEstado] = useState("");
 
@@ -158,12 +164,14 @@ export default function ProduccionLista({
               <strong>Fecha estimada:</strong> {seleccionado.fecha || "-"}
             </p>
 
+            {verFicha && (
             <Link
               href={`/ficha/remito/${seleccionado.id}`}
               className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 border border-blue-100 hover:bg-blue-100"
             >
               Ver ficha completa del trabajo →
             </Link>
+            )}
 
             <div className="mt-5">
               <h3 className="text-sm font-bold text-slate-900">
@@ -174,11 +182,17 @@ export default function ProduccionLista({
               </p>
             </div>
 
-            {rol === "ADMIN" && (
+            {puedeCambiar && (
               <form
-                action={cambiarEstadoProduccionAction}
+                action={onCambiarEstado ? undefined : cambiarEstadoProduccionAction}
                 className="mt-8"
-                onSubmit={cerrar}
+                onSubmit={(e) => {
+                  if (onCambiarEstado) {
+                    e.preventDefault();
+                    void onCambiarEstado(seleccionado.id, nuevoEstado);
+                  }
+                  cerrar();
+                }}
               >
                 <input type="hidden" name="id" value={seleccionado.id} />
                 <Desplegable
