@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { createClient } from "@/lib/supabase/server";
-import ProduccionLista from "./ProduccionLista";
+import ProduccionVista from "@/components/ProduccionVista";
 
 const estadosVisibles = [
   "ENVIADO_A_CORTAR",
@@ -53,22 +53,7 @@ export default async function ProduccionPage() {
       />
 
       <main className="ml-0 md:ml-64 min-h-screen bg-slate-50 p-6 md:p-8 pt-20 md:pt-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Producción</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Estado de los trabajos enviados a fábrica.
-            </p>
-          </div>
-
-          {!trabajos?.length ? (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-              No hay trabajos de fábrica.
-            </div>
-          ) : (
-            <ProduccionLista trabajos={trabajos} rol={rol} />
-          )}
-        </div>
+        <ProduccionVista trabajos={trabajos || []} rol={rol} />
       </main>
     </div>
   );
