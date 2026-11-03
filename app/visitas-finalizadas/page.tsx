@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
 import { requierePrecio } from "@/lib/tipoVisita";
-import { CheckCircle2, User, Search, MapPin, FileText, X, ArrowRight, Download, DollarSign } from "lucide-react";
+import { CheckCircle2, User, Search, MapPin, FileText, X, ArrowRight, Download } from "lucide-react";
 
 // PRESUPUESTADO es el estado en que la app deja las visitas sin cotizacion cuando el tecnico
 // finaliza; solo es un presupuesto real en Presupuesto/Urgencia o si hay importe cargado.
@@ -323,38 +323,6 @@ export default function VisitasFinalizadasPage() {
                   <p className="text-emerald-950 font-medium whitespace-pre-wrap">
                     {modalDetalle.trabajo_realizado || modalDetalle.detalles_tecnico || "Trabajo finalizado correctamente."}
                   </p>
-                </div>
-
-                {/* INFORMACIÓN ECONÓMICA Y DE PAGOS */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
-                  <p className="text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <DollarSign size={14} /> Datos comerciales y pagos
-                  </p>
-                  
-                  <div className="grid grid-cols-2 gap-4 pt-1">
-                    <div>
-                      <p className="text-slate-500">Precio / Subtotal:</p>
-                      <p className="text-sm font-bold text-slate-900">
-                        ${(modalDetalle.subtotal || modalDetalle.precio || 0).toLocaleString()}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-slate-500">Saldo restante:</p>
-                      <p className="text-sm font-bold text-emerald-700">
-                        {modalDetalle.saldo_restante !== null && modalDetalle.saldo_restante !== undefined
-                          ? `$${modalDetalle.saldo_restante.toLocaleString()}`
-                          : "$0"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {modalDetalle.medio_pago && (
-                    <p className="pt-2"><strong>Medio de pago:</strong> {modalDetalle.medio_pago}</p>
-                  )}
-                  {modalDetalle.aclaracion_pago && (
-                    <p><strong>Aclaración de pago:</strong> {modalDetalle.aclaracion_pago}</p>
-                  )}
                 </div>
 
               </div>
