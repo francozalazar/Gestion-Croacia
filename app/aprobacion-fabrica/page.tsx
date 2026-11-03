@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { cargarCuentas, fechaCarga } from "@/lib/saldoPedido";
 import Sidebar from "@/components/Sidebar";
-import { anularProduccionAction } from "@/app/produccion/actions";
+import { anularPedidoPendienteAction } from "@/app/aprobacion-fabrica/actions";
 import { CheckCircle2, User, Scissors, X, ArrowRight, ShieldAlert, FileText, DollarSign, MapPin } from "lucide-react";
 
 export default function AprobacionFabricaPage() {
@@ -76,12 +76,15 @@ export default function AprobacionFabricaPage() {
 
   async function anularPedido(id: number, etiqueta: string) {
     if (perfil?.rol !== "ADMIN" || procesando) return;
-    if (!window.confirm(`\u00bfAnular el pedido ${etiqueta}? Desaparece de Aprobaci\u00f3n y de Producci\u00f3n, y se cancela su visita si todav\u00eda no se hizo. Esta acci\u00f3n no se puede deshacer.`)) return;
+    if (!window.confirm(`\u00bfAnular el pedido ${etiqueta}? Desaparece de Aprobaci\u00f3n y se cancela su visita. Esta acci\u00f3n no se puede deshacer.`)) return;
     setProcesando(true);
     try {
-      const fd = new FormData();
-      fd.append("id", String(id));
-      await anularProduccionAction(fd);
+      const r = await anularPedidoPendienteAction(id);
+      if (!r.ok) {
+        alert(r.mensaje || "No se anul\u00f3 el pedido");
+        await cargarDatos();
+        return;
+      }
       setModalRemito(null);
       await cargarDatos();
     } catch (e: any) {
@@ -206,7 +209,7 @@ export default function AprobacionFabricaPage() {
                     <span>Ver detalles y gestionar</span>
                     <ArrowRight size={14} />
                   </div>
-                  {perfil?.rol === "ADMIN" && (
+                  {perfil?.rol === "ADMIN" && s.estado === "PENDIENTE_APROBACION" && (
                     <button
                       type="button"
                       disabled={procesando}
@@ -359,6 +362,7 @@ export default function AprobacionFabricaPage() {
               {/* ACCIONES EXCLUSIVAS PARA ADMIN */}
               {perfil?.rol === "ADMIN" ? (
                 <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                  {modalRemito.estado === "PENDIENTE_APROBACION" && (
                   <button
                     onClick={() => anularPedido(modalRemito.id, `#${modalRemito.numero_remito || modalRemito.id}`)}
                     disabled={procesando}
@@ -366,6 +370,7 @@ export default function AprobacionFabricaPage() {
                   >
                     Anular
                   </button>
+                  )}
                   {modalRemito.estado === "PENDIENTE_APROBACION" && (
                     <button
                       onClick={() => enviarACortar(modalRemito.id)}
