@@ -40,7 +40,7 @@ export default function InboxPresupuestoOficinaPage() {
       supabase.from("profiles").select("id, nombre, apellido, rol").eq("id", user.id).single(),
       supabase
         .from("solicitudes")
-        .select("id, numero, estado, cliente_nombre, direccion, localidad, trabajo_realizado, detalles_tecnico, observaciones, detalles, tipo_visita, subtotal, precio, adicionales_visita, adicionales_precio, creado_por, creador:profiles!creado_por(nombre, apellido)")
+        .select("id, numero, estado, cliente_nombre, direccion, localidad, trabajo_realizado, detalles_tecnico, observaciones, tipo_visita, subtotal, precio, adicionales_visita, adicionales_precio, creado_por, creador:profiles!creado_por(nombre, apellido)")
         .eq("creado_por", user.id)
         .in("estado", ["PENDIENTE_PRECIO", "PRESUPUESTADO"])
         .order("id", { ascending: false }),
@@ -321,4 +321,4 @@ export default function InboxPresupuestoOficinaPage() {
       </main>
     </div>
   );
-                   }
+}
