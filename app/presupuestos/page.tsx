@@ -3,7 +3,6 @@
 import FotoTrabajo from "@/components/FotoTrabajo";
 import PortadaFotoTrabajo from "@/components/PortadaFotoTrabajo";
 import { requierePrecio } from "@/lib/tipoVisita";
-import { rutaMiniatura } from "@/lib/fotoTrabajo";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
@@ -14,7 +13,7 @@ export default function InboxPresupuestoOficinaPage() {
 
   const [perfil, setPerfil] = useState<any>(null);
   const [presupuestos, setPresupuestos] = useState<any[]>([]);
-  const [portadas, setPortadas] = useState<Record<number, { mini?: string; completa?: string }>>({});
+  const [portadas, setPortadas] = useState<Record<number, { completa?: string }>>({});
   const [cargando, setCargando] = useState(true);
   const [modalPrincipal, setModalPrincipal] = useState<any | null>(null);
 
@@ -41,7 +40,7 @@ export default function InboxPresupuestoOficinaPage() {
       supabase.from("profiles").select("id, nombre, apellido, rol").eq("id", user.id).single(),
       supabase
         .from("solicitudes")
-        .select("id, numero, estado, cliente_nombre, direccion, localidad, trabajo_realizado, detalles_tecnico, observaciones, tipo_visita, subtotal, precio, adicionales_visita, adicionales_precio, creado_por, creador:profiles!creado_por(nombre, apellido)")
+        .select("id, numero, estado, cliente_nombre, direccion, localidad, trabajo_realizado, detalles_tecnico, observaciones, detalles, tipo_visita, subtotal, precio, adicionales_visita, adicionales_precio, creado_por, creador:profiles!creado_por(nombre, apellido)")
         .eq("creado_por", user.id)
         .in("estado", ["PENDIENTE_PRECIO", "PRESUPUESTADO"])
         .order("id", { ascending: false }),
@@ -91,27 +90,21 @@ export default function InboxPresupuestoOficinaPage() {
       }
       const asignaciones = asigRes.data;
 
-      // URLs firmadas en lote: miniatura si existe; las fotos viejas sin miniatura usan la imagen completa.
+      // URLs privadas de fotos completas firmadas en lote.
       const fotosPorId = new Map<number, string>();
       for (const f of fotosRes.data || []) {
         if (f.storage_path) fotosPorId.set(f.solicitud_id, f.storage_path);
       }
       const entradas = [...fotosPorId.entries()];
-      const mapaPortadas: Record<number, { mini?: string; completa?: string }> = {};
+      const mapaPortadas: Record<number, { completa?: string }> = {};
       if (entradas.length > 0) {
-        // Una sola llamada en lote para miniaturas y otra para completas, en paralelo.
-        const [firmMin, firmFull] = await Promise.all([
-          supabase.storage.from("fotos-trabajos")
-            .createSignedUrls(entradas.map(([, ruta]) => rutaMiniatura(ruta)), 3600),
-          supabase.storage.from("fotos-trabajos")
-            .createSignedUrls(entradas.map(([, ruta]) => ruta), 3600),
-        ]);
+        // Firmar solo fotos completas: sin dependencia de miniaturas.
+        const firmFull = await supabase.storage.from("fotos-trabajos")
+          .createSignedUrls(entradas.map(([, ruta]) => ruta), 3600);
         entradas.forEach(([solicitudId], i) => {
-          const itemMin = firmMin.data?.[i];
           const itemFull = firmFull.data?.[i];
-          const mini = itemMin && !itemMin.error && itemMin.signedUrl ? itemMin.signedUrl : undefined;
           const completa = itemFull && !itemFull.error && itemFull.signedUrl ? itemFull.signedUrl : undefined;
-          if (mini || completa) mapaPortadas[solicitudId] = { mini, completa };
+          if (completa) mapaPortadas[solicitudId] = { completa };
         });
       }
       setPortadas(mapaPortadas);
@@ -213,7 +206,7 @@ export default function InboxPresupuestoOficinaPage() {
                   onClick={() => setModalPrincipal(p)}
                   className="cursor-pointer rounded-xl bg-white p-6 shadow-sm border border-slate-200 transition hover:shadow-md hover:border-emerald-400"
                 >
-                  {portadas[p.id] ? <PortadaFotoTrabajo solicitudId={p.id} urlInicial={portadas[p.id].mini || portadas[p.id].completa} urlFallback={portadas[p.id].mini ? portadas[p.id].completa : undefined} /> : null}
+                  {portadas[p.id] ? <PortadaFotoTrabajo solicitudId={p.id} urlInicial={portadas[p.id].completa} /> : null}
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
                       Remito #{p.numero || p.id}
@@ -328,4 +321,4 @@ export default function InboxPresupuestoOficinaPage() {
       </main>
     </div>
   );
-                  }
+                   }
