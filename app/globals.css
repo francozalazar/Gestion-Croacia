@@ -89,3 +89,12 @@ table {
   border-collapse: collapse;
   width: 100%;
 }
+
+/* El menú lateral pasó de una barra fija de 256px a un riel de 64px con
+   segunda barra plegable. Mientras las pantallas sigan diciendo md:ml-64,
+   el margen real del contenido es el del riel. */
+@media (min-width: 768px) {
+  .md\:ml-64 {
+    margin-left: 4rem;
+  }
+}
