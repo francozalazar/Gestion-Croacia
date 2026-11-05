@@ -35,68 +35,6 @@ export default function ClienteAutocomplete({
   const [nuevoConfirmado, setNuevoConfirmado] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ignorarBlur = useRef(false);
-
-  // Al enfocar el campo vacío, se cargan los clientes existentes para
-  // elegir de la lista (como en la solicitud normal).
-  async function cargarTodos() {
-    if (todos.length > 0) return;
-    try {
-      const { data } = await supabase
-        .from("clientes")
-        .select("id, nombre")
-        .order("nombre")
-        .limit(200);
-      setTodos(data || []);
-    } catch {
-      setTodos([]);
-    }
-  }
-
-  useEffect(() => {
-    if (timer.current) clearTimeout(timer.current);
-
-    const texto = cliente.trim();
-    if (texto.length < 2 || clienteElegido !== null) {
-      setSugerencias([]);
-      return;
-    }
-
-
-import { useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/cliente";
-import ProvinciaLocalidad from "@/components/ProvinciaLocalidad";
-
-type ClienteSugerido = { id: number; nombre: string };
-type DireccionSugerida = { id: number; direccion: string; localidad: string | null };
-
-export default function ClienteAutocomplete({
-  cliente,
-  setCliente,
-  direccion,
-  setDireccion,
-  localidad,
-  setLocalidad,
-  onProvinciaChange,
-  inputClassName,
-}: {
-  cliente: string;
-  setCliente: (v: string) => void;
-  direccion: string;
-  setDireccion: (v: string) => void;
-  localidad: string;
-  setLocalidad: (v: string) => void;
-  onProvinciaChange?: (p: string) => void;
-  inputClassName: string;
-}) {
-  const supabase = createClient();
-  const [sugerencias, setSugerencias] = useState<ClienteSugerido[]>([]);
-  const [direccionesCliente, setDireccionesCliente] = useState<DireccionSugerida[]>([]);
-  const [clienteElegido, setClienteElegido] = useState<number | null>(null);
-  const [todos, setTodos] = useState<ClienteSugerido[]>([]);
-  const [abierto, setAbierto] = useState(false);
-  const [nuevoConfirmado, setNuevoConfirmado] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const ignorarBlur = useRef(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   // Al enfocar el campo vacío, se cargan los clientes existentes para
