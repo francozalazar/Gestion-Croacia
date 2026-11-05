@@ -61,6 +61,69 @@ export default function ClienteAutocomplete({
       return;
     }
 
+
+import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/cliente";
+import ProvinciaLocalidad from "@/components/ProvinciaLocalidad";
+
+type ClienteSugerido = { id: number; nombre: string };
+type DireccionSugerida = { id: number; direccion: string; localidad: string | null };
+
+export default function ClienteAutocomplete({
+  cliente,
+  setCliente,
+  direccion,
+  setDireccion,
+  localidad,
+  setLocalidad,
+  onProvinciaChange,
+  inputClassName,
+}: {
+  cliente: string;
+  setCliente: (v: string) => void;
+  direccion: string;
+  setDireccion: (v: string) => void;
+  localidad: string;
+  setLocalidad: (v: string) => void;
+  onProvinciaChange?: (p: string) => void;
+  inputClassName: string;
+}) {
+  const supabase = createClient();
+  const [sugerencias, setSugerencias] = useState<ClienteSugerido[]>([]);
+  const [direccionesCliente, setDireccionesCliente] = useState<DireccionSugerida[]>([]);
+  const [clienteElegido, setClienteElegido] = useState<number | null>(null);
+  const [todos, setTodos] = useState<ClienteSugerido[]>([]);
+  const [abierto, setAbierto] = useState(false);
+  const [nuevoConfirmado, setNuevoConfirmado] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ignorarBlur = useRef(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Al enfocar el campo vacío, se cargan los clientes existentes para
+  // elegir de la lista (como en la solicitud normal).
+  async function cargarTodos() {
+    if (todos.length > 0) return;
+    try {
+      const { data } = await supabase
+        .from("clientes")
+        .select("id, nombre")
+        .order("nombre")
+        .limit(200);
+      setTodos(data || []);
+    } catch {
+      setTodos([]);
+    }
+  }
+
+  useEffect(() => {
+    if (timer.current) clearTimeout(timer.current);
+
+    const texto = cliente.trim();
+    if (texto.length < 2 || clienteElegido !== null) {
+      setSugerencias([]);
+      return;
+    }
+
     timer.current = setTimeout(async () => {
       try {
         const { data } = await supabase
@@ -109,6 +172,7 @@ export default function ClienteAutocomplete({
           Nombre / Razón social *
         </label>
         <input
+          ref={inputRef}
           value={cliente}
           onChange={(e) => {
             setCliente(e.target.value);
@@ -155,7 +219,7 @@ export default function ClienteAutocomplete({
                 {c.nombre}
               </button>
             ))}
-            {cliente.trim().length >= 2 && (
+            {cliente.trim().length >= 2 ? (
               <button
                 type="button"
                 onClick={() => {
@@ -164,9 +228,20 @@ export default function ClienteAutocomplete({
                   setSugerencias([]);
                   setAbierto(false);
                 }}
-                className="block w-full border-t border-slate-100 px-4 py-2.5 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50"
+                className="block w-full border-t border-slate-100 px-4 py-2.5 text-left text-sm font-semibold text-blue-700 hover:bg-blue-50"
               >
                 + Cliente nuevo: {cliente.trim()}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  // Sin texto todavía: el alta empieza escribiendo el nombre.
+                  inputRef.current?.focus();
+                }}
+                className="block w-full border-t border-slate-100 px-4 py-2.5 text-left text-sm font-semibold text-blue-700 hover:bg-blue-50"
+              >
+                + Cliente nuevo
               </button>
             )}
           </div>
