@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   FileText,
   Factory,
-  ChevronDown,
   LogOut,
   LayoutDashboard,
   TrendingUp,
@@ -16,7 +15,6 @@ import {
   BarChart3,
   Menu,
   X,
-  Package,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/cliente";
 
@@ -27,7 +25,17 @@ interface SidebarProps {
   seccionActiva?: string;
 }
 
-// Grupo del menu al que pertenece cada ruta (para dejar abierto el que se esta usando).
+type ItemMenu = { label: string; href: string; activo: boolean };
+type SeccionMenu = {
+  id: string;
+  titulo: string;
+  icono: React.ReactNode;
+  href?: string; // acceso directo, sin segunda barra
+  activo: boolean;
+  items: ItemMenu[];
+};
+
+// Grupo del menú al que pertenece cada ruta.
 function seccionDeRuta(path: string | null): string | null {
   if (!path) return null;
   const en = (...bases: string[]) =>
@@ -37,7 +45,15 @@ function seccionDeRuta(path: string | null): string | null {
   if (en("/presupuestos")) return "presupuestos";
   if (en("/saldos-pendientes", "/estadisticas", "/usuarios", "/cierre-del-dia")) return "administracion";
   if (en("/clientes")) return "clientes";
-  if (en("/trabajos")) return "trabajos";
+  return null;
+}
+
+// En el panel del encargado la sección viene por prop (query ?seccion=),
+// no por la ruta.
+function seccionEncargado(seccionActiva?: string): string | null {
+  const actual = seccionActiva || "";
+  if (["Recorrido de camiones", "Coordinación"].includes(actual)) return "visitas";
+  if (["Producción", "Stock de motores", "Instalación"].includes(actual)) return "fabrica";
   return null;
 }
 
@@ -45,18 +61,23 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
   const pathname = usePathname();
   const supabase = createClient();
 
-  const [seccionAbierta, setSeccionAbierta] = useState<string | null>(
-    seccionDeRuta(pathname)
-  );
+  const esEncargado = rol?.toUpperCase() === "ENCARGADO";
+  const esTecnico = rol?.toUpperCase() === "TECNICO";
+  const esFabrica = rol?.toUpperCase() === "FABRICA";
+  const esAdmin = rol === "ADMIN";
+
+  const seccionInicial = () =>
+    esEncargado ? seccionEncargado(seccionActiva) : seccionDeRuta(pathname);
+
+  // Segunda barra visible: la sección elegida. Arranca en la de la pantalla actual.
+  const [seccionVisible, setSeccionVisible] = useState<string | null>(seccionInicial);
   const [menuMovil, setMenuMovil] = useState(false);
 
   useEffect(() => {
     setMenuMovil(false);
-    // Al cambiar de pantalla, queda abierta la seccion en uso.
-    // Las demas se pueden abrir a mano igual.
-    const actual = seccionDeRuta(pathname);
-    if (actual) setSeccionAbierta(actual);
-  }, [pathname]);
+    setSeccionVisible(esEncargado ? seccionEncargado(seccionActiva) : seccionDeRuta(pathname));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, seccionActiva]);
 
   async function handleLogout() {
     // Un celular compartido no debe conservar avisos del usuario anterior.
@@ -73,23 +94,172 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
     window.location.href = "/";
   }
 
-  const toggleSeccion = (nombreSeccion: string) => {
-    setSeccionAbierta(seccionAbierta === nombreSeccion ? null : nombreSeccion);
-  };
+  const enRuta = (href: string, exacto = false) =>
+    exacto
+      ? pathname === href
+      : pathname === href || (pathname?.startsWith(href + "/") ?? false);
 
-  const esEncargado = rol?.toUpperCase() === "ENCARGADO";
-  const esTecnico = rol?.toUpperCase() === "TECNICO";
-  const esFabrica = rol?.toUpperCase() === "FABRICA";
-  const esAdminOficina = ["ADMIN", "OFICINA"].includes(rol?.toUpperCase() || "");
+  const secciones: SeccionMenu[] = [];
+
+  // Inicio siempre es acceso directo.
+  secciones.push({
+    id: "inicio",
+    titulo: "Inicio",
+    icono: <LayoutDashboard size={20} />,
+    href: esEncargado ? "/encargado" : "/dashboard",
+    activo: esEncargado
+      ? pathname === "/encargado" && !seccionActiva
+      : pathname === "/dashboard",
+    items: [],
+  });
+
+  if (esEncargado) {
+    const itemEnc = (t: string): ItemMenu => ({
+      label: t,
+      href: `/encargado?seccion=${encodeURIComponent(t)}`,
+      activo: seccionActiva === t && pathname === "/encargado",
+    });
+    secciones.push(
+      {
+        id: "visitas",
+        titulo: "Visitas",
+        icono: <TrendingUp size={20} />,
+        activo: seccionEncargado(seccionActiva) === "visitas",
+        items: [itemEnc("Recorrido de camiones"), itemEnc("Coordinación")],
+      },
+      {
+        id: "mi-recorrido",
+        titulo: "Mi recorrido",
+        icono: <FileText size={20} />,
+        href: `/encargado?seccion=${encodeURIComponent("Mi recorrido")}`,
+        activo: seccionActiva === "Mi recorrido" && pathname === "/encargado",
+        items: [],
+      },
+      {
+        id: "fabrica",
+        titulo: "Fábrica",
+        icono: <Factory size={20} />,
+        activo: seccionEncargado(seccionActiva) === "fabrica",
+        items: [itemEnc("Producción"), itemEnc("Stock de motores"), itemEnc("Instalación")],
+      }
+    );
+  } else if (esFabrica) {
+    secciones.push({
+      id: "fabrica",
+      titulo: "Trabajos a realizar",
+      icono: <Factory size={20} />,
+      href: "/fabrica",
+      activo: pathname === "/fabrica",
+      items: [],
+    });
+  } else if (esTecnico) {
+    secciones.push({
+      id: "trabajos",
+      titulo: "Mis Trabajos",
+      icono: <FileText size={20} />,
+      href: "/trabajos",
+      activo: enRuta("/trabajos"),
+      items: [],
+    });
+  } else {
+    // ADMIN / OFICINA. Orden pedido por Franco:
+    // visitas, presupuestos, fábrica, mis clientes, administración.
+    secciones.push(
+      {
+        id: "visitas",
+        titulo: "Visitas",
+        icono: <TrendingUp size={20} />,
+        activo: seccionDeRuta(pathname) === "visitas",
+        items: [
+          { label: "Nueva solicitud", href: "/solicitudes/nueva", activo: enRuta("/solicitudes/nueva") },
+          { label: "Coordinación", href: "/coordinacion", activo: enRuta("/coordinacion") },
+          { label: "Recorrido de camión", href: "/recorrido-camiones", activo: enRuta("/recorrido-camiones") },
+          { label: "Visitas finalizadas", href: "/visitas-finalizadas", activo: enRuta("/visitas-finalizadas") },
+        ],
+      },
+      {
+        id: "presupuestos",
+        titulo: "Presupuestos",
+        icono: <List size={20} />,
+        activo: seccionDeRuta(pathname) === "presupuestos",
+        items: [
+          { label: "Presupuesto", href: "/presupuestos", activo: enRuta("/presupuestos", true) },
+          ...(esAdmin
+            ? [{ label: "Precio 🔒", href: "/presupuestos/precios", activo: enRuta("/presupuestos/precios") }]
+            : []),
+        ],
+      },
+      {
+        id: "fabrica",
+        titulo: "Fábrica",
+        icono: <Hammer size={20} />,
+        activo: seccionDeRuta(pathname) === "fabrica",
+        items: [
+          { label: "Para cortar", href: "/solicitudes-fabrica", activo: enRuta("/solicitudes-fabrica") },
+          ...(esAdmin
+            ? [{ label: "Aprobación 🔒", href: "/aprobacion-fabrica", activo: enRuta("/aprobacion-fabrica") }]
+            : []),
+          { label: "Producción", href: "/produccion", activo: enRuta("/produccion") },
+          { label: "Instalación", href: "/listos-para-colocar", activo: enRuta("/listos-para-colocar") },
+          { label: "Trabajos finalizados", href: "/trabajos-finalizados", activo: enRuta("/trabajos-finalizados") },
+          ...(esAdmin
+            ? [{ label: "Stock de motores", href: "/stock", activo: enRuta("/stock") }]
+            : []),
+        ],
+      },
+      {
+        id: "clientes",
+        titulo: "Mis clientes",
+        icono: <Users size={20} />,
+        activo: seccionDeRuta(pathname) === "clientes",
+        items: [
+          { label: "Mis clientes", href: "/clientes", activo: enRuta("/clientes") },
+        ],
+      }
+    );
+    if (esAdmin) {
+      secciones.push({
+        id: "administracion",
+        titulo: "Administración",
+        icono: <BarChart3 size={20} />,
+        activo: seccionDeRuta(pathname) === "administracion",
+        items: [
+          { label: "Estadísticas", href: "/estadisticas", activo: enRuta("/estadisticas") },
+          { label: "Cierre del día", href: "/cierre-del-dia", activo: enRuta("/cierre-del-dia") },
+          { label: "Saldos pendientes", href: "/saldos-pendientes", activo: enRuta("/saldos-pendientes") },
+          { label: "Usuarios", href: "/usuarios", activo: enRuta("/usuarios") },
+        ],
+      });
+    }
+  }
+
+  const seccionAbierta = secciones.find(
+    (s) => s.id === seccionVisible && s.items.length > 0
+  );
+
+  const tooltip = (texto: string) => (
+    <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-white group-hover:block">
+      {texto}
+    </span>
+  );
+
+  const clasesIcono = (s: SeccionMenu) =>
+    `group relative flex h-11 w-11 items-center justify-center rounded transition ${
+      s.activo
+        ? "bg-blue-600 text-white"
+        : seccionVisible === s.id
+          ? "bg-slate-100 text-slate-900"
+          : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+    }`;
 
   return (
     <>
       {/* BARRA SUPERIOR MÓVIL */}
-      <div className="fixed inset-x-0 top-0 z-30 flex h-16 items-center gap-3 bg-slate-900 px-4 text-white md:hidden">
+      <div className="fixed inset-x-0 top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white px-4 md:hidden">
         <button
           onClick={() => setMenuMovil(true)}
           aria-label="Abrir menú"
-          className="rounded-lg p-2 hover:bg-slate-800"
+          className="rounded p-2 text-slate-700 hover:bg-slate-100"
         >
           <Menu size={22} />
         </button>
@@ -97,9 +267,9 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
           <img
             src="/logo.png"
             alt="Croacia"
-            className="h-8 w-8 rounded-lg bg-white object-contain p-0.5"
+            className="h-8 w-8 object-contain"
           />
-          <span className="text-sm font-bold">Croacia</span>
+          <span className="text-sm font-bold text-slate-900">Croacia</span>
         </div>
       </div>
 
@@ -111,484 +281,111 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
         />
       )}
 
-      <aside className={`fixed left-0 top-0 z-40 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col justify-between border-r border-slate-800 transform transition-transform duration-200 md:translate-x-0 ${
-        menuMovil ? "translate-x-0" : "-translate-x-full"
-      }`}>
-      <div className="p-5">
-        <button
-          onClick={() => setMenuMovil(false)}
-          aria-label="Cerrar menú"
-          className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white md:hidden"
-        >
-          <X size={18} />
-        </button>
-        {/* LOGO */}
-        <div className="flex items-center gap-3 border-b border-slate-800 pb-5 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white p-1">
+      <aside
+        className={`fixed left-0 top-0 z-40 flex h-screen transform transition-transform duration-200 md:translate-x-0 ${
+          menuMovil ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* BARRA PRIMARIA: SOLO ÍCONOS */}
+        <div className="flex h-full w-16 shrink-0 flex-col items-center border-r border-slate-200 bg-white py-4">
+          <Link
+            href={esEncargado ? "/encargado" : "/dashboard"}
+            aria-label="Inicio"
+            className="mb-4"
+          >
             <img
               src="/logo.png"
               alt="Croacia"
-              className="h-full w-full object-contain"
+              className="h-10 w-10 object-contain"
             />
-          </div>
-          <div>
-            <h2 className="font-bold text-white text-sm">Croacia</h2>
-            <p className="text-xs text-slate-400 uppercase">{rol}</p>
-          </div>
-        </div>
-
-        {/* NAVEGACIÓN */}
-        <nav className="space-y-2">
-          {/* Dashboard General */}
-          <Link
-            href={esEncargado ? "/encargado" : "/dashboard"}
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-              (esEncargado ? pathname === "/encargado" && !seccionActiva : pathname === "/dashboard")
-                ? "bg-blue-600 text-white"
-                : "hover:bg-slate-800 hover:text-white"
-            }`}
-          >
-            <LayoutDashboard size={18} />
-            <span>Inicio</span>
           </Link>
 
-          {/* MENÚ CONDICIONAL SEGÚN EL ROL */}
-          {esEncargado ? (
-            <div className="pt-2">
-              {[
-                { t: "Visitas", icono: <TrendingUp size={18} className="text-blue-400" />, items: ["Recorrido de camiones", "Coordinación"] },
-                { t: "Mi recorrido", icono: <FileText size={18} className="text-blue-400" />, items: ["Mi recorrido"] },
-                { t: "Fábrica", icono: <Factory size={18} className="text-amber-400" />, items: ["Producción", "Stock de motores", "Instalación"] },
-              ].map((g) => {
-                const actual = seccionActiva || "Inicio";
-                const abierto = seccionAbierta === `enc-${g.t}` || g.items.includes(actual);
-                if (g.items.length === 1) {
-                  return (
-                    <Link
-                      key={g.t}
-                      href={`/encargado?seccion=${encodeURIComponent(g.items[0])}`}
-                      className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                        actual === g.items[0] ? "bg-blue-600 text-white" : "hover:bg-slate-800 hover:text-white"
-                      }`}
-                    >
-                      {g.icono}
-                      <span>{g.t}</span>
-                    </Link>
-                  );
-                }
+          <nav className="flex flex-1 flex-col items-center gap-2">
+            {secciones.map((s) => {
+              const contenido = (
+                <>
+                  {s.icono}
+                  {tooltip(s.titulo)}
+                </>
+              );
+              if (s.href) {
                 return (
-                  <div key={g.t}>
-                    <button
-                      onClick={() => toggleSeccion(`enc-${g.t}`)}
-                      className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
-                    >
-                      <div className="flex items-center gap-3">
-                        {g.icono}
-                        <span>{g.t}</span>
-                      </div>
-                      <ChevronDown size={16} className={`transition-transform duration-200 ${abierto ? "rotate-180" : ""}`} />
-                    </button>
-                    {abierto && (
-                      <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
-                        {g.items.map((t) => (
-                          <Link
-                            key={t}
-                            href={`/encargado?seccion=${encodeURIComponent(t)}`}
-                            className={`block py-2 text-xs font-medium transition ${
-                              actual === t && pathname === "/encargado"
-                                ? "text-blue-400 font-bold"
-                                : "text-slate-400 hover:text-white"
-                            }`}
-                          >
-                            • {t}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : esFabrica ? (
-            <div className="pt-2">
-              <Link
-                href="/fabrica"
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                  pathname === "/fabrica"
-                    ? "bg-amber-600 text-white"
-                    : "hover:bg-slate-800 hover:text-white"
-                }`}
-              >
-                <Factory size={18} className="text-amber-400" />
-                <span>Trabajos a realizar</span>
-              </Link>
-            </div>
-          ) : esTecnico ? (
-            /* MENÚ EXCLUSIVO PARA TÉCNICOS */
-            <div className="pt-2">
-              <button
-                onClick={() => toggleSeccion("trabajos")}
-                className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
-              >
-                <div className="flex items-center gap-3">
-                  <FileText size={18} className="text-blue-400" />
-                  <span>Mis Trabajos</span>
-                </div>
-                <ChevronDown
-                  size={16}
-                  className={`transition-transform duration-200 ${
-                    seccionAbierta === "trabajos" ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {seccionAbierta === "trabajos" && (
-                <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
                   <Link
-                    href="/trabajos"
-                    className={`block py-2 text-xs font-medium transition ${
-                      pathname === "/trabajos"
-                        ? "text-blue-400 font-bold"
-                        : "text-slate-400 hover:text-white"
-                    }`}
+                    key={s.id}
+                    href={s.href}
+                    aria-label={s.titulo}
+                    className={clasesIcono(s)}
                   >
-                    • Trabajos asignados
+                    {contenido}
                   </Link>
-                 
-                </div>
-              )}
-            </div>
-          ) : (
-            /* MENÚ COMPLETO PARA ADMIN / OFICINA */
-            <>
-              {/* 1. GRUPO: VISITAS */}
-              <div className="pt-2">
+                );
+              }
+              return (
                 <button
-                  onClick={() => toggleSeccion("visitas")}
-                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
+                  key={s.id}
+                  type="button"
+                  aria-label={s.titulo}
+                  aria-expanded={seccionVisible === s.id}
+                  onClick={() =>
+                    setSeccionVisible(seccionVisible === s.id ? null : s.id)
+                  }
+                  className={clasesIcono(s)}
                 >
-                  <div className="flex items-center gap-3">
-                    <TrendingUp size={18} className="text-blue-400" />
-                    <span>Visitas</span>
-                  </div>
-                  <ChevronDown
-                    size={16}
-                    className={`transition-transform duration-200 ${
-                      seccionAbierta === "visitas" ? "rotate-180" : ""
-                    }`}
-                  />
+                  {contenido}
                 </button>
+              );
+            })}
+          </nav>
 
-                {seccionAbierta === "visitas" && (
-                  <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
-                    <Link
-                      href="/solicitudes/nueva"
-                      className={`block py-2 text-xs font-medium transition ${
-                        pathname === "/solicitudes/nueva"
-                          ? "text-blue-400 font-bold"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      • Nueva solicitud
-                    </Link>
-                    
-                    <Link
-                      href="/coordinacion"
-                      className={`block py-2 text-xs font-medium transition ${
-                        pathname === "/coordinacion"
-                          ? "text-blue-400 font-bold"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      • Coordinación
-                    </Link>
-                    
-                    <Link
-                      href="/recorrido-camiones"
-                      className={`block py-2 text-xs font-medium transition ${
-                        pathname === "/recorrido-camiones"
-                          ? "text-blue-400 font-bold"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      • Recorrido de camión
-                    </Link>
-                    
-                    <Link
-                      href="/visitas-finalizadas"
-                      className={`block py-2 text-xs font-medium transition ${
-                        pathname === "/visitas-finalizadas"
-                          ? "text-blue-400 font-bold"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      • Visitas finalizadas
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* GRUPO: CLIENTES */}
-              <div className="pt-2">
-                <button
-                  onClick={() => toggleSeccion("clientes")}
-                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <Users size={18} className="text-violet-400" />
-                    <span>Clientes</span>
-                  </div>
-                  <ChevronDown
-                    size={16}
-                    className={`transition-transform duration-200 ${
-                      seccionAbierta === "clientes" ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {seccionAbierta === "clientes" && (
-                  <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
-                    <Link
-                      href="/clientes"
-                      className={`block py-2 text-xs font-medium transition ${
-                        pathname === "/clientes"
-                          ? "text-violet-400 font-bold"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      • Mis clientes
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* GRUPO: ADMINISTRACION (solo ADMIN) */}
-              {rol === "ADMIN" && (
-                <div className="pt-2">
-                  <button
-                    onClick={() => toggleSeccion("administracion")}
-                    className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <BarChart3 size={18} className="text-rose-400" />
-                      <span>Administración</span>
-                    </div>
-                    <ChevronDown
-                      size={16}
-                      className={`transition-transform duration-200 ${
-                        seccionAbierta === "administracion" ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  {seccionAbierta === "administracion" && (
-                    <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
-                      <Link
-                        href="/estadisticas"
-                        className={`block py-2 text-xs font-medium transition ${
-                          pathname === "/estadisticas"
-                            ? "text-rose-400 font-bold"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        • Estadísticas
-                      </Link>
-                      <Link
-                        href="/cierre-del-dia"
-                        className={`block py-2 text-xs font-medium transition ${
-                          pathname === "/cierre-del-dia"
-                            ? "text-rose-400 font-bold"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        • Cierre del día
-                      </Link>
-                      <Link
-                        href="/saldos-pendientes"
-                        className={`block py-2 text-xs font-medium transition ${
-                          pathname === "/saldos-pendientes"
-                            ? "text-rose-400 font-bold"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        • Saldos pendientes
-                      </Link>
-                      <Link
-                        href="/usuarios"
-                        className={`block py-2 text-xs font-medium transition ${
-                          pathname === "/usuarios"
-                            ? "text-rose-400 font-bold"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        • Usuarios
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 2. GRUPO: PRESUPUESTOS */}
-              <div className="pt-2">
-                <button
-                  onClick={() => toggleSeccion("presupuestos")}
-                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <List size={18} className="text-emerald-400" />
-                    <span>Presupuestos</span>
-                  </div>
-                  <ChevronDown
-                    size={16}
-                    className={`transition-transform duration-200 ${
-                      seccionAbierta === "presupuestos" ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {seccionAbierta === "presupuestos" && (
-                  <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
-                    <Link
-                      href="/presupuestos"
-                      className={`block py-2 text-xs font-medium transition ${
-                        pathname === "/presupuestos"
-                          ? "text-emerald-400 font-bold"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      • Presupuesto
-                    </Link>
-
-                    {rol === "ADMIN" && (
-                      <Link
-                        href="/presupuestos/precios"
-                        className={`block py-2 text-xs font-medium transition ${
-                          pathname === "/presupuestos/precios"
-                            ? "text-emerald-400 font-bold"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        • Precio 🔒
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* 3. GRUPO: FÁBRICA */}
-              <div className="pt-2">
-                <button
-                  onClick={() => toggleSeccion("fabrica")}
-                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <Hammer size={18} className="text-amber-400" />
-                    <span>Fábrica</span>
-                  </div>
-                  <ChevronDown
-                    size={16}
-                    className={`transition-transform duration-200 ${
-                      seccionAbierta === "fabrica" ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {seccionAbierta === "fabrica" && (
-                  <div className="ml-8 mt-1 space-y-1 border-l border-slate-800 pl-3">
-                    <Link
-                      href="/solicitudes-fabrica"
-                      className={`block py-2 text-xs font-medium transition ${
-                        pathname === "/solicitudes-fabrica"
-                          ? "text-amber-400 font-bold"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      • Para cortar
-                    </Link>
-
-                    {rol === "ADMIN" && (
-                      <Link
-                        href="/aprobacion-fabrica"
-                        className={`block py-2 text-xs font-medium transition ${
-                          pathname === "/aprobacion-fabrica"
-                            ? "text-amber-400 font-bold"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        • Aprobación 🔒
-                      </Link>
-                    )}
-
-                    <Link
-                      href="/produccion"
-                      className={`block py-2 text-xs font-medium transition ${
-                        pathname === "/produccion"
-                          ? "text-amber-400 font-bold"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      • Producción
-                    </Link>
-
-                    <Link
-                      href="/listos-para-colocar"
-                      className={`block py-2 text-xs font-medium transition ${
-                        pathname === "/listos-para-colocar"
-                          ? "text-amber-400 font-bold"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      • Instalación
-                    </Link>
-
-                    <Link
-                      href="/trabajos-finalizados"
-                      className={`block py-2 text-xs font-medium transition ${
-                        pathname === "/trabajos-finalizados"
-                          ? "text-amber-400 font-bold"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      • Trabajos finalizados
-                    </Link>
-
-                    {rol === "ADMIN" && (
-                      <Link
-                        href="/stock"
-                        className={`block py-2 text-xs font-medium transition ${
-                          pathname === "/stock"
-                            ? "text-amber-400 font-bold"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        • Stock de motores
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </nav>
-      </div>
-
-      {/* FOOTER PERFIL Y LOGOUT */}
-      <div className="p-4 border-t border-slate-800 bg-slate-950/50">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-white">{nombre} {apellido}</p>
-            <p className="text-xs text-slate-500">{rol}</p>
-          </div>
           <button
             onClick={handleLogout}
-            title="Cerrar sesión"
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
+            aria-label="Cerrar sesión"
+            className="group relative flex h-11 w-11 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
           >
-            <LogOut size={18} />
+            <LogOut size={20} />
+            {tooltip("Cerrar sesión")}
           </button>
         </div>
-      </div>
-    </aside>
+
+        {/* BARRA SECUNDARIA: OPCIONES DE LA SECCIÓN ELEGIDA */}
+        {seccionAbierta && (
+          <div className="flex h-full w-56 shrink-0 flex-col border-r border-slate-200 bg-white">
+            <div className="flex items-center justify-between px-5 pb-4 pt-6">
+              <h2 className="text-lg font-bold text-slate-900">
+                {seccionAbierta.titulo}
+              </h2>
+              <button
+                onClick={() => setSeccionVisible(null)}
+                aria-label="Cerrar sección"
+                className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <nav className="flex-1 space-y-1 overflow-y-auto px-3">
+              {seccionAbierta.items.map((it) => (
+                <Link
+                  key={it.href + it.label}
+                  href={it.href}
+                  className={`block px-3 py-2.5 text-sm transition ${
+                    it.activo
+                      ? "font-semibold text-blue-600"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  • {it.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="border-t border-slate-100 px-5 py-4">
+              <p className="text-sm font-semibold text-slate-900">
+                {nombre} {apellido}
+              </p>
+              <p className="text-xs uppercase text-slate-400">{rol}</p>
+            </div>
+          </div>
+        )}
+      </aside>
     </>
   );
 }
