@@ -143,6 +143,31 @@ export default function ClienteAutocomplete({
               ignorarBlur.current = false;
             }}
           >
+            {cliente.trim().length >= 2 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setClienteElegido(null);
+                  setNuevoConfirmado(true);
+                  setSugerencias([]);
+                  setAbierto(false);
+                }}
+                className="block w-full border-b border-slate-100 px-4 py-2.5 text-left text-sm font-semibold text-blue-700 hover:bg-blue-50"
+              >
+                + Cliente nuevo: {cliente.trim()}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  // Sin texto todavía: el alta empieza escribiendo el nombre.
+                  inputRef.current?.focus();
+                }}
+                className="block w-full border-b border-slate-100 px-4 py-2.5 text-left text-sm font-semibold text-blue-700 hover:bg-blue-50"
+              >
+                + Cliente nuevo
+              </button>
+            )}
             {(cliente.trim().length === 0 ? todos : sugerencias).map((c) => (
               <button
                 key={c.id}
@@ -157,31 +182,6 @@ export default function ClienteAutocomplete({
                 {c.nombre}
               </button>
             ))}
-            {cliente.trim().length >= 2 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setClienteElegido(null);
-                  setNuevoConfirmado(true);
-                  setSugerencias([]);
-                  setAbierto(false);
-                }}
-                className="block w-full border-t border-slate-100 px-4 py-2.5 text-left text-sm font-semibold text-blue-700 hover:bg-blue-50"
-              >
-                + Cliente nuevo: {cliente.trim()}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  // Sin texto todavía: el alta empieza escribiendo el nombre.
-                  inputRef.current?.focus();
-                }}
-                className="block w-full border-t border-slate-100 px-4 py-2.5 text-left text-sm font-semibold text-blue-700 hover:bg-blue-50"
-              >
-                + Cliente nuevo
-              </button>
-            )}
           </div>
         )}
         {nuevoConfirmado && clienteElegido === null && cliente.trim().length >= 2 && (
