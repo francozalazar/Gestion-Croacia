@@ -237,6 +237,14 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
     (s) => s.id === seccionVisible && s.items.length > 0
   );
 
+  // Avisa al layout (globals.css) cuando la segunda barra está abierta, así el
+  // contenido se corre en desktop y no quedan controles tapados detrás de ella.
+  const panelAbierto = Boolean(seccionAbierta);
+  useEffect(() => {
+    document.body.classList.toggle("sidebar-panel-open", panelAbierto);
+    return () => document.body.classList.remove("sidebar-panel-open");
+  }, [panelAbierto]);
+
   const tooltip = (texto: string) => (
     <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-white group-hover:block">
       {texto}
