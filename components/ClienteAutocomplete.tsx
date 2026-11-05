@@ -32,7 +32,7 @@ export default function ClienteAutocomplete({
   const [clienteElegido, setClienteElegido] = useState<number | null>(null);
   const [todos, setTodos] = useState<ClienteSugerido[]>([]);
   const [abierto, setAbierto] = useState(false);
-  const [nuevoConfirmado, setNuevoConfirmado] = useState(false);
+  const [modoNuevo, setModoNuevo] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ignorarBlur = useRef(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -109,82 +109,75 @@ export default function ClienteAutocomplete({
         <label className="mb-2 block text-sm font-medium text-slate-700">
           Nombre / Razón social *
         </label>
-        <input
-          ref={inputRef}
-          value={cliente}
-          onChange={(e) => {
-            setCliente(e.target.value);
-            setClienteElegido(null);
-            setNuevoConfirmado(false);
-            setDireccionesCliente([]);
-            setAbierto(true);
-          }}
-          onFocus={() => {
-            setAbierto(true);
-            cargarTodos();
-          }}
-          onBlur={() => {
-            if (!ignorarBlur.current) setAbierto(false);
-          }}
-          placeholder="Ej: Juan Pérez"
-          className={inputClassName}
-          autoComplete="off"
-        />
-        {abierto &&
-          (sugerencias.length > 0 ||
-            cliente.trim().length >= 2 ||
-            (cliente.trim().length === 0 && todos.length > 0)) && (
-          <div
-            className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg"
-            onMouseDown={() => {
-              ignorarBlur.current = true;
-            }}
-            onMouseUp={() => {
-              ignorarBlur.current = false;
-            }}
-          >
-            {cliente.trim().length >= 2 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setClienteElegido(null);
-                  setNuevoConfirmado(true);
-                  setSugerencias([]);
-                  setAbierto(false);
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <input
+              ref={inputRef}
+              value={cliente}
+              onChange={(e) => {
+                setCliente(e.target.value);
+                setClienteElegido(null);
+                setDireccionesCliente([]);
+                setAbierto(true);
+              }}
+              onFocus={() => {
+                setAbierto(true);
+                cargarTodos();
+              }}
+              onBlur={() => {
+                if (!ignorarBlur.current) setAbierto(false);
+              }}
+              placeholder="Ej: Juan Pérez"
+              className={inputClassName}
+              autoComplete="off"
+            />
+            {abierto &&
+              (sugerencias.length > 0 ||
+                (cliente.trim().length === 0 && todos.length > 0)) && (
+              <div
+                className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+                onMouseDown={() => {
+                  ignorarBlur.current = true;
                 }}
-                className="block w-full border-b border-slate-100 px-4 py-2.5 text-left text-sm font-semibold text-blue-700 hover:bg-blue-50"
-              >
-                + Cliente nuevo: {cliente.trim()}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  // Sin texto todavía: el alta empieza escribiendo el nombre.
-                  inputRef.current?.focus();
+                onMouseUp={() => {
+                  ignorarBlur.current = false;
                 }}
-                className="block w-full border-b border-slate-100 px-4 py-2.5 text-left text-sm font-semibold text-blue-700 hover:bg-blue-50"
               >
-                + Cliente nuevo
-              </button>
+                {(cliente.trim().length === 0 ? todos : sugerencias).map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      elegirCliente(c);
+                      setModoNuevo(false);
+                      setAbierto(false);
+                    }}
+                    className="block w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-xl last:rounded-b-xl"
+                  >
+                    {c.nombre}
+                  </button>
+                ))}
+              </div>
             )}
-            {(cliente.trim().length === 0 ? todos : sugerencias).map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => {
-                  elegirCliente(c);
-                  setNuevoConfirmado(false);
-                  setAbierto(false);
-                }}
-                className="block w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-xl last:rounded-b-xl"
-              >
-                {c.nombre}
-              </button>
-            ))}
           </div>
-        )}
-        {nuevoConfirmado && clienteElegido === null && cliente.trim().length >= 2 && (
+          <button
+            type="button"
+            onClick={() => {
+              // Alta directa: si había un cliente existente elegido, se limpia
+              // el campo; lo ya escrito a mano se conserva como nombre nuevo.
+              if (clienteElegido !== null) setCliente("");
+              setClienteElegido(null);
+              setDireccionesCliente([]);
+              setAbierto(false);
+              setModoNuevo(true);
+              inputRef.current?.focus();
+            }}
+            className="shrink-0 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+          >
+            + Cliente nuevo
+          </button>
+        </div>
+        {modoNuevo && clienteElegido === null && cliente.trim().length >= 2 && (
           <p className="mt-2 text-xs font-medium text-slate-600">
             Se va a crear un cliente nuevo con este nombre al guardar.
           </p>
