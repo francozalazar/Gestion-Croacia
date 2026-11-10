@@ -80,12 +80,13 @@ const descripciones: Record<string, string> = {
   "Mi recorrido": "Lo que tenés asignado para completar.",
   "Instalación": "Pedidos terminados por fábrica. Sólo lectura.",
 };
+// Un trabajo asignado sale de Coordinación (pedido de Franco, 10/11/2026):
+// sólo se listan los pendientes de asignar. La reasignación la hace el admin
+// desde Recorrido de camiones (quitar asignación lo devuelve acá).
 const coord = [
   "PENDIENTE_COORDINACION",
   "COORDINACION",
   "ENVIADO_COORDINACION",
-  "ASIGNADO",
-  "ASIGNADO_FABRICA",
 ];
 const prod = [
   "ENVIADO_A_CORTAR",
