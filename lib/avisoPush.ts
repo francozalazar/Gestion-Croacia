@@ -2,6 +2,8 @@
 export function avisoPushVigente(e: any, p: any, s: any, a: any) {
   if (!p?.activo || !s || ["ANULADO", "CANCELADO"].includes(s.estado)) return false;
   if (e.tipo === "aprobacion_pendiente") return p.rol === "ADMIN" && s.estado === "PENDIENTE_APROBACION";
+  if (e.tipo === "coordinar") return ["ADMIN", "COORDINACION", "ENCARGADO"].includes(p.rol) && s.estado === "PENDIENTE_COORDINACION";
+  if (e.tipo === "finalizado") return s.estado === "FINALIZADO" && (["ADMIN", "COORDINACION"].includes(p.rol) || (p.rol === "OFICINA" && s.creado_por === e.usuario_id));
   if (e.tipo === "fabrica_nueva") return p.rol === "FABRICA" && ["ENVIADO_A_CORTAR", "EN_CORTE", "EN_FABRICACION", "EN_FABRICA", "FALTANTES"].includes(s.estado);
   if (p.rol !== "OFICINA" || s.creado_por !== e.usuario_id) return false;
   if (e.tipo === "precio") return s.estado === "PRESUPUESTADO" && ["presupuesto", "urgencia"].includes(String(s.tipo_visita || "").trim().toLowerCase());
@@ -17,6 +19,8 @@ export function textoAvisoPush(tipo: string) {
     case "fabrica_lista": return { titulo: "Croacia: trabajo listo para colocar", cuerpo: "Tu trabajo de fábrica está listo para colocar. Abrí la app para ver el detalle." };
     case "fabrica_aprobada": return { titulo: "Croacia: trabajo aprobado", cuerpo: "Tu trabajo de fábrica fue aprobado. Abrí la app para ver el detalle." };
     case "asignacion_vendedor": return { titulo: "Croacia: tu trabajo fue asignado", cuerpo: "Tu trabajo ya tiene técnico y fecha. Abrí la app para ver el detalle." };
+    case "coordinar": return { titulo: "Croacia: trabajo nuevo para coordinar", cuerpo: "Hay un trabajo esperando fecha y técnico. Abrí la app para ver el detalle." };
+    case "finalizado": return { titulo: "Croacia: trabajo finalizado", cuerpo: "El técnico completó un trabajo. Abrí la app para ver el detalle." };
     case "fabrica_nueva": return { titulo: "Croacia: trabajo nuevo para cortar", cuerpo: "Hay un trabajo nuevo para fábrica. Abrí la app para ver el detalle." };
     default: return null;
   }
