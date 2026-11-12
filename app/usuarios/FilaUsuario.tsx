@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { cambiarClaveUsuarioAction, type ResultadoAlta } from "./actions";
+import { cambiarClaveUsuarioAction, eliminarUsuarioAction, type ResultadoAlta } from "./actions";
 
 type Usuario = {
   id: string;
@@ -26,6 +26,15 @@ export default function FilaUsuario({ u }: { u: Usuario }) {
     null
   );
 
+  const [resEliminar, eliminar, eliminando] = useActionState<ResultadoAlta | null, FormData>(
+    async (prev, fd) => {
+      const n = `${u.nombre || ""} ${u.apellido || ""}`.trim() || "este usuario";
+      if (!window.confirm(`¿Eliminar a ${n}? Ya no va a poder entrar. Sus trabajos y su historial se conservan.`)) return prev;
+      return eliminarUsuarioAction(prev, fd);
+    },
+    null
+  );
+
   const nombre = `${u.nombre || ""} ${u.apellido || ""}`.trim() || "Sin nombre";
 
   return (
@@ -44,6 +53,12 @@ export default function FilaUsuario({ u }: { u: Usuario }) {
           >
             {abierto ? "Cancelar" : "Cambiar contraseña"}
           </button>
+          <form action={eliminar}>
+            <input type="hidden" name="usuario_id" value={u.id} />
+            <button type="submit" disabled={eliminando} className="text-xs font-semibold text-red-700 underline disabled:opacity-50">
+              {eliminando ? "Eliminando..." : "Eliminar"}
+            </button>
+          </form>
         </span>
       </div>
       {abierto && (
@@ -68,6 +83,11 @@ export default function FilaUsuario({ u }: { u: Usuario }) {
           </button>
         </form>
       )}
+      {resEliminar && (
+        <p className={`mt-2 rounded-lg px-3 py-2 text-xs ${resEliminar.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>
+          {resEliminar.mensaje}
+        </p>
+      )}
       {res && (
         <p
           className={`mt-2 rounded-lg px-3 py-2 text-xs ${
@@ -79,4 +99,4 @@ export default function FilaUsuario({ u }: { u: Usuario }) {
       )}
     </li>
   );
-}
+              }
