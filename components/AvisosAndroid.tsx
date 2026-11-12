@@ -7,7 +7,7 @@ export default function AvisosAndroid() {
   const [mensaje, setMensaje] = useState("");
   const [comprobado, setComprobado] = useState(false);
   useEffect(() => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) { setComprobado(true); setMensaje("Este navegador no admite estos avisos. En computadora usá Chrome o Firefox; en Android, Chrome."); return; }
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) { setComprobado(true); setMensaje("Este navegador no admite estos avisos. En computadora usá Chrome o Firefox; en Android, Chrome. En iPhone o iPad (iOS 16.4 o más): abrí la app en Safari, tocá Compartir, Agregar a pantalla de inicio, y activá los avisos desde el ícono de la pantalla de inicio."); return; }
     fetch("/api/push/suscripcion").then(r => r.json()).then(async c => {
       if (!c.disponible) return;
       setDisponible(true);
@@ -52,4 +52,4 @@ export default function AvisosAndroid() {
   }
   if (!disponible) return comprobado && mensaje ? <p className="mb-6 text-sm text-slate-600">{mensaje}</p> : null;
   return <section className="mb-6 rounded-xl border border-slate-200 bg-white p-5"><h2 className="font-bold">Avisos en este dispositivo</h2><p className="mt-1 text-sm text-slate-600">Recibí los avisos de tus trabajos y aprobaciones aunque no estés mirando la app. Cada usuario activa este permiso en su celular o computadora. El sonido depende del navegador y de la configuración del dispositivo. No incluye datos del cliente.</p><button type="button" disabled={ocupado} onClick={cambiar} className="mt-3 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{ocupado ? "Guardando..." : activo ? "Desactivar avisos" : "Activar avisos de trabajos"}</button>{mensaje && <p role="status" className="mt-2 text-sm">{mensaje}</p>}</section>;
-}
+    }
