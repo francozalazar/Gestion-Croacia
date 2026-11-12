@@ -58,11 +58,13 @@ export default function Home() {
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
+                <label htmlFor="usuario" className="mb-2 block text-sm font-medium text-slate-700">
                   Usuario
                 </label>
 
                 <input
+                  id="usuario"
+                  name="username"
                   type="text"
                   autoCapitalize="none"
                   autoCorrect="off"
@@ -76,12 +78,15 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
+                <label htmlFor="clave" className="mb-2 block text-sm font-medium text-slate-700">
                   Contraseña
                 </label>
 
                 <input
+                  id="clave"
+                  name="password"
                   type="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
