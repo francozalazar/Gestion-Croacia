@@ -74,8 +74,9 @@ export default function Campanita({ rol }: { rol: string }) {
     let visto = Number(localStorage.getItem(clave(id)) || 0);
     const lectura = await supabase.from("campana_lecturas").select("visto_hasta").eq("usuario_id", id).maybeSingle();
     enBase.current = !lectura.error;
-    if (!lectura.error) visto = lectura.data?.visto_hasta ? new Date(lectura.data.visto_hasta).getTime() : 0;
+    if (!lectura.error) visto = Math.max(visto, lectura.data?.visto_hasta ? new Date(lectura.data.visto_hasta).getTime() : 0);
     vistoRef.current = visto;
+    if (visto) localStorage.setItem(clave(id), String(visto));
     setVistoHasta(visto);
     try {
       const nuevas = await cargarNovedades(supabase, id, rol);
@@ -125,9 +126,11 @@ export default function Campanita({ rol }: { rol: string }) {
       setVistoHasta(ahora);
       vistoRef.current = ahora;
       if (enBase.current) {
+        // El constructor de consultas solo envía al hacer then(): sin esto no se guardaba nada.
         void supabase
           .from("campana_lecturas")
-          .upsert({ usuario_id: userId, visto_hasta: new Date(ahora).toISOString() }, { onConflict: "usuario_id" });
+          .upsert({ usuario_id: userId, visto_hasta: new Date(ahora).toISOString() }, { onConflict: "usuario_id" })
+          .then(() => undefined, () => undefined);
       }
     }
     void cargar();
