@@ -8,7 +8,7 @@ async function usuarioAvisos() {
   const { data: { user } } = await client.auth.getUser();
   if (!user) return null;
   const { data } = await client.from("profiles").select("rol, activo").eq("id", user.id).single();
-  return ["TECNICO", "OFICINA", "ADMIN", "ENCARGADO"].includes(data?.rol?.toUpperCase() || "") && data?.activo === true ? user : null;
+  return ["TECNICO", "OFICINA", "ADMIN", "ENCARGADO", "FABRICA"].includes(data?.rol?.toUpperCase() || "") && data?.activo === true ? user : null;
 }
 export async function GET() {
   if (!await usuarioAvisos()) return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
