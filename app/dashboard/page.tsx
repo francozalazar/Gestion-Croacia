@@ -7,6 +7,7 @@ import InicioVista from "@/components/InicioVista";
 import AvisosAndroid from "@/components/AvisosAndroid";
 import { avisoAsignacionVendedor } from "@/lib/avisosVendedor";
 import { requierePrecio } from "@/lib/tipoVisita";
+import { clientesDePedidos, linkCliente } from "@/lib/novedades";
 import Link from "next/link";
 import {
   Bell,
@@ -164,11 +165,12 @@ export default function DashboardPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "asignaciones" },
         () => { void actualizarAsignaciones(); })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "avisos_circuito", filter: `usuario_id=eq.${perfil.id}` },
-        (payload) => {
+        async (payload) => {
           const n: any = payload.new;
+          const cmap = (n.tipo === "fabrica_lista" || n.tipo === "fabrica_aprobada") ? await clientesDePedidos(supabase, [n.solicitud_fabrica_id]) : new Map();
           if (n.tipo === "asignacion_vendedor") void actualizarAsignaciones(n);
-          if (n.tipo === "fabrica_lista") agregarNovedad({id:`fabrica-lista-${n.id}`, titulo:"Tu trabajo está listo para colocar", detalle:"Fábrica terminó el trabajo y lo pasó a Instalación.", fecha:n.created_at, link:`/ficha/remito/${n.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
-          if (n.tipo === "fabrica_aprobada") agregarNovedad({id:`fabrica-aprobada-${n.id}`, titulo:"Tu trabajo de fábrica fue aprobado", detalle:"El pedido fue aprobado y enviado a cortar.", fecha:n.created_at, link:`/ficha/remito/${n.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
+          if (n.tipo === "fabrica_lista") agregarNovedad({id:`fabrica-lista-${n.id}`, titulo:"Tu trabajo está listo para colocar", detalle:"Fábrica terminó el trabajo y lo pasó a Instalación.", fecha:n.created_at, link:linkCliente(cmap.get(n.solicitud_fabrica_id)), icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
+          if (n.tipo === "fabrica_aprobada") agregarNovedad({id:`fabrica-aprobada-${n.id}`, titulo:"Tu trabajo de fábrica fue aprobado", detalle:"El pedido fue aprobado y enviado a cortar.", fecha:n.created_at, link:linkCliente(cmap.get(n.solicitud_fabrica_id)), icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
         })
       .subscribe();
 
@@ -489,16 +491,18 @@ export default function DashboardPage() {
 
       if (esOficina) {
         const aprobados = await supabase.from("avisos_circuito").select("id,solicitud_fabrica_id,created_at").eq("usuario_id", user.id).eq("tipo", "fabrica_aprobada").order("created_at", {ascending:false}).limit(8);
+        const cmA = await clientesDePedidos(supabase, (aprobados.data || []).map((x: any) => x.solicitud_fabrica_id));
         if (!aprobados.error) {
           for (const aviso of aprobados.data || []) {
             eventos.push({ id: `fabrica-aprobada-${aviso.id}`, titulo: "Tu trabajo de fábrica fue aprobado",
               detalle: "El pedido fue aprobado y enviado a cortar.", fecha: aviso.created_at,
-              link: `/ficha/remito/${aviso.solicitud_fabrica_id}`, icono: CheckCircle2, colorIcono: "bg-emerald-100 text-emerald-600" });
+              link: linkCliente(cmA.get(aviso.solicitud_fabrica_id)), icono: CheckCircle2, colorIcono: "bg-emerald-100 text-emerald-600" });
           }
         }
         const listos = await supabase.from("avisos_circuito").select("id,solicitud_fabrica_id,created_at").eq("usuario_id", user.id).eq("tipo", "fabrica_lista").order("created_at", {ascending:false}).limit(8);
+        const cmL = await clientesDePedidos(supabase, (listos.data || []).map((x: any) => x.solicitud_fabrica_id));
         if (!listos.error) {
-          for (const aviso of listos.data || []) eventos.push({id:`fabrica-lista-${aviso.id}`, titulo:"Tu trabajo está listo para colocar", detalle:"Fábrica terminó el trabajo y lo pasó a Instalación.", fecha:aviso.created_at, link:`/ficha/remito/${aviso.solicitud_fabrica_id}`, icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
+          for (const aviso of listos.data || []) eventos.push({id:`fabrica-lista-${aviso.id}`, titulo:"Tu trabajo está listo para colocar", detalle:"Fábrica terminó el trabajo y lo pasó a Instalación.", fecha:aviso.created_at, link:linkCliente(cmL.get(aviso.solicitud_fabrica_id)), icono:CheckCircle2, colorIcono:"bg-emerald-100 text-emerald-600"});
         }
         const avisos = await cargarAvisosAsignacion(user.id);
         if (avisos) {
@@ -535,4 +539,4 @@ export default function DashboardPage() {
       </main>
     </div>
   );
-}
+                             }
