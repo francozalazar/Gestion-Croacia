@@ -14,6 +14,7 @@ import {
   Users,
   BarChart3,
   Menu,
+  User,
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/cliente";
@@ -260,8 +261,24 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
           : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
     }`;
 
+  const nombreSesion = `${nombre || ""} ${apellido || ""}`.trim();
+  const chipUsuario = nombreSesion && nombreSesion !== "Usuario" ? (
+    <div
+      title={`${nombreSesion}${rol ? " - " + rol : ""}`}
+      className="flex max-w-[14rem] items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 shadow-sm"
+    >
+      <User size={16} className="shrink-0 text-slate-500" />
+      <span className="truncate">{nombreSesion}</span>
+    </div>
+  ) : null;
+
   return (
     <>
+      {/* USUARIO CON SESIÓN: ARRIBA A LA DERECHA (DESKTOP) */}
+      {chipUsuario && (
+        <div className="fixed right-6 top-3 z-20 hidden md:block">{chipUsuario}</div>
+      )}
+
       {/* BARRA SUPERIOR MÓVIL */}
       <div className="fixed inset-x-0 top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white px-4 md:hidden">
         <button
@@ -279,6 +296,7 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
           />
           <span className="text-sm font-bold text-slate-900">Croacia</span>
         </div>
+        {chipUsuario && <div className="ml-auto">{chipUsuario}</div>}
       </div>
 
       {/* FONDO OSCURO CUANDO EL MENÚ ESTÁ ABIERTO EN MÓVIL */}
@@ -396,4 +414,4 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
       </aside>
     </>
   );
-}
+          }
