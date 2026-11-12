@@ -138,18 +138,20 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
         .limit(10);
       // Cliente y número de remito del pedido (solo los que este usuario puede ver).
       const idsPedido = Array.from(new Set((av || []).map((a: any) => a.solicitud_fabrica_id).filter(Boolean)));
-      const { data: pedidosAviso } = idsPedido.length
+      const { data: pedidosAviso, error: errPedidos } = idsPedido.length
         ? await supabase.from("solicitudes_fabrica").select("id,numero_remito,cliente_nombre").in("id", idsPedido)
-        : { data: [] };
+        : { data: [], error: null };
       for (const a of av || []) {
         const p = (pedidosAviso || []).find((x: any) => x.id === a.solicitud_fabrica_id);
         const ident = p ? [p.cliente_nombre, p.numero_remito ? `Remito #${p.numero_remito}` : ""].filter(Boolean).join(" - ") : "";
+        const estado = a.tipo === "fabrica_lista" ? "Fábrica lo terminó y lo pasó a Instalación." : "El pedido fue aprobado y enviado a cortar.";
         out.push({
           id: `aviso-${a.id}`,
           titulo: a.tipo === "fabrica_lista" ? "Tu trabajo está listo para colocar" : "Tu trabajo de fábrica fue aprobado",
-          detalle: [ident, a.tipo === "fabrica_lista" ? "Fábrica lo terminó y lo pasó a Instalación." : "El pedido fue aprobado y enviado a cortar."].filter(Boolean).join(" | "),
+          // Si el pedido ya no se puede abrir (no existe o no es visible para este usuario), va a la ficha de clientes.
+          detalle: p || errPedidos ? [ident, estado].filter(Boolean).join(" | ") : `${estado} Ese pedido ya no se puede abrir: tocá para ir a Mis clientes.`,
           fecha: a.created_at,
-          link: `/ficha/remito/${a.solicitud_fabrica_id}`,
+          link: p || errPedidos ? `/ficha/remito/${a.solicitud_fabrica_id}` : "/clientes",
         });
       }
 
