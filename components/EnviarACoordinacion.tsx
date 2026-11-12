@@ -231,7 +231,7 @@ export function VerDetallesInstalacion({
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+        className="rounded-md border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
       >
         Ver detalles
       </button>
@@ -240,29 +240,31 @@ export function VerDetallesInstalacion({
           role="dialog"
           aria-modal="true"
           aria-label="Detalles del trabajo"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
           onClick={() => setAbierto(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-lg bg-white p-8 text-left shadow-2xl"
+            className="w-full max-w-5xl rounded-md bg-white px-8 py-7 text-left shadow-2xl sm:px-9"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-2xl font-semibold text-slate-900">
+            <h2 className="text-center text-2xl font-normal text-slate-800">
               Detalles del trabajo
             </h2>
-            <p className="mt-6 font-bold text-slate-900">
-              Información del trabajo:
+            <p className="mt-7 text-sm uppercase tracking-wide text-slate-500">
+              Información del trabajo
             </p>
-            <p className="mt-3 max-h-[50vh] overflow-y-auto whitespace-pre-wrap break-words text-base uppercase text-slate-600">
+            <p className="mt-3 max-h-[50vh] overflow-y-auto whitespace-pre-wrap break-words text-xl font-medium uppercase leading-snug text-slate-900 sm:text-2xl">
               {observaciones?.trim() || "Sin información cargada."}
             </p>
-            <button
-              type="button"
-              onClick={() => setAbierto(false)}
-              className="mt-6 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-            >
-              Cerrar
-            </button>
+            <div className="mt-8 flex items-center">
+              <button
+                type="button"
+                onClick={() => setAbierto(false)}
+                className="rounded-md border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}
