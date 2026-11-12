@@ -114,7 +114,7 @@ export default function Campanita({ rol }: { rol: string }) {
   }
 
   return (
-    <div ref={caja} className="relative">
+    <div ref={caja}>
       <button
         type="button"
         onClick={alternar}
@@ -128,7 +128,7 @@ export default function Campanita({ rol }: { rol: string }) {
       </button>
 
       {abierto && (
-        <div className="absolute right-0 top-full z-50 mt-3 w-[22rem] max-w-[calc(100vw-1.5rem)] rounded-md border border-slate-200 bg-white text-left shadow-2xl">
+        <div className="absolute right-0 top-full z-50 mt-2 w-[22rem] max-w-[calc(100vw-1.5rem)] rounded-md border border-slate-200 bg-white text-left shadow-2xl">
           <div className="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-900">
             Notificaciones
           </div>
