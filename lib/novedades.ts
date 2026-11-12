@@ -9,6 +9,26 @@ export type Novedad = {
   link: string;
 };
 
+
+// Destino de un aviso de pedido de fábrica: la ficha del CLIENTE vinculado.
+// Se busca el cliente en el pedido y, si el pedido no se puede leer, en las ventas o visitas
+// enlazadas a ese pedido (siempre con los permisos del propio usuario, sin saltear nada).
+export async function clientesDePedidos(supabase: any, ids: any[]): Promise<Map<any, any>> {
+  const out = new Map<any, any>();
+  const lista = Array.from(new Set(ids.filter(Boolean)));
+  if (!lista.length) return out;
+  const [p, v, so] = await Promise.all([
+    supabase.from("solicitudes_fabrica").select("id,cliente_id").in("id", lista),
+    supabase.from("ventas").select("solicitud_fabrica_id,cliente_id").in("solicitud_fabrica_id", lista),
+    supabase.from("solicitudes").select("solicitud_fabrica_id,cliente_id").in("solicitud_fabrica_id", lista),
+  ]);
+  for (const r of (so.data || [])) if (r.cliente_id) out.set(r.solicitud_fabrica_id, r.cliente_id);
+  for (const r of (v.data || [])) if (r.cliente_id) out.set(r.solicitud_fabrica_id, r.cliente_id);
+  for (const r of (p.data || [])) if (r.cliente_id) out.set(r.id, r.cliente_id);
+  return out;
+}
+export const linkCliente = (clienteId: any) => (clienteId ? `/clientes/${clienteId}` : "/clientes");
+
 const num5 = (n: any) => String(n).padStart(5, "0");
 
 // Trabajos que entraron a Coordinación y esperan fecha y técnico.
@@ -141,6 +161,7 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
       const { data: pedidosAviso, error: errPedidos } = idsPedido.length
         ? await supabase.from("solicitudes_fabrica").select("id,numero_remito,cliente_nombre").in("id", idsPedido)
         : { data: [], error: null };
+      const clientesPedido = await clientesDePedidos(supabase, idsPedido);
       for (const a of av || []) {
         const p = (pedidosAviso || []).find((x: any) => x.id === a.solicitud_fabrica_id);
         const ident = p ? [p.cliente_nombre, p.numero_remito ? `Remito #${p.numero_remito}` : ""].filter(Boolean).join(" - ") : "";
@@ -149,9 +170,9 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
           id: `aviso-${a.id}`,
           titulo: a.tipo === "fabrica_lista" ? "Tu trabajo está listo para colocar" : "Tu trabajo de fábrica fue aprobado",
           // Si el pedido ya no se puede abrir (no existe o no es visible para este usuario), va a la ficha de clientes.
-          detalle: p || errPedidos ? [ident, estado].filter(Boolean).join(" | ") : `${estado} Ese pedido ya no se puede abrir: tocá para ir a Mis clientes.`,
+          detalle: p || errPedidos || clientesPedido.get(a.solicitud_fabrica_id) ? [ident, estado].filter(Boolean).join(" | ") : `${estado} No se pudo ubicar al cliente: tocá para ir a Mis clientes.`,
           fecha: a.created_at,
-          link: p || errPedidos ? `/ficha/remito/${a.solicitud_fabrica_id}` : "/clientes",
+          link: linkCliente(clientesPedido.get(a.solicitud_fabrica_id)),
         });
       }
 
