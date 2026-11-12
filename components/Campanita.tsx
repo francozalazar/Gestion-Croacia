@@ -6,7 +6,7 @@ import { Bell } from "lucide-react";
 import { createClient } from "@/lib/supabase/cliente";
 import { cargarNovedades, type Novedad } from "@/lib/novedades";
 
-const ROLES = ["ADMIN", "OFICINA", "COORDINACION", "TECNICO", "FABRICA"];
+const ROLES = ["ADMIN", "OFICINA", "COORDINACION", "TECNICO", "FABRICA", "ENCARGADO"];
 
 // Sonido corto cuando llega una novedad con la app abierta. El navegador sólo
 // lo permite si el usuario ya tocó la página; si no, queda mudo.
@@ -52,6 +52,10 @@ export default function Campanita({ rol }: { rol: string }) {
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
   const conocidas = useRef<Set<string> | null>(null);
+  // La marca de "leído" vive en la base (se comparte entre celular y computadora).
+  // Si la tabla todavía no existe, queda en este dispositivo.
+  const enBase = useRef(false);
+  const vistoRef = useRef(0);
   const permitido = ROLES.includes((rol || "").toUpperCase());
 
   const clave = (id: string) => `croacia-campana-${id}`;
@@ -62,12 +66,16 @@ export default function Campanita({ rol }: { rol: string }) {
     const id = data.user?.id;
     if (!id) return;
     setUserId(id);
-    setVistoHasta(Number(localStorage.getItem(clave(id)) || 0));
+    let visto = Number(localStorage.getItem(clave(id)) || 0);
+    const lectura = await supabase.from("campana_lecturas").select("visto_hasta").eq("usuario_id", id).maybeSingle();
+    enBase.current = !lectura.error;
+    if (!lectura.error) visto = lectura.data?.visto_hasta ? new Date(lectura.data.visto_hasta).getTime() : 0;
+    vistoRef.current = visto;
+    setVistoHasta(visto);
     try {
       const nuevas = await cargarNovedades(supabase, id, rol);
       const previas = conocidas.current;
-      const ultimo = Number(localStorage.getItem(clave(id)) || 0);
-      if (previas && nuevas.some((n) => !previas.has(n.id) && new Date(n.fecha).getTime() > ultimo)) sonar();
+      if (previas && nuevas.some((n) => !previas.has(n.id) && new Date(n.fecha).getTime() > visto)) sonar();
       conocidas.current = new Set(nuevas.map((n) => n.id));
       setItems(nuevas);
     } catch {
@@ -109,6 +117,12 @@ export default function Campanita({ rol }: { rol: string }) {
       const ahora = Date.now();
       localStorage.setItem(clave(userId), String(ahora));
       setVistoHasta(ahora);
+      vistoRef.current = ahora;
+      if (enBase.current) {
+        void supabase
+          .from("campana_lecturas")
+          .upsert({ usuario_id: userId, visto_hasta: new Date(ahora).toISOString() }, { onConflict: "usuario_id" });
+      }
     }
     void cargar();
   }
