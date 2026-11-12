@@ -8,8 +8,26 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-plex-sans);
+  --font-sans: var(--font-montserrat);
   --font-mono: var(--font-geist-mono);
+}
+
+/* Legibilidad: una sola tipografía (Montserrat) y tamaños mínimos cómodos
+   en toda la app, escritorio y celular. */
+.text-xs {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+.text-\[10px\],
+.text-\[11px\] {
+  font-size: 0.75rem;
+}
+/* Texto gris claro con poco contraste pasa a un gris más oscuro */
+.text-slate-400 {
+  color: #64748b;
+}
+:where(input, select, textarea, button) {
+  font-family: inherit;
 }
 
 /* Estilo sobrio: esquinas casi rectas en toda la app */
@@ -39,7 +57,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-plex-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-montserrat), Arial, Helvetica, sans-serif;
 }
 
 ::selection {
