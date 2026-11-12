@@ -8,6 +8,29 @@ import { cargarNovedades, type Novedad } from "@/lib/novedades";
 
 const ROLES = ["ADMIN", "OFICINA", "COORDINACION", "TECNICO", "FABRICA"];
 
+// Sonido corto cuando llega una novedad con la app abierta. El navegador sólo
+// lo permite si el usuario ya tocó la página; si no, queda mudo.
+function sonar() {
+  try {
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new Ctx();
+    [880, 1175].forEach((hz, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = hz;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime + i * 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + i * 0.18 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.18 + 0.3);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.18);
+      osc.stop(ctx.currentTime + i * 0.18 + 0.32);
+    });
+    setTimeout(() => ctx.close(), 1000);
+  } catch {
+    /* sin audio disponible */
+  }
+}
+
 function cuando(fecha: string) {
   const d = new Date(fecha);
   const min = Math.floor((Date.now() - d.getTime()) / 60000);
@@ -28,6 +51,7 @@ export default function Campanita({ rol }: { rol: string }) {
   const [nuevasAlAbrir, setNuevasAlAbrir] = useState<Set<string>>(new Set());
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
+  const conocidas = useRef<Set<string> | null>(null);
   const permitido = ROLES.includes((rol || "").toUpperCase());
 
   const clave = (id: string) => `croacia-campana-${id}`;
@@ -40,7 +64,12 @@ export default function Campanita({ rol }: { rol: string }) {
     setUserId(id);
     setVistoHasta(Number(localStorage.getItem(clave(id)) || 0));
     try {
-      setItems(await cargarNovedades(supabase, id, rol));
+      const nuevas = await cargarNovedades(supabase, id, rol);
+      const previas = conocidas.current;
+      const ultimo = Number(localStorage.getItem(clave(id)) || 0);
+      if (previas && nuevas.some((n) => !previas.has(n.id) && new Date(n.fecha).getTime() > ultimo)) sonar();
+      conocidas.current = new Set(nuevas.map((n) => n.id));
+      setItems(nuevas);
     } catch {
       /* si falla, se reintenta en la próxima actualización */
     }
@@ -49,7 +78,7 @@ export default function Campanita({ rol }: { rol: string }) {
   useEffect(() => {
     if (!permitido) return;
     void cargar();
-    const timer = setInterval(() => { if (document.visibilityState === "visible") void cargar(); }, 60000);
+    const timer = setInterval(() => { if (document.visibilityState === "visible") void cargar(); }, 30000);
     const alVolver = () => { if (document.visibilityState === "visible") void cargar(); };
     document.addEventListener("visibilitychange", alVolver);
     window.addEventListener("focus", alVolver);
