@@ -41,12 +41,22 @@ export async function proxy(request: NextRequest) {
       .select("rol,activo")
       .eq("id", user.id)
       .single();
+    // Usuario dado de baja: se le cierra la sesión en el servidor y no se le responde nada más.
+    if (perfil && perfil.activo === false) {
+      await supabase.auth.signOut();
+      const bloqueo = request.nextUrl.pathname.startsWith("/api/")
+        ? NextResponse.json({ error: "Sin acceso" }, { status: 403 })
+        : NextResponse.redirect(new URL("/", request.url));
+      response.cookies.getAll().forEach((c) => bloqueo.cookies.set(c));
+      return bloqueo;
+    }
     if (perfil?.rol === "ENCARGADO") {
       const path = request.nextUrl.pathname;
       const permitido =
         path === "/encargado" ||
         path === "/api/push/suscripcion" ||
         path === "/push-sw.js" ||
+        path === "/manifest.webmanifest" ||
         path.startsWith("/encargado/") ||
         path.startsWith("/_next/");
       if (!perfil.activo || !permitido) {
