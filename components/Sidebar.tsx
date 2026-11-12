@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/cliente";
+import Campanita from "@/components/Campanita";
 
 interface SidebarProps {
   nombre: string;
@@ -262,22 +263,23 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
     }`;
 
   const nombreSesion = `${nombre || ""} ${apellido || ""}`.trim();
-  const chipUsuario = nombreSesion && nombreSesion !== "Usuario" ? (
-    <div
-      title={`${nombreSesion}${rol ? " - " + rol : ""}`}
-      className="flex max-w-[14rem] items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 shadow-sm"
-    >
-      <User size={16} className="shrink-0 text-slate-500" />
-      <span className="truncate">{nombreSesion}</span>
+  const mostrarNombre = Boolean(nombreSesion) && nombreSesion !== "Usuario";
+  const chipUsuario = (
+    <div className="flex max-w-[16rem] items-center gap-1 rounded-full border border-slate-200 bg-white py-1 pl-1.5 pr-3 text-sm font-semibold text-slate-800 shadow-sm">
+      <Campanita rol={rol} />
+      {mostrarNombre && (
+        <span className="flex min-w-0 items-center gap-2 pl-1" title={`${nombreSesion}${rol ? " - " + rol : ""}`}>
+          <User size={16} className="shrink-0 text-slate-500" />
+          <span className="truncate">{nombreSesion}</span>
+        </span>
+      )}
     </div>
-  ) : null;
+  );
 
   return (
     <>
       {/* USUARIO CON SESIÓN: ARRIBA A LA DERECHA (DESKTOP) */}
-      {chipUsuario && (
-        <div className="fixed right-6 top-3 z-20 hidden md:block">{chipUsuario}</div>
-      )}
+      <div className="fixed right-6 top-3 z-20 hidden md:block">{chipUsuario}</div>
 
       {/* BARRA SUPERIOR MÓVIL */}
       <div className="fixed inset-x-0 top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white px-4 md:hidden">
@@ -296,7 +298,7 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
           />
           <span className="text-sm font-bold text-slate-900">Croacia</span>
         </div>
-        {chipUsuario && <div className="ml-auto">{chipUsuario}</div>}
+        <div className="ml-auto">{chipUsuario}</div>
       </div>
 
       {/* FONDO OSCURO CUANDO EL MENÚ ESTÁ ABIERTO EN MÓVIL */}
@@ -414,4 +416,4 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
       </aside>
     </>
   );
-          }
+  }
