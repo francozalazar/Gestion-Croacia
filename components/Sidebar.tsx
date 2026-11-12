@@ -89,7 +89,8 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
       if (sub) {
         const r = await fetch("/api/push/suscripcion", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: sub.endpoint }) });
         if (!r.ok) { alert("No se pudieron desactivar los avisos de este celular. Probá cerrar sesión otra vez."); return; }
-        await sub.unsubscribe();
+        // Se desvincula del usuario en el servidor; el permiso del navegador queda y se vuelve a
+        // vincular solo al próximo usuario que entre, sin tener que activarlo otra vez.
       }
     }
     await supabase.auth.signOut();
@@ -416,4 +417,4 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
       </aside>
     </>
   );
-  }
+}
