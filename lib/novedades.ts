@@ -11,6 +11,23 @@ export type Novedad = {
 
 const num5 = (n: any) => String(n).padStart(5, "0");
 
+// Trabajos que entraron a Coordinación y esperan fecha y técnico.
+async function trabajosParaCoordinar(supabase: any, link: string): Promise<Novedad[]> {
+  const { data } = await supabase
+    .from("solicitudes")
+    .select("id,numero,cliente_nombre,direccion,created_at,updated_at")
+    .eq("estado", "PENDIENTE_COORDINACION")
+    .order("updated_at", { ascending: false })
+    .limit(10);
+  return (data || []).map((s: any) => ({
+    id: `coordinar-${s.id}`,
+    titulo: `Trabajo nuevo para coordinar #${num5(s.numero || s.id)}`,
+    detalle: `${s.cliente_nombre || "Cliente"} - ${s.direccion || "Sin dirección"}`,
+    fecha: s.updated_at || s.created_at,
+    link,
+  }));
+}
+
 // Novedades de la campanita: las mismas que ya muestra Inicio, según el rol del
 // usuario. RLS sigue vigente: cada usuario sólo ve lo que ya podía ver.
 export async function cargarNovedades(supabase: any, userId: string, rol: string): Promise<Novedad[]> {
@@ -60,7 +77,10 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
         link: "/trabajos",
       });
     }
+  } else if (R === "ENCARGADO") {
+    out.push(...(await trabajosParaCoordinar(supabase, `/encargado?seccion=${encodeURIComponent("Coordinación")}`)));
   } else if (["ADMIN", "OFICINA", "COORDINACION"].includes(R)) {
+    if (R !== "OFICINA") out.push(...(await trabajosParaCoordinar(supabase, "/coordinacion")));
     let q = supabase
       .from("solicitudes")
       .select("*")
