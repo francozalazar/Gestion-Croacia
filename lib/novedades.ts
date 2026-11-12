@@ -136,11 +136,18 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
         .in("tipo", ["fabrica_aprobada", "fabrica_lista"])
         .order("created_at", { ascending: false })
         .limit(10);
+      // Cliente y número de remito del pedido (solo los que este usuario puede ver).
+      const idsPedido = Array.from(new Set((av || []).map((a: any) => a.solicitud_fabrica_id).filter(Boolean)));
+      const { data: pedidosAviso } = idsPedido.length
+        ? await supabase.from("solicitudes_fabrica").select("id,numero_remito,cliente_nombre").in("id", idsPedido)
+        : { data: [] };
       for (const a of av || []) {
+        const p = (pedidosAviso || []).find((x: any) => x.id === a.solicitud_fabrica_id);
+        const ident = p ? [p.cliente_nombre, p.numero_remito ? `Remito #${p.numero_remito}` : ""].filter(Boolean).join(" - ") : "";
         out.push({
           id: `aviso-${a.id}`,
           titulo: a.tipo === "fabrica_lista" ? "Tu trabajo está listo para colocar" : "Tu trabajo de fábrica fue aprobado",
-          detalle: a.tipo === "fabrica_lista" ? "Fábrica lo terminó y lo pasó a Instalación." : "El pedido fue aprobado y enviado a cortar.",
+          detalle: [ident, a.tipo === "fabrica_lista" ? "Fábrica lo terminó y lo pasó a Instalación." : "El pedido fue aprobado y enviado a cortar."].filter(Boolean).join(" | "),
           fecha: a.created_at,
           link: `/ficha/remito/${a.solicitud_fabrica_id}`,
         });
