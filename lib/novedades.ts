@@ -27,6 +27,15 @@ export async function clientesDePedidos(supabase: any, ids: any[]): Promise<Map<
   for (const r of (p.data || [])) if (r.cliente_id) out.set(r.id, r.cliente_id);
   return out;
 }
+// Nombre del cliente, solo si el usuario puede leerlo con sus propios permisos.
+export async function nombresClientes(supabase: any, clienteIds: any[]): Promise<Map<any, string>> {
+  const out = new Map<any, string>();
+  const ids = Array.from(new Set(clienteIds.filter(Boolean)));
+  if (!ids.length) return out;
+  const { data } = await supabase.from("clientes").select("id,nombre").in("id", ids);
+  for (const c of (data || [])) if (c.nombre) out.set(c.id, c.nombre);
+  return out;
+}
 export const linkCliente = (clienteId: any) => (clienteId ? `/clientes/${clienteId}` : "/clientes");
 
 const num5 = (n: any) => String(n).padStart(5, "0");
@@ -162,9 +171,10 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
         ? await supabase.from("solicitudes_fabrica").select("id,numero_remito,cliente_nombre").in("id", idsPedido)
         : { data: [], error: null };
       const clientesPedido = await clientesDePedidos(supabase, idsPedido);
+      const nombresPorCliente = await nombresClientes(supabase, Array.from(clientesPedido.values()));
       for (const a of av || []) {
         const p = (pedidosAviso || []).find((x: any) => x.id === a.solicitud_fabrica_id);
-        const ident = p ? [p.cliente_nombre, p.numero_remito ? `Remito #${p.numero_remito}` : ""].filter(Boolean).join(" - ") : "";
+        const ident = p ? [p.cliente_nombre, p.numero_remito ? `Remito #${p.numero_remito}` : ""].filter(Boolean).join(" - ") : (nombresPorCliente.get(clientesPedido.get(a.solicitud_fabrica_id)) || "");
         const estado = a.tipo === "fabrica_lista" ? "Fábrica lo terminó y lo pasó a Instalación." : "El pedido fue aprobado y enviado a cortar.";
         out.push({
           id: `aviso-${a.id}`,
@@ -198,4 +208,4 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
     .filter((n) => n.fecha && !vistos.has(n.id) && vistos.add(n.id))
     .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
     .slice(0, 10);
-}
+      }
