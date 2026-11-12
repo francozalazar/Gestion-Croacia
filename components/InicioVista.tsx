@@ -49,7 +49,7 @@ export default function InicioVista(props: any) {
           </section>
         )}
 
-        {["TECNICO", "OFICINA", "ADMIN"].includes(perfil?.rol?.toUpperCase() || "") && <AvisosAndroid />}
+        {["TECNICO", "OFICINA", "ADMIN", "FABRICA"].includes(perfil?.rol?.toUpperCase() || "") && <AvisosAndroid />}
 
         {/* LO URGENTE DE HOY */}
         <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
