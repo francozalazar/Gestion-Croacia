@@ -176,3 +176,54 @@ export async function cambiarClaveUsuarioAction(
     mensaje: `Contraseña actualizada para ${nombre}. Pasale la nueva contraseña para que entre.`,
   };
 }
+
+// "Eliminar" quita el acceso sin borrar nada del historial: el usuario queda inactivo y
+// bloqueado, así los trabajos, remitos y registros que hizo siguen mostrando su nombre.
+export async function eliminarUsuarioAction(
+  _prev: ResultadoAlta | null,
+  formData: FormData
+): Promise<ResultadoAlta> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, mensaje: "Tu sesión venció. Entrá de nuevo." };
+
+  const { data: yo } = await supabase.from("profiles").select("rol, activo").eq("id", user.id).single();
+  if (!yo || yo.activo !== true || String(yo.rol).toUpperCase() !== "ADMIN") {
+    return { ok: false, mensaje: "Solo un administrador puede eliminar usuarios." };
+  }
+
+  const usuarioId = String(formData.get("usuario_id") || "").trim();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(usuarioId)) return { ok: false, mensaje: "Indicá un usuario válido." };
+  if (usuarioId === user.id) return { ok: false, mensaje: "No podés eliminar tu propio usuario." };
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const clave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !clave) return { ok: false, mensaje: "Falta configurar la clave de servidor. No se eliminó nada." };
+  const admin = createAdminClient(url, clave, { auth: { autoRefreshToken: false, persistSession: false } });
+
+  const { data: destino, error: errDestino } = await admin.from("profiles").select("id, nombre, apellido, rol, activo").eq("id", usuarioId).single();
+  if (errDestino || !destino) return { ok: false, mensaje: "No se encontró ese usuario. No se eliminó nada." };
+  if (destino.activo === false) return { ok: true, mensaje: "Ese usuario ya estaba eliminado." };
+
+  // Siempre tiene que quedar al menos otro administrador activo.
+  if (String(destino.rol).toUpperCase() === "ADMIN") {
+    const { count } = await admin.from("profiles").select("id", { count: "exact", head: true }).eq("rol", "ADMIN").eq("activo", true).neq("id", usuarioId);
+    if (!count) return { ok: false, mensaje: "No se puede eliminar al único administrador activo." };
+  }
+
+  // 1) Bloquear el ingreso. 2) Marcar inactivo. Si lo segundo falla, se vuelve a habilitar el acceso.
+  const { error: errBan } = await admin.auth.admin.updateUserById(usuarioId, { ban_duration: "876000h" });
+  if (errBan) return { ok: false, mensaje: "No se pudo bloquear el acceso. No se eliminó nada." };
+  const { error: errPerfil } = await admin.from("profiles").update({ activo: false }).eq("id", usuarioId);
+  if (errPerfil) {
+    await admin.auth.admin.updateUserById(usuarioId, { ban_duration: "none" });
+    return { ok: false, mensaje: "No se pudo eliminar el usuario. No se cambió nada." };
+  }
+  // Que no le lleguen más avisos a sus dispositivos.
+  await admin.from("push_suscripciones").delete().eq("usuario_id", usuarioId);
+
+  const nombre = `${destino.nombre || ""} ${destino.apellido || ""}`.trim() || "El usuario";
+  return { ok: true, mensaje: `${nombre} fue eliminado. Ya no puede entrar; sus trabajos y su historial se conservan.` };
+}
