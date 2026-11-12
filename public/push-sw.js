@@ -7,7 +7,7 @@ self.addEventListener('push', event => {
   event.waitUntil(self.registration.showNotification(tecnico ? 'Croacia: trabajo asignado' : message.titulo, {
     body: tecnico ? 'Tenés un trabajo asignado. Abrí la app para ver el detalle.' : message.cuerpo,
     icon: '/logo.png', badge: '/logo.png', tag: (tecnico ? 'croacia-asignacion-' : 'croacia-circuito-') + String(message.evento),
-    renotify: false, data: { url: tecnico ? '/trabajos' : '/dashboard' },
+    renotify: false, vibrate: [200, 100, 200], data: { url: tecnico ? '/trabajos' : '/dashboard' },
   }));
 });
 self.addEventListener('notificationclick', event => {
