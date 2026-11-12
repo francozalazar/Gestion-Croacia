@@ -36,13 +36,14 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) {
-    const { data: perfil } = await supabase
+    const { data: perfil, error: errPerfil } = await supabase
       .from("profiles")
       .select("rol,activo")
       .eq("id", user.id)
       .single();
     // Usuario dado de baja: se le cierra la sesión en el servidor y no se le responde nada más.
-    if (perfil && perfil.activo === false) {
+    // 42501: la base rechaza a los usuarios dados de baja (también al leer su propio perfil).
+    if ((perfil && perfil.activo === false) || errPerfil?.code === "42501") {
       await supabase.auth.signOut();
       const bloqueo = request.nextUrl.pathname.startsWith("/api/")
         ? NextResponse.json({ error: "Sin acceso" }, { status: 403 })
