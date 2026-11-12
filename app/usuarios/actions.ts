@@ -223,6 +223,8 @@ export async function eliminarUsuarioAction(
   }
   // Que no le lleguen más avisos a sus dispositivos.
   await admin.from("push_suscripciones").delete().eq("usuario_id", usuarioId);
+  // Cerrar sus sesiones abiertas (función opcional, ver supabase/usuarios-baja-2026-11-12.sql).
+  await admin.rpc("cerrar_sesiones_usuario", { uid: usuarioId });
 
   const nombre = `${destino.nombre || ""} ${destino.apellido || ""}`.trim() || "El usuario";
   return { ok: true, mensaje: `${nombre} fue eliminado. Ya no puede entrar; sus trabajos y su historial se conservan.` };
