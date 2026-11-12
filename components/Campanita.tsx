@@ -56,12 +56,17 @@ export default function Campanita({ rol }: { rol: string }) {
   // Si la tabla todavía no existe, queda en este dispositivo.
   const enBase = useRef(false);
   const vistoRef = useRef(0);
+  // Si el rol cambia mientras carga el perfil, solo vale la última consulta.
+  const secuencia = useRef(0);
+  const rolCargado = useRef("");
   const permitido = ROLES.includes((rol || "").toUpperCase());
 
   const clave = (id: string) => `croacia-campana-${id}`;
 
   const cargar = useCallback(async () => {
     if (!permitido) return;
+    const mia = ++secuencia.current;
+    if (rolCargado.current !== rol) { rolCargado.current = rol; conocidas.current = null; }
     const { data } = await supabase.auth.getUser();
     const id = data.user?.id;
     if (!id) return;
@@ -74,6 +79,7 @@ export default function Campanita({ rol }: { rol: string }) {
     setVistoHasta(visto);
     try {
       const nuevas = await cargarNovedades(supabase, id, rol);
+      if (mia !== secuencia.current) return;
       const previas = conocidas.current;
       if (previas && nuevas.some((n) => !previas.has(n.id) && new Date(n.fecha).getTime() > visto)) sonar();
       conocidas.current = new Set(nuevas.map((n) => n.id));
