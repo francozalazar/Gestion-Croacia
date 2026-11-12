@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, Geist_Mono } from "next/font/google";
+import { Montserrat, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const plexSans = IBM_Plex_Sans({
-  variable: "--font-plex-sans",
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
@@ -29,7 +29,7 @@ export default function RootLayout({
     <html lang="es">
       <body
         suppressHydrationWarning
-        className={`${plexSans.variable} ${geistMono.variable} min-h-full flex flex-col`}
+        className={`${montserrat.variable} ${geistMono.variable} min-h-full flex flex-col`}
       >
         <NavTracker />
         {children}
