@@ -2,6 +2,9 @@
 -- el punto rojo sea el mismo en celular y computadora.
 -- Solo crea una tabla chica. No toca trabajos, pagos, stock ni otras tablas.
 begin;
+do $$ begin
+ if to_regclass('public.profiles') is null then raise exception 'Falta la tabla profiles. No se cambió nada.'; end if;
+end $$;
 create table if not exists public.campana_lecturas (
   usuario_id uuid primary key references public.profiles(id) on delete cascade,
   visto_hasta timestamptz not null default now()
