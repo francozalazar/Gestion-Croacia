@@ -362,7 +362,7 @@ export default function CoordinacionVista({
 
               {/* DETALLE */}
 
-              <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-xs text-slate-600">
+              <div className="mt-5 text-lg leading-relaxed text-slate-600 md:text-xl">
 
                 <p>
 
@@ -507,7 +507,7 @@ export default function CoordinacionVista({
 
               ) : (
 
-                <div className="mt-6 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800">
+                <div className="mt-6 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-base font-medium text-amber-800">
 
                   <ShieldAlert size={16} />
 
@@ -527,7 +527,7 @@ export default function CoordinacionVista({
 
                 <button
                   onClick={cerrarModal}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                  className="text-base font-semibold text-slate-500 hover:text-slate-700"
                 >
                   Cerrar
                 </button>
