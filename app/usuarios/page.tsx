@@ -35,7 +35,7 @@ export default async function UsuariosPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Usuarios</h1>
           <p className="text-sm text-slate-600">
-            Creá el acceso de una persona nueva o cambiá la contraseña de un usuario existente. Solo los administradores ven esta pantalla.
+            Creá el acceso de una persona nueva eligiendo su rol, cambiá una contraseña o eliminá un usuario (conserva su historial). Solo los administradores ven esta pantalla.
           </p>
         </div>
 
@@ -44,7 +44,7 @@ export default async function UsuariosPage() {
         <div className="rounded-2xl bg-white p-6 shadow-sm max-w-xl">
           <h2 className="mb-3 text-lg font-bold text-slate-900">Usuarios actuales</h2>
           <ul className="divide-y divide-slate-100">
-            {(usuarios || []).map((u: any) => (
+            {(usuarios || []).filter((u: any) => u.activo !== false).map((u: any) => (
               <FilaUsuario key={u.id} u={u} />
             ))}
           </ul>
