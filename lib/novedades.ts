@@ -40,20 +40,16 @@ export const linkCliente = (clienteId: any) => (clienteId ? `/clientes/${cliente
 
 const num5 = (n: any) => String(n).padStart(5, "0");
 
-// Trabajos que entraron a Coordinación y esperan fecha y técnico.
-async function trabajosParaCoordinar(supabase: any, link: string): Promise<Novedad[]> {
-  const { data } = await supabase
-    .from("solicitudes")
-    .select("id,numero,cliente_nombre,direccion,created_at,updated_at")
-    .eq("estado", "PENDIENTE_COORDINACION")
-    .order("updated_at", { ascending: false })
-    .limit(10);
-  return (data || []).map((s: any) => ({
-    id: `coordinar-${s.id}`,
-    titulo: `Trabajo nuevo para coordinar #${num5(s.numero || s.id)}`,
-    detalle: `${s.cliente_nombre || "Cliente"} - ${s.direccion || "Sin dirección"}`,
-    fecha: s.updated_at || s.created_at,
-    link,
+// Motores que llegaron al aviso de stock (solo Admin y Encargado).
+async function motoresPorAgotarse(supabase: any): Promise<Novedad[]> {
+  const { data } = await supabase.from("stock_motores").select("id,nombre,cantidad,minimo");
+  const ahora = new Date().toISOString();
+  return (data || []).filter((m: any) => m.cantidad <= m.minimo).map((m: any) => ({
+    id: `stock-${m.id}-${m.cantidad}`,
+    titulo: "Motor por agotarse",
+    detalle: `${m.nombre}: quedan ${m.cantidad} (aviso en ${m.minimo})`,
+    fecha: ahora,
+    link: "/stock",
   }));
 }
 
@@ -107,34 +103,52 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
       });
     }
   } else if (R === "ENCARGADO") {
-    out.push(...(await trabajosParaCoordinar(supabase, `/encargado?seccion=${encodeURIComponent("Coordinación")}`)));
-  } else if (["ADMIN", "OFICINA", "COORDINACION"].includes(R)) {
-    if (R !== "OFICINA") out.push(...(await trabajosParaCoordinar(supabase, "/coordinacion")));
-    let q = supabase
-      .from("solicitudes")
-      .select("*")
-      .in("estado", ["PRESUPUESTADO", "FINALIZADO"])
-      .order("updated_at", { ascending: false })
-      .limit(20);
-    if (R === "OFICINA") q = q.eq("creado_por", userId);
-    const { data: sol } = await q;
-    for (const s of sol || []) {
-      if (s.estado === "PRESUPUESTADO" && requierePrecio(s.tipo_visita)) {
-        out.push({
-          id: `presupuesto-${s.id}`,
-          titulo: `Le asignaron precio al trabajo #${num5(s.numero || s.id)}`,
-          detalle: `Cliente: ${s.cliente_nombre || "Cliente"} - Monto: $${(s.subtotal || s.precio || 0).toLocaleString("es-AR")}`,
-          fecha: s.updated_at || s.created_at,
-          link: "/presupuestos",
-        });
-      } else if (s.estado === "FINALIZADO") {
-        out.push({
-          id: `finalizado-${s.id}`,
-          titulo: `Trabajo finalizado #${num5(s.numero || s.id)}`,
-          detalle: `El técnico completó la visita en ${s.direccion || "la dirección cargada"}`,
-          fecha: s.updated_at || s.created_at,
-          link: "/visitas-finalizadas",
-        });
+    const { data: asig } = await supabase
+      .from("asignaciones")
+      .select("id,solicitud_id,solicitud_fabrica_id,created_at")
+      .eq("usuario_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    const lista = asig || [];
+    const ids = lista.map((a: any) => a.solicitud_id).filter(Boolean);
+    const idsF = lista.map((a: any) => a.solicitud_fabrica_id).filter(Boolean);
+    const [v, f] = await Promise.all([
+      ids.length ? supabase.from("solicitudes").select("id,estado,cliente_nombre,direccion,fecha_finalizacion").in("id", ids) : { data: [] },
+      idsF.length ? supabase.from("solicitudes_fabrica").select("id,estado,cliente_nombre,direccion,fecha_finalizacion").in("id", idsF) : { data: [] },
+    ]);
+    for (const a of lista) {
+      const t = a.solicitud_fabrica_id
+        ? (f.data || []).find((x: any) => x.id === a.solicitud_fabrica_id)
+        : (v.data || []).find((x: any) => x.id === a.solicitud_id);
+      if (!t || t.fecha_finalizacion || ["FINALIZADO", "ANULADO", "CANCELADO"].includes(t.estado)) continue;
+      out.push({
+        id: `enc-${a.id}`,
+        titulo: "Se te asignó un nuevo trabajo",
+        detalle: `Cliente: ${t.cliente_nombre || "Sin nombre"} | ${t.direccion || "Sin dirección"}`,
+        fecha: a.created_at,
+        link: "/encargado",
+      });
+    }
+    out.push(...(await motoresPorAgotarse(supabase)));
+  } else if (["ADMIN", "OFICINA"].includes(R)) {
+    if (R === "OFICINA") {
+      const { data: sol } = await supabase
+        .from("solicitudes")
+        .select("*")
+        .eq("estado", "PRESUPUESTADO")
+        .eq("creado_por", userId)
+        .order("updated_at", { ascending: false })
+        .limit(20);
+      for (const s of sol || []) {
+        if (requierePrecio(s.tipo_visita)) {
+          out.push({
+            id: `presupuesto-${s.id}`,
+            titulo: `Le asignaron precio al trabajo #${num5(s.numero || s.id)}`,
+            detalle: `Cliente: ${s.cliente_nombre || "Cliente"} - Monto: $${(s.subtotal || s.precio || 0).toLocaleString("es-AR")}`,
+            fecha: s.updated_at || s.created_at,
+            link: "/presupuestos",
+          });
+        }
       }
     }
 
@@ -155,6 +169,7 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
           link: "/aprobacion-fabrica",
         });
       }
+      out.push(...(await motoresPorAgotarse(supabase)));
     }
 
     if (R === "OFICINA") {
