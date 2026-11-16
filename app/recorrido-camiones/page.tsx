@@ -57,7 +57,7 @@ export default function RecorridoCamionesPage() {
     // camiones ni se muestran trabajos de otros.
     if (rol === "TECNICO") {
       setTecnicoSeleccionado(user.id);
-      ejecutarBusqueda(user.id, fecha);
+      ejecutarBusqueda(user.id, fecha, true);
       return;
     }
 
@@ -85,7 +85,7 @@ export default function RecorridoCamionesPage() {
     ejecutarBusqueda(tecnicoSeleccionado, fecha);
   }
 
-  async function ejecutarBusqueda(tecId: string, fechaFiltro: string) {
+  async function ejecutarBusqueda(tecId: string, fechaFiltro: string, esTecnico = perfil?.rol?.toUpperCase() === "TECNICO") {
     // Un técnico solo puede ver su propio recorrido.
     if (perfil?.rol?.toUpperCase() === "TECNICO" && tecId !== perfil.id) {
       return;
@@ -119,14 +119,14 @@ export default function RecorridoCamionesPage() {
       await Promise.all([
         idsSolicitudes.length > 0
           ? supabase
-              .from("solicitudes")
+              .from(esTecnico ? "solicitudes_tecnico" : "solicitudes")
               .select("*")
               .in("id", idsSolicitudes)
           : Promise.resolve({ data: [] }),
 
         idsFabrica.length > 0
           ? supabase
-              .from("solicitudes_fabrica")
+              .from(esTecnico ? "solicitudes_fabrica_tecnico" : "solicitudes_fabrica")
               .select("*")
               .in("id", idsFabrica)
           : Promise.resolve({ data: [] }),
