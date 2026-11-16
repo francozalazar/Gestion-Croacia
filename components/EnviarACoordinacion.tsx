@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/cliente";
 import { Calendar, Clock, Send, X } from "lucide-react";
 import Desplegable from "@/components/Desplegable";
 import { enviarACoordinacionPasos } from "@/lib/pasosCircuito";
+import { toast } from "@/lib/toast";
 
 interface Props {
   solicitud: {
@@ -101,13 +102,14 @@ export default function EnviarACoordinacion({ solicitud }: Props) {
     // Si algo falla, el pedido sigue en "Listos para colocar" y se puede reintentar.
     const r = await enviarACoordinacionPasos(supabase, solicitud.id, datosNuevos);
     if (!r.ok) {
-      alert("No se pudo enviar a coordinación: " + r.error?.message + ". Probá de nuevo.");
+      toast.error("No se pudo enviar a coordinación: " + r.error?.message + ". Probá de nuevo.");
       setGuardando(false);
       return;
     }
 
     setGuardando(false);
     setAbierto(false);
+    toast.ok("Enviado a coordinación correctamente.");
     router.refresh();
   }
 
