@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import { crearUsuarioAction, type ResultadoAlta } from "./actions";
 import Desplegable from "@/components/Desplegable";
+import { toast } from "@/lib/toast";
 
 const ROLES = [
   { v: "ENCARGADO", t: "Encargado (operaciones y remitos propios)" },
@@ -20,8 +21,11 @@ export default function NuevoUsuarioForm() {
     async (prev, fd) => {
       const r = await crearUsuarioAction(prev, fd);
       if (r?.ok) {
+        toast.ok(r.mensaje);
         form.current?.reset();
         setResetKey((k) => k + 1);
+      } else if (r) {
+        toast.error(r.mensaje);
       }
       return r;
     },
