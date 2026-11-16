@@ -137,7 +137,7 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
         .select("*")
         .eq("estado", "PRESUPUESTADO")
         .eq("creado_por", userId)
-        .order("updated_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(20);
       for (const s of sol || []) {
         if (requierePrecio(s.tipo_visita)) {
