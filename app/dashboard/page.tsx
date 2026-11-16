@@ -475,18 +475,6 @@ export default function DashboardPage() {
             colorIcono: "bg-emerald-100 text-emerald-600",
           });
         }
-
-        if (s.estado === "FINALIZADO") {
-          eventos.push({
-            id: `finalizado-${s.id}`,
-            titulo: `Trabajo finalizado #${String(s.numero || s.id).padStart(5, "0")}`,
-            detalle: `Técnico completó la visita en ${s.direccion}`,
-            fecha: s.updated_at || s.created_at,
-            link: "/visitas-finalizadas",
-            icono: CheckCircle2,
-            colorIcono: "bg-blue-100 text-blue-600",
-          });
-        }
       });
 
       if (esOficina) {
