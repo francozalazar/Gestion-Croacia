@@ -2,6 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { cambiarClaveUsuarioAction, eliminarUsuarioAction, type ResultadoAlta } from "./actions";
+import { toast } from "@/lib/toast";
 
 type Usuario = {
   id: string;
@@ -18,8 +19,11 @@ export default function FilaUsuario({ u }: { u: Usuario }) {
     async (prev, fd) => {
       const r = await cambiarClaveUsuarioAction(prev, fd);
       if (r?.ok) {
+        toast.ok(r.mensaje);
         form.current?.reset();
         setAbierto(false);
+      } else if (r) {
+        toast.error(r.mensaje);
       }
       return r;
     },
@@ -30,7 +34,10 @@ export default function FilaUsuario({ u }: { u: Usuario }) {
     async (prev, fd) => {
       const n = `${u.nombre || ""} ${u.apellido || ""}`.trim() || "este usuario";
       if (!window.confirm(`¿Eliminar a ${n}? Ya no va a poder entrar. Sus trabajos y su historial se conservan.`)) return prev;
-      return eliminarUsuarioAction(prev, fd);
+      const r = await eliminarUsuarioAction(prev, fd);
+      if (r?.ok) toast.ok(r.mensaje);
+      else if (r) toast.error(r.mensaje);
+      return r;
     },
     null
   );
