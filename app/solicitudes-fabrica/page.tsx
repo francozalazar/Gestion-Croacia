@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Clock, BellRing, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Desplegable from "@/components/Desplegable";
+import { toast } from "@/lib/toast";
 
 
 const tiposVenta = [
@@ -50,6 +51,7 @@ export default function SolicitudFabricaPage() {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [exito, setExito] = useState(false);
+  useEffect(() => { if (mensaje && !exito) toast.error(mensaje); }, [mensaje, exito]);
   // Pasos ya hechos de un pedido a medio guardar (para reintentar sin duplicar)
   const progreso = useRef<{
     id: string;
@@ -418,6 +420,7 @@ export default function SolicitudFabricaPage() {
     }
     progreso.current = null;
     setExito(true);
+    toast.ok(`Remito Nº ${data?.numero_remito} cargado correctamente.`);
     setMensaje(
       `¡Remito Nº ${data?.numero_remito} cargado correctamente! Redirigiendo...`
     );
