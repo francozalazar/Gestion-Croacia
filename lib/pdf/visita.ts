@@ -1,1 +1,1 @@
-export { generarPDFVisita } from "./visitaDocumento";
+export { generarPDFVisita } from './visitaCompacta';
