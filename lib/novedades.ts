@@ -201,6 +201,10 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
         });
       }
 
+    }
+
+    // Tanto Oficina como Admin reciben solo la asignación de los trabajos que cargaron.
+    {
       const [visitas, pedidos, asignaciones, tecnicos] = await Promise.all([
         supabase.from("solicitudes").select("*").eq("creado_por", userId).in("estado", ["ASIGNADO", "EN_PROCESO"]),
         supabase.from("solicitudes_fabrica").select("*").eq("creado_por", userId).in("estado", ["ASIGNADO", "EN_PROCESO"]),
