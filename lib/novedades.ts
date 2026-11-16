@@ -90,8 +90,8 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
     const ids = lista.map((a: any) => a.solicitud_id).filter(Boolean);
     const idsF = lista.map((a: any) => a.solicitud_fabrica_id).filter(Boolean);
     const [v, f] = await Promise.all([
-      ids.length ? supabase.from("solicitudes").select("*").in("id", ids) : { data: [] },
-      idsF.length ? supabase.from("solicitudes_fabrica").select("*").in("id", idsF) : { data: [] },
+      ids.length ? supabase.from("solicitudes_tecnico").select("*").in("id", ids) : { data: [] },
+      idsF.length ? supabase.from("solicitudes_fabrica_tecnico").select("*").in("id", idsF) : { data: [] },
     ]);
     for (const a of lista) {
       const t = a.solicitud_fabrica_id
@@ -208,4 +208,4 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
     .filter((n) => n.fecha && !vistos.has(n.id) && vistos.add(n.id))
     .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
     .slice(0, 10);
-      }
+}
