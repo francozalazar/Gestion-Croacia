@@ -53,14 +53,14 @@ export default async function MisTrabajosPage() {
       await Promise.all([
         solicitudIds.length
           ? supabase
-              .from("solicitudes")
+              .from(perfil.rol === "TECNICO" ? "solicitudes_tecnico" : "solicitudes")
               .select("*")
               .in("id", solicitudIds)
           : Promise.resolve({ data: [] }),
 
         solicitudFabricaIds.length
           ? supabase
-              .from("solicitudes_fabrica")
+              .from(perfil.rol === "TECNICO" ? "solicitudes_fabrica_tecnico" : "solicitudes_fabrica")
               .select("*")
               .in("id", solicitudFabricaIds)
           : Promise.resolve({ data: [] }),
@@ -86,7 +86,7 @@ export default async function MisTrabajosPage() {
     const fabricasAnuladas = new Set<string>();
     if (idsFabricaVinculada.length) {
       const { data: vinculadas } = await supabase
-        .from("solicitudes_fabrica")
+        .from(perfil.rol === "TECNICO" ? "solicitudes_fabrica_tecnico" : "solicitudes_fabrica")
         .select("id, estado")
         .in("id", idsFabricaVinculada);
       (vinculadas || [])
@@ -149,7 +149,7 @@ export default async function MisTrabajosPage() {
 
   if (clienteIds.length > 0) {
     const { data } = await supabase
-      .from("clientes")
+      .from(perfil.rol === "TECNICO" ? "clientes_tecnico" : "clientes")
       .select("*")
       .in("id", clienteIds);
 
