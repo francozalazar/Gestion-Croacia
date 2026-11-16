@@ -33,6 +33,7 @@ type Trabajo = {
   tipo_visita?: string;
   observaciones?: string;
   solicitud_fabrica_id?: number;
+  usuario_creador?: string;
 };
 type Asignacion = {
   id: number;
@@ -393,6 +394,7 @@ export default function PanelEncargado({
       <RecorridoVista
         esTecnico={propio}
         esAdmin={false}
+        puedeGestionar
         tecnicos={datos.tecnicos.map((x) => ({ id: x.id, nombre: x.nombre, apellido: "" }))}
         tecnicoSeleccionado={idTec}
         setTecnicoSeleccionado={setTecnico}
@@ -412,17 +414,40 @@ export default function PanelEncargado({
               prioridad: prioridad ? String(prioridad) : "",
             });
             if (!r.ok) {
-              alert(r.mensaje);
+              toast.error(r.mensaje);
               return;
             }
+            toast.ok("Se cambió la prioridad.");
             cerrar();
             router.refresh();
           } catch {
             alert("No se pudo confirmar. Actualizá antes de reintentar.");
           }
         }}
-        onQuitar={() => {}}
-        onAnular={() => {}}
+        onQuitar={async (t, cerrar) => {
+          if (!window.confirm("¿Sacar el técnico y la fecha? El trabajo vuelve a Coordinación.")) return;
+          try {
+            const r = await operarEncargado("quitar", { id: t.id, fabrica: !!t._esFabrica, tecnico: idTec, fecha });
+            if (!r.ok) { toast.error(r.mensaje); return; }
+            toast.ok("El trabajo volvió a Coordinación.");
+            cerrar();
+            router.refresh();
+          } catch {
+            toast.error("No se pudo confirmar. Actualizá antes de reintentar.");
+          }
+        }}
+        onAnular={async (t, cerrar) => {
+          if (!window.confirm("¿Anular y borrar este trabajo definitivamente? No se puede deshacer.")) return;
+          try {
+            const r = await operarEncargado("anular", { id: t.id, fabrica: !!t._esFabrica });
+            if (!r.ok) { toast.error(r.mensaje); return; }
+            toast.ok("Se anuló y borró el trabajo.");
+            cerrar();
+            router.refresh();
+          } catch {
+            toast.error("No se pudo confirmar. Actualizá antes de reintentar.");
+          }
+        }}
       />
     );
   }
