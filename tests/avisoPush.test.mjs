@@ -13,3 +13,9 @@ assert.equal(avisoPushVigente({...e,tipo:'fabrica_aprobada'},p,{...s,estado:'PEN
 assert.equal(avisoPushVigente({...e,tipo:'precio'},p,{...s,estado:'PRESUPUESTADO',tipo_visita:'Instalación'},null),false);
 for(const tipo of ['precio','aprobacion_pendiente','fabrica_aprobada','asignacion_vendedor']) assert.ok(textoAvisoPush(tipo));
 console.log('OK: despacho vigente por rol, autor, estado, técnico, fecha y tipo visita');
+const adm={rol:'ADMIN',activo:true},enc={rol:'ENCARGADO',activo:true};
+assert.equal(avisoPushVigente({tipo:'stock_motores'},adm,null,null),true);
+assert.equal(avisoPushVigente({tipo:'stock_motores'},enc,null,null),true);
+assert.equal(avisoPushVigente({tipo:'stock_motores'},p,null,null),false);
+for(const tipo of ['coordinar','finalizado']) for(const r of [adm,enc,p]) assert.equal(avisoPushVigente({tipo,usuario_id:'x'},r,{estado:'PENDIENTE_COORDINACION'},null),false);
+assert.ok(textoAvisoPush('stock_motores')&&!textoAvisoPush('coordinar')&&!textoAvisoPush('finalizado'));
