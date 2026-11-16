@@ -272,7 +272,7 @@ export default function InboxPresupuestoOficinaPage() {
                   $ {(modalPrincipal.subtotal || modalPrincipal.precio || 0).toLocaleString()}
                 </span>
               </div>
-              {(modalPrincipal.adicionales_visita || modalPrincipal.adicionales_precio) && (
+              {requierePrecio(modalPrincipal.tipo_visita) && (modalPrincipal.subtotal || modalPrincipal.precio || 0) > 0 && (modalPrincipal.adicionales_visita || modalPrincipal.adicionales_precio) && (
                 <p className="mt-3 text-sm text-slate-700 whitespace-pre-wrap break-words"><strong>Adicionales del precio:</strong> {modalPrincipal.adicionales_visita || modalPrincipal.adicionales_precio}</p>
               )}
 
