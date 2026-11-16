@@ -86,7 +86,7 @@ export default async function TrabajoPage({
     }
 
     const { data: remito, error } = await supabase
-      .from("solicitudes_fabrica")
+      .from(perfil.rol === "TECNICO" ? "solicitudes_fabrica_tecnico" : "solicitudes_fabrica")
       .select("*")
       .eq("id", solicitudId)
       .single();
@@ -97,7 +97,7 @@ export default async function TrabajoPage({
 
     // Los datos del trabajo completado se guardan en la solicitud principal
     const { data: padre } = await supabase
-      .from("solicitudes")
+      .from(perfil.rol === "TECNICO" ? "solicitudes_tecnico" : "solicitudes")
       .select("*")
       .eq("solicitud_fabrica_id", solicitudId)
       .maybeSingle();
@@ -108,7 +108,8 @@ export default async function TrabajoPage({
       numero: remito.numero_remito || remito.id,
       estado: remito.estado,
       cliente_nombre: remito.cliente_nombre || null,
-      cliente_telefono: remito.cliente_telefono || null,
+      cliente_telefono: perfil.rol === "TECNICO" ? null : remito.cliente_telefono || null,
+
       direccion: remito.direccion || null,
       localidad: remito.localidad || null,
       fecha: remito.fecha || padre?.fecha || null,
@@ -140,7 +141,7 @@ export default async function TrabajoPage({
     }
 
     const { data: solicitud, error } = await supabase
-      .from("solicitudes")
+      .from(perfil.rol === "TECNICO" ? "solicitudes_tecnico" : "solicitudes")
       .select("*")
       .eq("id", solicitudId)
       .single();
@@ -153,7 +154,7 @@ export default async function TrabajoPage({
 
     if (solicitud.cliente_id) {
       const { data } = await supabase
-        .from("clientes")
+        .from(perfil.rol === "TECNICO" ? "clientes_tecnico" : "clientes")
         .select("*")
         .eq("id", solicitud.cliente_id)
         .maybeSingle();
@@ -167,8 +168,8 @@ export default async function TrabajoPage({
       numero: solicitud.numero || solicitud.id,
       estado: solicitud.estado,
       cliente_nombre: cliente?.nombre || solicitud.cliente_nombre || null,
-      cliente_telefono:
-        cliente?.telefono || solicitud.cliente_telefono || null,
+      cliente_telefono: perfil.rol === "TECNICO" ? null : cliente?.telefono || solicitud.cliente_telefono || null,
+
       direccion: solicitud.direccion || null,
       localidad: solicitud.localidad || null,
       fecha: solicitud.fecha || null,
@@ -253,15 +254,14 @@ export default async function TrabajoPage({
               </p>
             </div>
 
-            <div>
-              <p className="text-xs font-semibold uppercase text-slate-400">
-                Teléfono
-              </p>
 
-              <p className="mt-1 text-base text-slate-700">
-                {vista.cliente_telefono || "-"}
-              </p>
-            </div>
+
+            {perfil.rol !== "TECNICO" && (
+              <div>
+                <p className="text-xs font-semibold uppercase text-slate-400">Teléfono</p>
+                <p className="mt-1 text-base text-slate-700">{vista.cliente_telefono || "-"}</p>
+              </div>
+            )}
 
             <div>
               <p className="text-xs font-semibold uppercase text-slate-400">
