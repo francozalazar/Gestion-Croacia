@@ -93,7 +93,8 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
         // vincular solo al próximo usuario que entre, sin tener que activarlo otra vez.
       }
     }
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+    if (error) { alert("No se pudo cerrar sesión. Probá otra vez."); return; }
     window.location.href = "/";
   }
 
@@ -291,15 +292,24 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
         >
           <Menu size={22} />
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <img
             src="/logo.png"
             alt="Croacia"
             className="h-8 w-8 object-contain"
           />
-          <span className="text-sm font-bold text-slate-900">Croacia</span>
+          <span className="hidden text-sm font-bold text-slate-900 sm:inline">Croacia</span>
         </div>
-        <div className="ml-auto">{chipUsuario}</div>
+        <div className="ml-auto min-w-0">{chipUsuario}</div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          aria-label="Cerrar sesión"
+          className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded text-slate-700 hover:bg-slate-100"
+        >
+          <LogOut size={18} />
+          <span className="text-xs font-semibold">Salir</span>
+        </button>
       </div>
 
       {/* FONDO OSCURO CUANDO EL MENÚ ESTÁ ABIERTO EN MÓVIL */}
@@ -311,12 +321,12 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-screen transform transition-transform duration-200 md:translate-x-0 ${
+        className={`fixed left-0 top-0 z-40 flex h-dvh transform transition-transform duration-200 md:translate-x-0 ${
           menuMovil ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* BARRA PRIMARIA: SOLO ÍCONOS */}
-        <div className="flex h-full w-16 shrink-0 flex-col items-center border-r border-slate-200 bg-white py-4">
+        <div className="flex h-full w-16 shrink-0 flex-col items-center border-r border-slate-200 bg-white pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Link
             href={esEncargado ? "/encargado" : "/dashboard"}
             aria-label="Inicio"
@@ -417,4 +427,4 @@ export default function Sidebar({ nombre, apellido, rol, seccionActiva }: Sideba
       </aside>
     </>
   );
-}
+        }
