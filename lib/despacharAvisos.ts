@@ -8,7 +8,7 @@ export async function despacharAvisos(admin: any, webpush: any) {
     async function vigente() {
       const [p, s, a] = await Promise.all([
         admin.from("profiles").select("rol,activo").eq("id",e.usuario_id).maybeSingle(),
-        admin.from(e.solicitud_fabrica_id ? "solicitudes_fabrica" : "solicitudes").select("*").eq("id",e.solicitud_fabrica_id || e.solicitud_id).maybeSingle(),
+        e.tipo === "stock_motores" ? Promise.resolve({data:null,error:null}) : admin.from(e.solicitud_fabrica_id ? "solicitudes_fabrica" : "solicitudes").select("*").eq("id",e.solicitud_fabrica_id || e.solicitud_id).maybeSingle(),
         e.asignacion_id ? admin.from("asignaciones").select("*").eq("id",e.asignacion_id).maybeSingle() : Promise.resolve({data:null,error:null}),
       ]);
       if (p.error || s.error || a.error) return null;
