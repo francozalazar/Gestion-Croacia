@@ -17,6 +17,7 @@ import {
   BellRing,
 } from "lucide-react";
 import Desplegable from "@/components/Desplegable";
+import { toast } from "@/lib/toast";
 
 const tiposVisita = [
   "Presupuesto aceptado",
@@ -251,10 +252,12 @@ export default function NuevaSolicitudPage() {
         }
       }
 
+      toast.ok("Solicitud cargada correctamente.");
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ocurrió un error inesperado.");
+      toast.error(err instanceof Error ? err.message : "Ocurrió un error inesperado.");
     } finally {
       setGuardando(false);
     }
