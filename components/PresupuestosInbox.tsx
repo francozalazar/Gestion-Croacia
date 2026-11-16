@@ -6,7 +6,7 @@ import { requierePrecio } from "@/lib/tipoVisita";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
-import { Info, Download, X, Wrench, User, Archive, ArchiveRestore } from "lucide-react";
+import { Info, Download, X, Wrench, Archive, ArchiveRestore } from "lucide-react";
 
 export default function InboxPresupuestoOficinaPage() {
   const supabase = createClient();
@@ -230,12 +230,6 @@ export default function InboxPresupuestoOficinaPage() {
                     <strong>Trabajo:</strong> {p.trabajo_realizado || p.detalles_tecnico || p.observaciones || "Completado"}
                   </p>
 
-                  <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 border-t border-slate-100 pt-2">
-                    <User size={13} className="text-slate-400" />
-                    <span>Cargado por:</span>
-                    <span className="font-semibold text-slate-800">{p.usuario_creador}</span>
-                  </div>
-
                   <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-xs font-bold text-slate-700">
                     <span className="text-slate-700 font-bold text-sm">
                       {requierePrecioTipo ? `Precio: $${monto.toLocaleString()}` : "No requiere tarifa"}
@@ -265,16 +259,11 @@ export default function InboxPresupuestoOficinaPage() {
               <div className="mt-5 space-y-5 text-sm leading-relaxed text-slate-700 break-words">
                 <p className="whitespace-pre-wrap"><strong>Detalles de la visita:</strong> {modalPrincipal.trabajo_realizado || modalPrincipal.detalles_tecnico || "Sin detalle registrado"}</p>
                 <p className="whitespace-pre-wrap"><strong>Observaciones de la visita:</strong> {modalPrincipal.observaciones_tecnico || "Sin observaciones"}</p>
-                <p><strong>Ayudante:</strong> {modalPrincipal.ayudante || "Sin registrar"}</p>
+                <div className="flex flex-wrap gap-x-8 gap-y-2">
+                  <p><strong>Técnico:</strong> {modalPrincipal.tecnico_real || "Sin registrar"}</p>
+                  <p><strong>Ayudante:</strong> {modalPrincipal.ayudante || "Sin registrar"}</p>
+                </div>
               </div>
-              <div className="mt-5 space-y-2 border-t border-slate-100 pt-4 text-xs text-slate-600">
-                <p><strong>Cargado por:</strong> {modalPrincipal.usuario_creador}</p>
-                <p><strong>Tipo de visita:</strong> {modalPrincipal.tipo_visita || "No especificado"}</p>
-                <p className="whitespace-pre-wrap"><strong>Solicitud de origen:</strong> {modalPrincipal.detalles || modalPrincipal.observaciones || "Sin observaciones"}</p>
-                <p><strong>Técnico responsable:</strong> {modalPrincipal.tecnico_real}</p>
-                <p><strong>Adicionales del precio:</strong> {modalPrincipal.adicionales_visita || modalPrincipal.adicionales_precio || "Sin adicionales"}</p>
-              </div>
-
               <div className="mt-6 flex items-center justify-between p-4 bg-slate-100 rounded-xl">
                 <span className="text-xs uppercase font-bold text-slate-500">
                   {requierePrecio(modalPrincipal.tipo_visita) ? "Precio asignado" : "Trabajo sin tarifa"}
@@ -283,6 +272,9 @@ export default function InboxPresupuestoOficinaPage() {
                   $ {(modalPrincipal.subtotal || modalPrincipal.precio || 0).toLocaleString()}
                 </span>
               </div>
+              {(modalPrincipal.adicionales_visita || modalPrincipal.adicionales_precio) && (
+                <p className="mt-3 text-sm text-slate-700 whitespace-pre-wrap break-words"><strong>Adicionales del precio:</strong> {modalPrincipal.adicionales_visita || modalPrincipal.adicionales_precio}</p>
+              )}
 
               {modalPrincipal.creado_por === perfil?.id && ["OFICINA", "ADMIN"].includes(perfil?.rol) && (
                 <button disabled={guardando} onClick={() => cambiarArchivo(modalPrincipal)}
