@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/cliente";
 import { useRouter } from "next/navigation";
 import { UserCog } from "lucide-react";
 import Desplegable from "@/components/Desplegable";
+import { toast } from "@/lib/toast";
 
 type Usuario = {
   id: string;
@@ -56,6 +57,7 @@ export default function AsignarSolicitud({
   async function asignar() {
     if (!usuarioId) {
       setMensaje("Seleccioná un técnico.");
+      toast.error("Seleccioná un técnico.");
       return;
     }
 
@@ -107,6 +109,7 @@ export default function AsignarSolicitud({
     }
 
     setMensaje("Trabajo asignado al técnico correctamente.");
+    toast.ok("Trabajo asignado correctamente.");
     setGuardando(false);
     router.refresh();
   }
