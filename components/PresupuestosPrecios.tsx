@@ -7,6 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import FotoTrabajo from "@/components/FotoTrabajo";
 import PortadaFotoTrabajo from "@/components/PortadaFotoTrabajo";
 import { X, Lock, Wrench, User } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 export default function SeccionPreciosAdminPage() {
   const supabase = createClient();
@@ -117,8 +118,9 @@ export default function SeccionPreciosAdminPage() {
       .eq("id", modalTrabajo.id);
 
     if (error) {
-      alert("Error al guardar el precio: " + error.message);
+      toast.error("No se pudo guardar el precio: " + error.message);
     } else {
+      toast.ok("Precio guardado correctamente.");
       setModalTrabajo(null);
       await cargarDatos();
     }
