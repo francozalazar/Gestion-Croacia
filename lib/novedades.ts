@@ -103,19 +103,20 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
       });
     }
   } else if (R === "ENCARGADO") {
-    const { data: asig } = await supabase
-      .from("asignaciones")
-      .select("id,solicitud_id,solicitud_fabrica_id,created_at")
-      .eq("usuario_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(10);
-    const lista = asig || [];
-    const ids = lista.map((a: any) => a.solicitud_id).filter(Boolean);
-    const idsF = lista.map((a: any) => a.solicitud_fabrica_id).filter(Boolean);
-    const [v, f] = await Promise.all([
-      ids.length ? supabase.from("solicitudes").select("id,estado,cliente_nombre,direccion,fecha_finalizacion").in("id", ids) : { data: [] },
-      idsF.length ? supabase.from("solicitudes_fabrica").select("id,estado,cliente_nombre,direccion,fecha_finalizacion").in("id", idsF) : { data: [] },
+    // Las tablas directas están cerradas para este rol. Usamos la misma
+    // lectura autorizada del panel y fechas limitadas a sus propias asignaciones.
+    const [panel, fechas] = await Promise.all([
+      supabase.rpc("encargado_datos"),
+      supabase.rpc("campana_fechas_encargado"),
     ]);
+    if (panel.error || fechas.error) throw panel.error || fechas.error;
+    const datos = panel.data || {};
+    const tiempos = new Map((fechas.data || []).map((a: any) => [a.id, a.created_at]));
+    const lista = (datos.asignaciones || []).filter((a: any) => a.usuario_id === userId)
+      .map((a: any) => ({ ...a, created_at: tiempos.get(a.id) }))
+      .sort((a: any, b: any) => new Date(b.created_at as string).getTime() - new Date(a.created_at as string).getTime()).slice(0, 10);
+    const v = { data: datos.visitas || [] };
+    const f = { data: datos.pedidos || [] };
     for (const a of lista) {
       const t = a.solicitud_fabrica_id
         ? (f.data || []).find((x: any) => x.id === a.solicitud_fabrica_id)
@@ -129,7 +130,12 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
         link: "/encargado",
       });
     }
-    out.push(...(await motoresPorAgotarse(supabase)));
+    const ahora = new Date().toISOString();
+    for (const m of datos.motores || []) if (m.cantidad <= m.minimo) out.push({
+      id: `stock-${m.id}-${m.cantidad}`, titulo: "Motor por agotarse",
+      detalle: `${m.nombre}: quedan ${m.cantidad} (aviso en ${m.minimo})`,
+      fecha: ahora, link: "/stock",
+    });
   } else if (["ADMIN", "OFICINA"].includes(R)) {
     if (R === "OFICINA") {
       const { data: sol } = await supabase
