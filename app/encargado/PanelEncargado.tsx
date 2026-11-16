@@ -322,12 +322,13 @@ export default function PanelEncargado({
           try {
             const r = await operarEncargado("produccion", { id, fabrica: true, estado });
             if (!r.ok) {
-              alert(r.mensaje);
+              toast.error(r.mensaje);
               return;
             }
+            toast.ok("Estado de producción actualizado.");
             router.refresh();
           } catch {
-            alert("No se pudo confirmar. Actualizá antes de reintentar.");
+            toast.error("No se pudo confirmar. Actualizá antes de reintentar.");
           }
         }}
       />
@@ -421,7 +422,7 @@ export default function PanelEncargado({
             cerrar();
             router.refresh();
           } catch {
-            alert("No se pudo confirmar. Actualizá antes de reintentar.");
+            toast.error("No se pudo confirmar. Actualizá antes de reintentar.");
           }
         }}
         onQuitar={async (t, cerrar) => {
@@ -476,13 +477,14 @@ export default function PanelEncargado({
               prioridad: d.prioridad ? String(d.prioridad) : "",
             });
             if (!r.ok) {
-              alert(r.mensaje);
+              toast.error(r.mensaje);
               return false;
             }
+            toast.ok("Trabajo asignado correctamente.");
             router.refresh();
             return true;
           } catch {
-            alert("No se pudo confirmar. Actualizá antes de reintentar.");
+            toast.error("No se pudo confirmar. Actualizá antes de reintentar.");
             return false;
           }
         }}
