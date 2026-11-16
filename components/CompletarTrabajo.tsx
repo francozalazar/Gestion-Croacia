@@ -4,6 +4,7 @@ import { prepararFotoTrabajo } from "@/lib/fotoTrabajo";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { useRouter } from "next/navigation";
+import { toast } from "@/lib/toast";
 
 interface Props {
   solicitudId: number;
@@ -179,11 +180,13 @@ export default function CompletarTrabajo({
       if (error) throw new Error(error.message);
     } catch (error) {
       setMensaje(`Error al finalizar: ${error instanceof Error ? error.message : "Reintentá en unos minutos."}`);
+      toast.error(`Error al finalizar: ${error instanceof Error ? error.message : "Reintentá en unos minutos."}`);
       setGuardando(false); guardandoRef.current = false; return;
     }
     guardandoRef.current = false;
 
     setMensaje("Trabajo finalizado correctamente.");
+    toast.ok("Trabajo finalizado correctamente.");
     setGuardando(false);
     
     router.refresh();
