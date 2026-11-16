@@ -4,7 +4,7 @@ export function avisoPushVigente(e: any, p: any, s: any, a: any) {
   if (!p?.activo || !s || ["ANULADO", "CANCELADO"].includes(s.estado)) return false;
   if (e.tipo === "aprobacion_pendiente") return p.rol === "ADMIN" && s.estado === "PENDIENTE_APROBACION";
   if (e.tipo === "fabrica_nueva") return p.rol === "FABRICA" && ["ENVIADO_A_CORTAR", "EN_CORTE", "EN_FABRICACION", "EN_FABRICA", "FALTANTES"].includes(s.estado);
-  if (p.rol !== "OFICINA" || s.creado_por !== e.usuario_id) return false;
+  if (!(p.rol === "OFICINA" || (p.rol === "ADMIN" && e.tipo === "asignacion_vendedor")) || s.creado_por !== e.usuario_id) return false;
   if (e.tipo === "precio") return s.estado === "PRESUPUESTADO" && ["presupuesto", "urgencia"].includes(String(s.tipo_visita || "").trim().toLowerCase());
   if (e.tipo === "fabrica_lista") return ["LISTO_PARA_COLOCAR", "PENDIENTE_COORDINACION", "ASIGNADO", "EN_PROCESO"].includes(s.estado) && !s.fecha_finalizado;
   if (e.tipo === "fabrica_aprobada") return !["PENDIENTE_APROBACION", "ANULADO", "CANCELADO"].includes(s.estado);
