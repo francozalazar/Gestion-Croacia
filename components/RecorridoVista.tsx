@@ -10,6 +10,7 @@ import Desplegable from "@/components/Desplegable";
 export default function RecorridoVista({
   esTecnico,
   esAdmin,
+  puedeGestionar = false,
   tecnicos,
   tecnicoSeleccionado,
   setTecnicoSeleccionado,
@@ -25,6 +26,7 @@ export default function RecorridoVista({
 }: {
   esTecnico: boolean;
   esAdmin: boolean;
+  puedeGestionar?: boolean;
   tecnicos: any[];
   tecnicoSeleccionado: string;
   setTecnicoSeleccionado: (v: string) => void;
@@ -142,6 +144,9 @@ export default function RecorridoVista({
                   <p className="text-xs text-blue-600 mt-2 font-semibold">
                     {obtenerTextoFranja(t.horario_desde, t.horario_hasta)}
                   </p>
+                  {t.usuario_creador && (
+                    <p className="text-xs text-slate-500 mt-1">Cargado por: <span className="font-semibold text-slate-700">{t.usuario_creador}</span></p>
+                  )}
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
@@ -182,6 +187,9 @@ export default function RecorridoVista({
                 </p>
               </div>
 
+              {trabajoModal.usuario_creador && (
+                <p className="mt-4 text-sm text-slate-600"><strong>Cargado por:</strong> {trabajoModal.usuario_creador}</p>
+              )}
               <div className="mt-4">
                 <p className="text-sm font-bold text-slate-800">
                   Detalles de la solicitud:{" "}
@@ -214,7 +222,7 @@ export default function RecorridoVista({
 
               {/* BOTONES DE ACCIÓN */}
               <div className="mt-8 flex flex-wrap justify-end gap-3">
-                {esAdmin && (
+                {(esAdmin || puedeGestionar) && (
                 <button
                   onClick={() => onQuitar(trabajoModal, () => setTrabajoModal(null))}
                   className="bg-amber-100 text-amber-900 border border-amber-200 px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-amber-200 transition"
@@ -222,7 +230,7 @@ export default function RecorridoVista({
                   Remover técnico y fecha
                 </button>
                 )}
-                {esAdmin && (
+                {(esAdmin || puedeGestionar) && (
                 <button
                   onClick={() => onAnular(trabajoModal, () => setTrabajoModal(null))}
                   className="bg-rose-500 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-rose-600 transition"
