@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import { Bell, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/cliente";
 import { cargarNovedades, type Novedad } from "@/lib/novedades";
+
+import { toast } from "@/lib/toast";
 
 const ROLES = ["ADMIN", "OFICINA", "COORDINACION", "TECNICO", "FABRICA", "ENCARGADO"];
 
@@ -42,7 +44,7 @@ function cuando(fecha: string) {
 
 // Campanita de novedades: las últimas 10 según el rol. El punto rojo sale
 // cuando hay algo posterior a la última vez que se abrió el panel; esa marca se
-// guarda por usuario en este dispositivo.
+// guarda por usuario en la base.
 export default function Campanita({ rol }: { rol: string }) {
   const supabase = useRef(createClient()).current;
   const [userId, setUserId] = useState<string | null>(null);
@@ -50,6 +52,10 @@ export default function Campanita({ rol }: { rol: string }) {
   const [vistoHasta, setVistoHasta] = useState<number>(0);
   const [nuevasAlAbrir, setNuevasAlAbrir] = useState<Set<string>>(new Set());
   const [abierto, setAbierto] = useState(false);
+  const [quitando, setQuitando] = useState<Set<string>>(new Set());
+  const ocultas = useRef<Set<string>>(new Set());
+  const usuarioActual = useRef<string | null>(null);
+  const enCurso = useRef<Set<string>>(new Set());
   const caja = useRef<HTMLDivElement>(null);
   const conocidas = useRef<Set<string> | null>(null);
   // La marca de "leído" vive en la base (se comparte entre celular y computadora).
@@ -70,6 +76,12 @@ export default function Campanita({ rol }: { rol: string }) {
     const { data } = await supabase.auth.getUser();
     const id = data.user?.id;
     if (!id) return;
+    if (usuarioActual.current !== id) {
+      usuarioActual.current = id;
+      ocultas.current = new Set();
+      conocidas.current = null;
+      setItems([]);
+    }
     setUserId(id);
     let visto = Number(localStorage.getItem(clave(id)) || 0);
     const lectura = await supabase.from("campana_lecturas").select("visto_hasta").eq("usuario_id", id).maybeSingle();
@@ -81,10 +93,20 @@ export default function Campanita({ rol }: { rol: string }) {
     try {
       const nuevas = await cargarNovedades(supabase, id, rol);
       if (mia !== secuencia.current) return;
+      // IDs estables: ocultar un aviso derivado no borra el trabajo ni vuelve
+      // a mostrarlo cuando se recalcula la lista. Solo consultamos los candidatos.
+      if (nuevas.length) {
+        const borradas = await supabase.from("campana_ocultas")
+          .select("notificacion_id").eq("usuario_id", id)
+          .in("notificacion_id", nuevas.map((n) => n.id));
+        if (mia !== secuencia.current || usuarioActual.current !== id) return;
+        for (const n of borradas.data || []) ocultas.current.add(n.notificacion_id);
+      }
+      const visibles = nuevas.filter((n) => !ocultas.current.has(n.id));
       const previas = conocidas.current;
-      if (previas && nuevas.some((n) => !previas.has(n.id) && new Date(n.fecha).getTime() > visto)) sonar();
-      conocidas.current = new Set(nuevas.map((n) => n.id));
-      setItems(nuevas);
+      if (previas && visibles.some((n) => !previas.has(n.id) && new Date(n.fecha).getTime() > visto)) sonar();
+      conocidas.current = new Set(visibles.map((n) => n.id));
+      setItems(visibles);
     } catch {
       /* si falla, se reintenta en la próxima actualización */
     }
@@ -115,6 +137,28 @@ export default function Campanita({ rol }: { rol: string }) {
 
   const esNueva = (n: Novedad) => new Date(n.fecha).getTime() > vistoHasta;
   const hayNuevas = items.some(esNueva);
+
+  async function quitar(n: Novedad) {
+    if (!userId || enCurso.current.has(n.id)) return;
+    const usuario = userId;
+    enCurso.current.add(n.id);
+    setQuitando(new Set(enCurso.current));
+    try {
+      const { error } = await supabase.from("campana_ocultas")
+        .insert({ usuario_id: usuario, notificacion_id: n.id });
+      // Dos pestañas pueden quitar el mismo aviso: la segunda ya está guardada.
+      if (error && error.code !== "23505") throw error;
+      if (usuarioActual.current !== usuario) return;
+      ocultas.current.add(n.id);
+      setItems((prev) => prev.filter((item) => item.id !== n.id));
+      setNuevasAlAbrir((prev) => new Set([...prev].filter((id) => id !== n.id)));
+    } catch {
+      toast.error("No se pudo quitar la notificación. Volvé a intentar.");
+    } finally {
+      enCurso.current.delete(n.id);
+      setQuitando(new Set(enCurso.current));
+    }
+  }
 
   function alternar() {
     if (abierto) { setAbierto(false); return; }
@@ -160,16 +204,27 @@ export default function Campanita({ rol }: { rol: string }) {
               <p className="px-4 py-8 text-center text-sm text-slate-500">No tenés notificaciones.</p>
             ) : (
               items.map((n) => (
-                <Link
-                  key={n.id}
-                  href={n.link}
-                  onClick={() => setAbierto(false)}
-                  className={`block border-b border-slate-100 px-4 py-3 last:border-b-0 hover:bg-slate-50 ${nuevasAlAbrir.has(n.id) ? "bg-blue-50" : ""}`}
-                >
-                  <p className="text-sm font-semibold text-slate-900">{n.titulo}</p>
-                  <p className="mt-0.5 text-xs text-slate-600">{n.detalle}</p>
-                  <p className="mt-1 text-xs text-slate-500">{cuando(n.fecha)}</p>
-                </Link>
+                <div key={n.id} className={`flex items-start border-b border-slate-100 last:border-b-0 ${nuevasAlAbrir.has(n.id) ? "bg-blue-50" : ""}`}>
+                  <Link
+                    href={n.link}
+                    onClick={() => setAbierto(false)}
+                    className="min-w-0 flex-1 px-4 py-3 hover:bg-slate-50"
+                  >
+                    <p className="text-sm font-semibold text-slate-900">{n.titulo}</p>
+                    <p className="mt-0.5 text-xs text-slate-600">{n.detalle}</p>
+                    <p className="mt-1 text-xs text-slate-500">{cuando(n.fecha)}</p>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void quitar(n)}
+                    disabled={quitando.has(n.id)}
+                    aria-label={`Quitar notificación: ${n.titulo}`}
+                    title="Quitar de mi lista"
+                    className="mr-1 mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-40"
+                  >
+                    <X size={18} aria-hidden="true" />
+                  </button>
+                </div>
               ))
             )}
           </div>
