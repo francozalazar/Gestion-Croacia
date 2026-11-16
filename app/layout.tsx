@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 import NavTracker from "@/components/NavTracker";
+import Toaster from "@/components/Toaster";
 
 export const metadata: Metadata = {
   title: "Croacia",
@@ -32,6 +33,7 @@ export default function RootLayout({
         className={`${montserrat.variable} ${geistMono.variable} min-h-full flex flex-col`}
       >
         <NavTracker />
+        <Toaster />
         {children}
       </body>
     </html>
