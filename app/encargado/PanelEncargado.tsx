@@ -18,6 +18,7 @@ import MisTrabajosVista from "@/components/MisTrabajosVista";
 import AvisosAndroid from "@/components/AvisosAndroid";
 import { Calendar, Bell, ClipboardList, Truck, ArrowRight } from "lucide-react";
 import { VerDetallesInstalacion } from "@/components/EnviarACoordinacion";
+import { toast } from "@/lib/toast";
 type Trabajo = {
   id: number;
   numero: number;
@@ -147,12 +148,14 @@ export default function PanelEncargado({
     try {
       const r = await operarEncargado(accion, datos);
       setMensaje(r.mensaje);
+      if (r.ok) toast.ok(r.mensaje); else toast.error(r.mensaje);
       if (r.ok) {
         if (accion === "stock") delete operaciones.current[Number(datos.motor)];
         router.refresh();
       }
     } catch {
       setMensaje("No se pudo confirmar. Actualizá antes de reintentar.");
+      toast.error("No se pudo confirmar. Actualizá antes de reintentar.");
     } finally {
       setOcupado(false);
     }
