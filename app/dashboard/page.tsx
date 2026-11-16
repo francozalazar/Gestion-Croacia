@@ -310,15 +310,15 @@ export default function DashboardPage() {
 
       const [{ data: solBase }, { data: solFab }] = await Promise.all([
         solicitudIds.length
-          ? supabase.from("solicitudes").select("*").in("id", solicitudIds)
+          ? supabase.from("solicitudes_tecnico").select("*").in("id", solicitudIds)
           : Promise.resolve({ data: [] as any[] }),
         solicitudFabricaIds.length
-          ? supabase.from("solicitudes_fabrica").select("*").in("id", solicitudFabricaIds)
+          ? supabase.from("solicitudes_fabrica_tecnico").select("*").in("id", solicitudFabricaIds)
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
       const { data: visitasInstalacion } = solicitudFabricaIds.length
-        ? await supabase.from("solicitudes").select("solicitud_fabrica_id, fecha_finalizacion").in("solicitud_fabrica_id", solicitudFabricaIds).not("fecha_finalizacion", "is", null)
+        ? await supabase.from("solicitudes_tecnico").select("solicitud_fabrica_id, fecha_finalizacion").in("solicitud_fabrica_id", solicitudFabricaIds).not("fecha_finalizacion", "is", null)
         : { data: [] };
       const solicitudesTecnico: any[] = [
         ...(solBase || []).map(s => ({ ...s, origen: "visita" })),
@@ -539,4 +539,4 @@ export default function DashboardPage() {
       </main>
     </div>
   );
-                             }
+}
