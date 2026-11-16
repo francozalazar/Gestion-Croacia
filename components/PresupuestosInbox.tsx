@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
 import { Info, Download, X, Wrench, Archive, ArchiveRestore } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 export default function InboxPresupuestoOficinaPage() {
   const supabase = createClient();
@@ -149,9 +150,10 @@ export default function InboxPresupuestoOficinaPage() {
         ? await supabase.from("presupuestos_archivados").delete().eq("solicitud_id", presupuesto.id).eq("vendedor_id", perfil.id).select("solicitud_id")
         : await supabase.from("presupuestos_archivados").insert({ solicitud_id: presupuesto.id, vendedor_id: perfil.id }).select("solicitud_id");
       if (resultado.error || !resultado.data?.length) {
-        alert("No se pudo guardar el cambio. Recargá la página y reintentá.");
+        toast.error("No se pudo guardar el cambio. Recargá la página y reintentá.");
         return;
       }
+      toast.ok(restaurar ? "Presupuesto restaurado en Activos." : "Presupuesto archivado.");
       setModalPrincipal(null);
       await cargarDatos();
     } finally {
