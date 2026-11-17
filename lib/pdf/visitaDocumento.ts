@@ -1,5 +1,7 @@
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb } from "pdf-lib";
+import fs from "fs/promises";
+import path from "path";
 import { montserratRegular, montserratBold, logoRemito } from "./assetsRemito";
 
 export async function generarPDFVisita(solicitud: Record<string, any>, tecnico = "-") {
@@ -36,7 +38,12 @@ export async function generarPDFVisita(solicitud: Record<string, any>, tecnico =
   pdf.registerFontkit(fontkit);
   const fuente = await pdf.embedFont(Buffer.from(montserratRegular, "base64"), { subset: true });
   const fuenteNegrita = await pdf.embedFont(Buffer.from(montserratBold, "base64"), { subset: true });
-  const logo = await pdf.embedJpg(Buffer.from(logoRemito, "base64"));
+let logo = null;
+    try {
+          logo = await pdf.embedPng(await fs.readFile(path.join(process.cwd(), "public", "logo-remito.png")));
+    } catch {
+          logo = await pdf.embedJpg(Buffer.from(logoRemito, "base64"));
+    }
 
   const ancho = 595.28;
   const alto = 841.89;
@@ -111,7 +118,7 @@ export async function generarPDFVisita(solicitud: Record<string, any>, tecnico =
   // =========================
 
   if (logo) {
-    const anchoLogo = 380;
+const anchoLogo = 300;
     const altoLogo = (logo.height / logo.width) * anchoLogo;
     pagina.drawImage(logo, {
       x: (ancho - anchoLogo) / 2, y: y - altoLogo,
