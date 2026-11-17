@@ -1,6 +1,7 @@
 "use client";
 
 import { prepararFotoTrabajo } from "@/lib/fotoTrabajo";
+import { requierePrecio } from "@/lib/tipoVisita";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { useRouter } from "next/navigation";
@@ -47,6 +48,9 @@ export default function CompletarTrabajo({
   const [aclaracion, setAclaracion] = useState(aclaracionCliente || "");
   const [tecnico, setTecnico] = useState(tecnicoInicial || "");
   const [ayudante, setAyudante] = useState(ayudanteInicial || "");
+  // Solo las visitas que llevan precio (presupuesto/urgencia) preguntan por el cobro en efectivo.
+  const preguntaEfectivo = requierePrecio(tipoVisita);
+  const [cobradoEfectivo, setCobradoEfectivo] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [foto, setFoto] = useState<Blob | null>(null);
@@ -176,6 +180,7 @@ export default function CompletarTrabajo({
         p_path: path, p_trabajo: trabajo.trim(), p_observaciones: observaciones,
         p_firma: firmaFinal, p_aclaracion: aclaracion.trim(),
         p_tecnico: tecnico.trim() || null, p_ayudante: ayudante.trim() || null,
+        p_cobrado_efectivo: preguntaEfectivo && cobradoEfectivo,
       });
       if (error) throw new Error(error.message);
     } catch (error) {
@@ -286,6 +291,23 @@ export default function CompletarTrabajo({
         </div>
       </div>
           
+      {!finalizado && preguntaEfectivo && (
+        <div className="mt-6">
+          <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${cobradoEfectivo ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-white"}`}>
+            <input
+              type="checkbox"
+              checked={cobradoEfectivo}
+              onChange={(e) => setCobradoEfectivo(e.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-600"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-slate-800">Recibí el pago en efectivo en el momento</span>
+              <span className="mt-0.5 block text-xs text-slate-500">Por defecto figura como no cobrado. Marcá la tilde solo si el cliente ya pagó. El trabajo va a Presupuestos en verde, sin pasar por el paso de precio.</span>
+            </span>
+          </label>
+        </div>
+      )}
+
       {!finalizado && (
         <div className="mt-6">
           <button
