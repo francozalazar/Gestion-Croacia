@@ -41,7 +41,7 @@ export default function InboxPresupuestoOficinaPage() {
       supabase.from("profiles").select("id, nombre, apellido, rol").eq("id", user.id).single(),
       supabase
         .from("solicitudes")
-        .select("id, numero, estado, cliente_nombre, direccion, localidad, trabajo_realizado, detalles_tecnico, observaciones, observaciones_tecnico, ayudante, tipo_visita, subtotal, precio, adicionales_visita, adicionales_precio, creado_por, creador:profiles!creado_por(nombre, apellido)")
+        .select("id, numero, estado, cliente_nombre, direccion, localidad, trabajo_realizado, detalles_tecnico, observaciones, observaciones_tecnico, ayudante, tipo_visita, subtotal, precio, adicionales_visita, adicionales_precio, cobrado_efectivo, creado_por, creador:profiles!creado_por(nombre, apellido)")
         .eq("creado_por", user.id)
         .in("estado", ["PENDIENTE_PRECIO", "PRESUPUESTADO"])
         .order("id", { ascending: false }),
@@ -117,7 +117,9 @@ export default function InboxPresupuestoOficinaPage() {
         return {
           ...s,
           estadoTexto:
-            s.estado === "PENDIENTE_PRECIO"
+            s.cobrado_efectivo
+              ? "Cobrado en efectivo"
+              : s.estado === "PENDIENTE_PRECIO"
               ? "Pendiente de tarifar"
               : "Tarifado",
           tecnico_real: tecObj
@@ -206,7 +208,7 @@ export default function InboxPresupuestoOficinaPage() {
                 <div
                   key={p.id}
                   onClick={() => setModalPrincipal(p)}
-                  className="cursor-pointer rounded-xl bg-white p-6 shadow-sm border border-slate-200 transition hover:shadow-md hover:border-emerald-400"
+                  className={`cursor-pointer rounded-xl p-6 shadow-sm border transition hover:shadow-md hover:border-emerald-400 ${p.cobrado_efectivo ? "bg-emerald-50 border-emerald-400" : "bg-white border-slate-200"}`}
                 >
                   {portadas[p.id] ? <PortadaFotoTrabajo solicitudId={p.id} urlInicial={portadas[p.id].completa} /> : null}
                   <div className="flex items-center justify-between mb-2">
@@ -215,7 +217,9 @@ export default function InboxPresupuestoOficinaPage() {
                     </span>
                     <span
                       className={
-                        p.estado === "PENDIENTE_PRECIO"
+                        p.cobrado_efectivo
+                          ? "rounded-md bg-emerald-600 px-2 py-1 text-xs font-semibold text-white"
+                          : p.estado === "PENDIENTE_PRECIO"
                           ? "rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800"
                           : "rounded-md bg-green-100 px-2 py-1 text-xs font-semibold text-green-800"
                       }
@@ -233,8 +237,8 @@ export default function InboxPresupuestoOficinaPage() {
                   </p>
 
                   <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-xs font-bold text-slate-700">
-                    <span className="text-slate-700 font-bold text-sm">
-                      {requierePrecioTipo ? `Precio: $${monto.toLocaleString()}` : "No requiere tarifa"}
+                    <span className={p.cobrado_efectivo ? "text-emerald-700 font-bold text-sm" : "text-slate-700 font-bold text-sm"}>
+                      {p.cobrado_efectivo ? "Ya recibió el dinero" : requierePrecioTipo ? `Precio: $${monto.toLocaleString()}` : "No requiere tarifa"}
                     </span>
                     <span className="text-blue-600">Ver detalles →</span>
                   </div>
@@ -256,6 +260,9 @@ export default function InboxPresupuestoOficinaPage() {
               </button>
 
               <FotoTrabajo solicitudId={modalPrincipal.id} />
+              {modalPrincipal.cobrado_efectivo && (
+                <p className="mt-4 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white">Cobrado en efectivo por el técnico en el momento. Ya recibió el dinero.</p>
+              )}
               <h1 className="mt-5 text-2xl md:text-3xl font-bold tracking-tight text-slate-900">{modalPrincipal.cliente_nombre || "Cliente"}</h1>
               <p className="mt-1 text-base text-slate-600">{modalPrincipal.direccion} {modalPrincipal.localidad ? `- ${modalPrincipal.localidad}` : ""}</p>
               <div className="mt-5 space-y-5 text-sm leading-relaxed text-slate-700 break-words">
@@ -306,4 +313,4 @@ export default function InboxPresupuestoOficinaPage() {
       </main>
     </div>
   );
-                      }
+}
