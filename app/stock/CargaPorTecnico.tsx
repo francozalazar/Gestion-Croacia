@@ -94,7 +94,8 @@ export default function CargaPorTecnico({ tecnicos, motores, fuente }: { tecnico
         ...(solicitudesAsig.filter((s: any) => s.solicitud_fabrica_id).map((s: any) => s.solicitud_fabrica_id) as number[]),
       ]),
     ];
-    const sol = { data: solicitudesAsig.filter((s: any) => !s.solicitud_fabrica_id) };
+    // Los trabajos ya finalizados (remito hecho) no se listan: no hay motores que cargarles.
+    const sol = { data: solicitudesAsig.filter((s: any) => !s.solicitud_fabrica_id && !s.fecha_finalizacion && s.estado !== "FINALIZADO") };
     const [fab, movSol, movFab] = await Promise.all([
       idsFab.length ? supabase.from("solicitudes_fabrica").select("*").in("id", idsFab) : Promise.resolve({ data: [] as any[] }),
       idsSol.length
@@ -122,7 +123,7 @@ export default function CargaPorTecnico({ tecnicos, motores, fuente }: { tecnico
       prioridad: prio(lista.find((a) => a.solicitud_id === s.id)),
       descontados: resumen((movSol.data || []).filter((m: any) => m.solicitud_id === s.id)),
     }));
-    const deFabrica: Trabajo[] = (fab.data || []).map((s: any) => ({
+    const deFabrica: Trabajo[] = (fab.data || []).filter((s: any) => !s.fecha_finalizado && s.estado !== "FINALIZADO").map((s: any) => ({
       clave: `f-${s.id}`,
       id: s.id,
       esFabrica: true,
