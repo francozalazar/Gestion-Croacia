@@ -69,19 +69,8 @@ export default async function RemitoPage({
                 {remito.cliente_nombre || "Cliente sin nombre"}
               </p>
             </div>
-            {String(remito.observaciones || "").trim() || remito.fecha_finalizado ? (
-              <a
-                href={`/remitos/${remito.id}/pdf`}
-                target="_blank"
-                className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
-              >
-                Descargar pedido de fábrica
-              </a>
-            ) : (
-              <span className="text-sm text-slate-500">
-                Sin detalle cargado todavía: no hay documento del pedido para descargar.
-              </span>
-            )}
+            {/* Los pedidos de fábrica no tienen remito descargable (Franco, 17/11/2026):
+                solo se descargan los remitos que rellenan los técnicos. */}
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
