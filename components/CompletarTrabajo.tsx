@@ -246,10 +246,20 @@ export default function CompletarTrabajo({
 
       <div className="mb-6">
         {finalizado ? null : <>
-          <label htmlFor="foto-final" className="mb-2 block text-sm font-semibold text-slate-700">Foto del trabajo finalizado (obligatoria)</label>
-          <input id="foto-final" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
-            disabled={guardando || procesandoFoto} onChange={elegirFoto} className="block w-full text-sm" />
-          <p className="mt-2 text-xs text-slate-500">Podés sacar una foto con el celular. Se reduce antes de subirla para gastar menos datos.</p>
+          <span className="mb-2 block text-sm font-semibold text-slate-700">Foto del trabajo finalizado (obligatoria)</span>
+          <input id="foto-camara" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
+            disabled={guardando || procesandoFoto} onChange={elegirFoto} className="hidden" />
+          <input id="foto-galeria" type="file" accept="image/jpeg,image/png,image/webp"
+            disabled={guardando || procesandoFoto} onChange={elegirFoto} className="hidden" />
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <label htmlFor="foto-camara" className="flex-1 cursor-pointer rounded-xl bg-slate-900 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-slate-800">
+              Sacar foto con la cámara
+            </label>
+            <label htmlFor="foto-galeria" className="flex-1 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Elegir foto de la galería
+            </label>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Podés sacar la foto en el momento o elegir una que ya tengas. Se reduce antes de subirla para gastar menos datos.</p>
           {procesandoFoto && <p className="mt-2 text-sm">Preparando foto...</p>}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {preview && <img src={preview} alt="Vista previa de la foto a subir" className="mt-3 max-h-80 w-full rounded-md object-contain" />}
