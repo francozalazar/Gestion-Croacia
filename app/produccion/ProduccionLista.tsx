@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { fechaLinda } from "@/lib/fechasFicha";
@@ -9,6 +9,7 @@ import {
   cambiarEstadoProduccionAction,
 } from "./actions";
 import Desplegable from "@/components/Desplegable";
+import { useConfirmar } from "@/components/ConfirmarApp";
 
 type Trabajo = {
   id: number;
@@ -56,6 +57,8 @@ export default function ProduccionLista({
   const puedeCambiar = rol === "ADMIN" || !!onCambiarEstado;
   const [seleccionado, setSeleccionado] = useState<Trabajo | null>(null);
   const [nuevoEstado, setNuevoEstado] = useState("");
+  const { confirmar, dialogo } = useConfirmar();
+  const anulacionConfirmada = useRef(false);
 
   function abrir(trabajo: Trabajo) {
     setNuevoEstado("");
@@ -114,9 +117,16 @@ export default function ProduccionLista({
                 action={anularProduccionAction}
                 className="mt-5"
                 onClick={(e) => e.stopPropagation()}
-                onSubmit={(e) => {
-                  if (!window.confirm("\u00bfAnular este trabajo? Esta acci\u00f3n no se puede deshacer.")) {
-                    e.preventDefault();
+                onSubmit={async (e) => {
+                  if (anulacionConfirmada.current) {
+                    anulacionConfirmada.current = false;
+                    return;
+                  }
+                  e.preventDefault();
+                  const formulario = e.currentTarget;
+                  if (await confirmar("¿Anular este trabajo? Esta acción no se puede deshacer.", { peligro: true, confirmarTexto: "Anular" })) {
+                    anulacionConfirmada.current = true;
+                    formulario.requestSubmit();
                   }
                 }}
               >
@@ -219,6 +229,7 @@ export default function ProduccionLista({
           </div>
         </div>
       )}
+      {dialogo}
     </>
   );
 }
