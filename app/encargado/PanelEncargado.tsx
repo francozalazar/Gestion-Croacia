@@ -10,6 +10,7 @@ import CoordinacionVista from "@/components/CoordinacionVista";
 import RecorridoVista from "@/components/RecorridoVista";
 import StockVista from "@/components/StockVista";
 import { FormularioModelo, type AccionesStock } from "@/app/stock/StockForms";
+import { useConfirmar } from "@/components/ConfirmarApp";
 import CargaPorTecnico, { type FuenteCargaMotores } from "@/app/stock/CargaPorTecnico";
 import ProduccionVista from "@/components/ProduccionVista";
 import InicioVista from "@/components/InicioVista";
@@ -107,6 +108,7 @@ export default function PanelEncargado({
   seccion?: string;
 }) {
   const router = useRouter();
+  const { confirmar, dialogo } = useConfirmar();
   const [tab, setTab] = useState(
     seccion && SECCIONES.includes(seccion) ? seccion : "Inicio",
   );
@@ -432,7 +434,7 @@ export default function PanelEncargado({
           }
         }}
         onQuitar={async (t, cerrar) => {
-          if (!window.confirm("¿Sacar el técnico y la fecha? El trabajo vuelve a Coordinación.")) return;
+          if (!(await confirmar("¿Sacar el técnico y la fecha? El trabajo vuelve a Coordinación."))) return;
           try {
             const r = await operarEncargado("quitar", { id: t.id, fabrica: !!t._esFabrica, tecnico: idTec, fecha });
             if (!r.ok) { toast.error(r.mensaje); return; }
@@ -444,7 +446,7 @@ export default function PanelEncargado({
           }
         }}
         onAnular={async (t, cerrar) => {
-          if (!window.confirm("¿Anular y borrar este trabajo definitivamente? No se puede deshacer.")) return;
+          if (!(await confirmar("¿Anular y borrar este trabajo definitivamente? No se puede deshacer.", { peligro: true, confirmarTexto: "Anular" }))) return;
           try {
             const r = await operarEncargado("anular", { id: t.id, fabrica: !!t._esFabrica });
             if (!r.ok) { toast.error(r.mensaje); return; }
@@ -810,6 +812,7 @@ export default function PanelEncargado({
           </p>
         </>
       )}
+      {dialogo}
     </>
   );
 }
