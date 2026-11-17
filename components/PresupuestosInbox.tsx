@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
 import { Info, Download, X, Wrench, Archive, ArchiveRestore } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { useConfirmar } from "@/components/ConfirmarApp";
 
 export default function InboxPresupuestoOficinaPage() {
   const supabase = createClient();
@@ -21,6 +22,7 @@ export default function InboxPresupuestoOficinaPage() {
   const [verArchivados, setVerArchivados] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorArchivo, setErrorArchivo] = useState("");
+  const { confirmar, dialogo } = useConfirmar();
 
   useEffect(() => {
     cargarDatos();
@@ -145,9 +147,9 @@ export default function InboxPresupuestoOficinaPage() {
   async function cambiarArchivo(presupuesto: any) {
     if (guardando || presupuesto.creado_por !== perfil?.id || !["OFICINA", "ADMIN"].includes(perfil?.rol)) return;
     const restaurar = !!presupuesto.archivado;
-    if (!window.confirm(restaurar
+    if (!(await confirmar(restaurar
       ? "¿Volver a mostrar este presupuesto en Activos?"
-      : "¿Quitar este presupuesto de la lista activa? Se oculta de Activos, pero no se borra ni cambia el trabajo. Podés restaurarlo desde Archivados.")) return;
+      : "¿Quitar este presupuesto de la lista activa? Se oculta de Activos, pero no se borra ni cambia el trabajo. Podés restaurarlo desde Archivados."))) return;
     setGuardando(true);
     try {
       const resultado = restaurar
@@ -313,6 +315,7 @@ export default function InboxPresupuestoOficinaPage() {
           </div>
         )}
       </main>
+      {dialogo}
     </div>
   );
 }
