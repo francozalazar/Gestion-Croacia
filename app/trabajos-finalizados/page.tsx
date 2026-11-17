@@ -132,8 +132,8 @@ export default async function TrabajosFinalizadosPage({ searchParams }: {
     .map((v) => {
       const pedido = pedidos.find((p) => p.id === v.solicitud_fabrica_id);
       // Tecnico que realizo: autor comprobado de la finalizacion, o el nombre que cargo en el
-      // remito. Si no hay prueba, se rotula "Asignado" solo con una asignacion unica; con
-      // varias o ninguna no se elige una.
+      // remito. Si no hay prueba, se muestra el nombre de la asignacion unica; con varias o
+      // ninguna no se elige una.
       const autor = autorFinalizacion(v);
       const asignados = [
         ...new Set(
@@ -149,7 +149,7 @@ export default async function TrabajosFinalizadosPage({ searchParams }: {
           : String(v.tecnico_remito || "").trim()
           ? String(v.tecnico_remito).trim()
           : asignados.length === 1 && nombresTecnicos[asignados[0]]
-          ? `Asignado: ${nombresTecnicos[asignados[0]]}`
+          ? nombresTecnicos[asignados[0]]
           : "";
       return {
         id: v.id,
