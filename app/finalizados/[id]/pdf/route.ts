@@ -81,13 +81,16 @@ export async function GET(
 
   const { bytes, numero: numeroRemito } = await generarPDFVisita(solicitud, tecnico);
 
+    const fechaBase = solicitud.fecha_finalizacion || solicitud.fecha || new Date().toISOString();
+    const partesFecha = new Intl.DateTimeFormat("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(fechaBase)).split("/");
+    const segmentos = ["Solicitud de trabajo", String(solicitud.cliente_nombre || "").trim().toUpperCase(), String(solicitud.localidad || "").trim().toUpperCase(), partesFecha.join("_")].filter((s) => s && s !== "-");
+    const nombreArchivo = `${segmentos.join(" - ")}.pdf`;
+
   return new NextResponse(bytes, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="remito-${String(
-        numeroRemito
-      ).padStart(5, "0")}.pdf"`,
+      "Content-Disposition": `attachment; filename="remito-${numeroRemito}.pdf"; filename*=UTF-8''${encodeURIComponent(nombreArchivo)}`,
       "Cache-Control": "no-store",
     },
   });
