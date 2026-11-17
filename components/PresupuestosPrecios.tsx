@@ -60,8 +60,9 @@ export default function SeccionPreciosAdminPage() {
       return;
     }
 
+    // Los trabajos cobrados en efectivo por el tecnico no pasan por el paso de precio.
     const solicitudesLista = (solData || []).filter((solicitud) =>
-      requierePrecio(solicitud.tipo_visita)
+      requierePrecio(solicitud.tipo_visita) && !solicitud.cobrado_efectivo
     );
 
     if (solicitudesLista.length > 0) {
