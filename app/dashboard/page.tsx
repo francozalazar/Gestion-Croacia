@@ -26,6 +26,23 @@ import {
   X,
 } from "lucide-react";
 
+// Destino del toque en "Para hoy" según el estado real del trabajo:
+// si espera asignación va a Coordinación; si está asignado va al Recorrido
+// de camiones; si ya avanzó o se cerró (finalizado, presupuestado, anulado,
+// etc.) va a la ficha del trabajo, que muestra su estado y toda la info.
+function destinoParaHoy(s: any): string {
+  const e = (s.estado || "").toUpperCase();
+  if (
+    ["PENDIENTE", "PENDIENTE_COORDINACION", "COORDINACION", "ENVIADO_COORDINACION"].includes(e)
+  ) {
+    return "/coordinacion";
+  }
+  if (["ASIGNADO", "EN_PROCESO"].includes(e)) {
+    return "/recorrido-camiones";
+  }
+  return `/ficha/visita/${s.id}`;
+}
+
 export default function DashboardPage() {
   const supabase = createClient();
 
@@ -339,7 +356,7 @@ export default function DashboardPage() {
             id: `hoy-tec-${s.id}-${s.numero_remito ? "f" : "v"}`,
             titulo: `${s.numero_remito ? "Remito" : "Visita"} #${s.numero_remito || s.numero || s.id} - ${s.cliente_nombre || "Cliente"}`,
             detalle: s.direccion || "Sin dirección",
-            link: "/trabajos",
+            link: `/trabajos/${s.id}?origen=${s.origen}`,
           }))
       );
 
@@ -357,7 +374,7 @@ export default function DashboardPage() {
           titulo: "¡Se te asignó un nuevo trabajo!",
           detalle: `Cliente: ${s.cliente_nombre || "Sin nombre"} | Dirección: ${s.direccion || "Sin dirección"}`,
           fecha: s.updated_at || s.created_at,
-          link: "/tecnico/trabajos",
+          link: `/trabajos/${s.id}?origen=${s.origen}`,
           icono: Wrench,
           colorIcono: "bg-blue-100 text-blue-600",
         }));
@@ -418,7 +435,7 @@ export default function DashboardPage() {
             id: `hoy-adm-${s.id}`,
             titulo: `Visita #${s.numero || s.id} - ${s.cliente_nombre || "Cliente"}`,
             detalle: s.direccion || "Sin dirección",
-            link: "/coordinacion",
+            link: destinoParaHoy(s),
           }))
       );
 
