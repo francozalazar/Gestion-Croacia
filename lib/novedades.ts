@@ -146,7 +146,8 @@ export async function cargarNovedades(supabase: any, userId: string, rol: string
         .order("created_at", { ascending: false })
         .limit(20);
       for (const s of sol || []) {
-        if (requierePrecio(s.tipo_visita)) {
+        // Cobrados en efectivo por el tecnico: no fueron tarifados, no avisar como "precio asignado".
+        if (requierePrecio(s.tipo_visita) && !s.cobrado_efectivo) {
           out.push({
             id: `presupuesto-${s.id}`,
             titulo: `Le asignaron precio al trabajo #${num5(s.numero || s.id)}`,
