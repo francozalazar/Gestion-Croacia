@@ -120,8 +120,10 @@ export default function InboxPresupuestoOficinaPage() {
             s.cobrado_efectivo
               ? "Cobrado en efectivo"
               : s.estado === "PENDIENTE_PRECIO"
-              ? "Pendiente de tarifar"
-              : "Tarifado",
+              ? "Falta tarifar"
+              : requierePrecio(s.tipo_visita)
+              ? "Tarifado"
+              : "No necesita tarifa",
           tecnico_real: tecObj
             ? `${tecObj.nombre} ${tecObj.apellido || ""}`.trim()
             : "Sin técnico",
@@ -208,7 +210,7 @@ export default function InboxPresupuestoOficinaPage() {
                 <div
                   key={p.id}
                   onClick={() => setModalPrincipal(p)}
-                  className={`cursor-pointer rounded-xl p-6 shadow-sm border transition hover:shadow-md hover:border-emerald-400 ${p.cobrado_efectivo ? "bg-emerald-50 border-emerald-400" : "bg-white border-slate-200"}`}
+                  className={`cursor-pointer rounded-xl p-6 shadow-sm border transition hover:shadow-md ${p.cobrado_efectivo ? "bg-emerald-50 border-emerald-400 hover:border-emerald-500" : p.estado === "PENDIENTE_PRECIO" ? "border-amber-300 bg-amber-50 hover:border-amber-400" : "bg-white border-slate-200 hover:border-slate-300"}`}
                 >
                   {portadas[p.id] ? <PortadaFotoTrabajo solicitudId={p.id} urlInicial={portadas[p.id].completa} /> : null}
                   <div className="flex items-center justify-between mb-2">
@@ -221,7 +223,7 @@ export default function InboxPresupuestoOficinaPage() {
                           ? "rounded-md bg-emerald-600 px-2 py-1 text-xs font-semibold text-white"
                           : p.estado === "PENDIENTE_PRECIO"
                           ? "rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800"
-                          : "rounded-md bg-green-100 px-2 py-1 text-xs font-semibold text-green-800"
+                          : "rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700"
                       }
                     >
                       {p.estadoTexto}
@@ -238,7 +240,7 @@ export default function InboxPresupuestoOficinaPage() {
 
                   <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-xs font-bold text-slate-700">
                     <span className={p.cobrado_efectivo ? "text-emerald-700 font-bold text-sm" : "text-slate-700 font-bold text-sm"}>
-                      {p.cobrado_efectivo ? "Ya recibió el dinero" : requierePrecioTipo ? `Precio: $${monto.toLocaleString()}` : "No requiere tarifa"}
+                      {p.cobrado_efectivo ? "Ya recibió el dinero" : requierePrecioTipo ? `Precio: $${monto.toLocaleString()}` : "No necesita tarifa"}
                     </span>
                     <span className="text-blue-600">Ver detalles →</span>
                   </div>
@@ -275,7 +277,7 @@ export default function InboxPresupuestoOficinaPage() {
               </div>
               <div className="mt-6 flex items-center justify-between p-4 bg-slate-100 rounded-xl">
                 <span className="text-xs uppercase font-bold text-slate-500">
-                  {requierePrecio(modalPrincipal.tipo_visita) ? "Precio asignado" : "Trabajo sin tarifa"}
+                  {requierePrecio(modalPrincipal.tipo_visita) ? "Precio asignado" : "No necesita tarifa"}
                 </span>
                 <span className="text-xl font-bold text-emerald-700">
                   $ {(modalPrincipal.subtotal || modalPrincipal.precio || 0).toLocaleString()}
