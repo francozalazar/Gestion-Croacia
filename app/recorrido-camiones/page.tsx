@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import Sidebar from "@/components/Sidebar";
 import RecorridoVista from "@/components/RecorridoVista";
+import { useConfirmar } from "@/components/ConfirmarApp";
 
 export default function RecorridoCamionesPage() {
   const supabase = createClient();
@@ -17,6 +18,7 @@ export default function RecorridoCamionesPage() {
   );
   const [trabajos, setTrabajos] = useState<any[]>([]);
   const [cargando, setCargando] = useState(false);
+  const { confirmar, dialogo } = useConfirmar();
 
   useEffect(() => {
     cargarInicial();
@@ -261,7 +263,7 @@ export default function RecorridoCamionesPage() {
   async function anularVisita(trabajoModal: any, cerrar: () => void) {
     if (!trabajoModal) return;
 
-    if (!confirm("¿Estás seguro de anular esta visita? El remito quedará cancelado.")) return;
+    if (!(await confirmar("¿Estás seguro de anular esta visita? El remito quedará cancelado.", { peligro: true, confirmarTexto: "Anular" }))) return;
 
     const r = await quitarOAnularPasos(supabase, {
       id: trabajoModal.id,
@@ -328,6 +330,7 @@ export default function RecorridoCamionesPage() {
           onAnular={anularVisita}
         />
       </main>
+      {dialogo}
     </div>
   );
 }
