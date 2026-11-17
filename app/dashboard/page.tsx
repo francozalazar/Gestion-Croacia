@@ -166,7 +166,7 @@ export default function DashboardPage() {
         (payload) => {
           const s: any = payload.new;
           if (rol === "OFICINA" && s.creado_por === perfil.id) void actualizarAsignaciones();
-          if (s.estado !== "PRESUPUESTADO" || !requierePrecio(s.tipo_visita)) return;
+          if (s.estado !== "PRESUPUESTADO" || !requierePrecio(s.tipo_visita) || s.cobrado_efectivo) return;
           if (rol === "OFICINA" && s.creado_por !== perfil.id) return;
 
           agregarNovedad({
@@ -489,7 +489,7 @@ export default function DashboardPage() {
       }
 
       lista.forEach((s) => {
-        if (s.estado === "PRESUPUESTADO" && requierePrecio(s.tipo_visita)) {
+        if (s.estado === "PRESUPUESTADO" && requierePrecio(s.tipo_visita) && !s.cobrado_efectivo) {
           eventos.push({
             id: `presupuesto-${s.id}`,
             titulo: `Precio asignado en Remito #${String(s.numero || s.id).padStart(5, "0")}`,
