@@ -6,6 +6,7 @@ import { cargarCuentas, fechaCarga } from "@/lib/saldoPedido";
 import Sidebar from "@/components/Sidebar";
 import { anularPedidoPendienteAction } from "@/app/aprobacion-fabrica/actions";
 import { CheckCircle2, User, Scissors, X, ArrowRight, ShieldAlert, FileText, DollarSign, MapPin } from "lucide-react";
+import { useConfirmar } from "@/components/ConfirmarApp";
 
 export default function AprobacionFabricaPage() {
   const supabase = createClient();
@@ -15,6 +16,7 @@ export default function AprobacionFabricaPage() {
   const [cargando, setCargando] = useState(true);
   const [modalRemito, setModalRemito] = useState<any | null>(null);
   const [procesando, setProcesando] = useState(false);
+  const { confirmar, dialogo } = useConfirmar();
 
   useEffect(() => {
     cargarDatos();
@@ -76,7 +78,7 @@ export default function AprobacionFabricaPage() {
 
   async function anularPedido(id: number, etiqueta: string) {
     if (perfil?.rol !== "ADMIN" || procesando) return;
-    if (!window.confirm(`\u00bfAnular el pedido ${etiqueta}? Desaparece de Aprobaci\u00f3n y se cancela su visita. Esta acci\u00f3n no se puede deshacer.`)) return;
+    if (!(await confirmar(`¿Anular el pedido ${etiqueta}? Desaparece de Aprobación y se cancela su visita. Esta acción no se puede deshacer.`, { peligro: true, confirmarTexto: "Anular" }))) return;
     setProcesando(true);
     try {
       const r = await anularPedidoPendienteAction(id);
@@ -94,7 +96,7 @@ export default function AprobacionFabricaPage() {
 
   async function finalizarRemito(id: number) {
     if (perfil?.rol !== "ADMIN" || procesando) return;
-    if (!confirm("¿Cerrar la aprobación por pago completo? No finaliza la fabricación ni la instalación.")) return;
+    if (!(await confirmar("¿Cerrar la aprobación por pago completo? No finaliza la fabricación ni la instalación."))) return;
     setProcesando(true);
     try {
       const { error } = await supabase.rpc("cerrar_cobro_pedido", { p_pedido: id });
@@ -401,6 +403,7 @@ export default function AprobacionFabricaPage() {
           </div>
         )}
       </main>
+      {dialogo}
     </div>
   );
 }
