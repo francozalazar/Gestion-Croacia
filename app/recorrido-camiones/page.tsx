@@ -72,10 +72,23 @@ export default function RecorridoCamionesPage() {
     const listaTecs = data || [];
     setTecnicos(listaTecs);
 
-    // Seleccionar automáticamente el primer camión si existe
-    if (listaTecs.length > 0) {
-      setTecnicoSeleccionado(listaTecs[0].id);
-      ejecutarBusqueda(listaTecs[0].id, fecha);
+    // Atajos por URL (?tecnico=<id>&fecha=yyyy-mm-dd): el Inicio los usa
+    // para abrir el recorrido ya parado en el camión y el día del trabajo.
+    const params = new URLSearchParams(window.location.search);
+    const tecParam = params.get("tecnico");
+    const fechaParam = params.get("fecha");
+    const fechaInicial =
+      fechaParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaParam) ? fechaParam : fecha;
+    const tecnicoInicial =
+      tecParam && listaTecs.some((t) => t.id === tecParam)
+        ? tecParam
+        : listaTecs[0]?.id;
+
+    // Seleccionar automáticamente el camión indicado o el primero si existe
+    if (tecnicoInicial) {
+      setTecnicoSeleccionado(tecnicoInicial);
+      setFecha(fechaInicial);
+      ejecutarBusqueda(tecnicoInicial, fechaInicial);
     }
   }
 
