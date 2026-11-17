@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import { cambiarClaveUsuarioAction, eliminarUsuarioAction, type ResultadoAlta } from "./actions";
 import { toast } from "@/lib/toast";
+import { useConfirmar } from "@/components/ConfirmarApp";
 
 type Usuario = {
   id: string;
@@ -14,6 +15,7 @@ type Usuario = {
 
 export default function FilaUsuario({ u }: { u: Usuario }) {
   const [abierto, setAbierto] = useState(false);
+  const { confirmar, dialogo } = useConfirmar();
   const form = useRef<HTMLFormElement>(null);
   const [res, accion, pendiente] = useActionState<ResultadoAlta | null, FormData>(
     async (prev, fd) => {
@@ -33,7 +35,7 @@ export default function FilaUsuario({ u }: { u: Usuario }) {
   const [resEliminar, eliminar, eliminando] = useActionState<ResultadoAlta | null, FormData>(
     async (prev, fd) => {
       const n = `${u.nombre || ""} ${u.apellido || ""}`.trim() || "este usuario";
-      if (!window.confirm(`¿Eliminar a ${n}? Ya no va a poder entrar. Sus trabajos y su historial se conservan.`)) return prev;
+      if (!(await confirmar(`¿Eliminar a ${n}? Ya no va a poder entrar. Sus trabajos y su historial se conservan.`, { peligro: true, confirmarTexto: "Eliminar" }))) return prev;
       const r = await eliminarUsuarioAction(prev, fd);
       if (r?.ok) toast.ok(r.mensaje);
       else if (r) toast.error(r.mensaje);
@@ -104,6 +106,7 @@ export default function FilaUsuario({ u }: { u: Usuario }) {
           {res.mensaje}
         </p>
       )}
+      {dialogo}
     </li>
   );
-              }
+}
