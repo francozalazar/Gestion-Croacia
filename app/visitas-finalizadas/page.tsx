@@ -91,8 +91,8 @@ export default function VisitasFinalizadasPage() {
         .in("solicitud_id", ids);
 
       // Quien hizo el trabajo: autor de la foto de finalizacion (misma transaccion que
-      // fecha_finalizacion) o el nombre que el tecnico cargo en el remito. Sin prueba, "Asignado"
-      // solo si hay una unica asignacion; con varias o ninguna, "Sin dato".
+      // fecha_finalizacion) o el nombre que el tecnico cargo en el remito. Sin prueba, el nombre
+      // de la unica asignacion si hay una sola; con varias o ninguna, "Sin dato".
       const autorDe = (s: any): string | null => {
         const autores = [
           ...new Set(
@@ -140,7 +140,7 @@ export default function VisitasFinalizadasPage() {
             : remito
             ? remito
             : asignados.length === 1 && nombres[asignados[0]]
-            ? `Asignado: ${nombres[asignados[0]]}`
+            ? nombres[asignados[0]]
             : "Sin dato";
         return {
           ...s,
