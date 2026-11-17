@@ -177,7 +177,13 @@ export default function PanelEncargado({
         errorStock={false}
         paraHoy={deHoy.slice(0, 6).map(({ t }) => ({
           id: `hoy-${t.fabrica}-${t.id}`,
-          link: sec("Mi recorrido"),
+          // Si el trabajo ya se cerró (finalizado, anulado, etc.) no está en
+          // Mi recorrido: el toque abre directamente su ficha con el estado.
+          link: ["FINALIZADO", "ANULADO", "CANCELADO", "PRESUPUESTADO", "PENDIENTE_PRECIO"].includes(
+            (t.estado || "").toUpperCase(),
+          )
+            ? `/encargado/trabajo/${t.id}?origen=${t.fabrica ? "fabrica" : "solicitud"}`
+            : sec("Mi recorrido"),
           titulo: `${t.fabrica ? "Remito" : "Visita"} #${t.numero} - ${t.cliente_nombre || "Cliente"}`,
           detalle: t.direccion || "Sin dirección",
         }))}
