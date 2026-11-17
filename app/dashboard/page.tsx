@@ -30,7 +30,7 @@ import {
 // si espera asignación va a Coordinación; si está asignado va al Recorrido
 // de camiones; si ya avanzó o se cerró (finalizado, presupuestado, anulado,
 // etc.) va a la ficha del trabajo, que muestra su estado y toda la info.
-function destinoParaHoy(s: any): string {
+function destinoParaHoy(s: any, tecnicoId?: string, hoy?: string): string {
   const e = (s.estado || "").toUpperCase();
   if (
     ["PENDIENTE", "PENDIENTE_COORDINACION", "COORDINACION", "ENVIADO_COORDINACION"].includes(e)
@@ -38,7 +38,10 @@ function destinoParaHoy(s: any): string {
     return "/coordinacion";
   }
   if (["ASIGNADO", "EN_PROCESO"].includes(e)) {
-    return "/recorrido-camiones";
+    // Al recorrido ya parado en el camión y el día de ese trabajo.
+    return tecnicoId && hoy
+      ? `/recorrido-camiones?tecnico=${tecnicoId}&fecha=${hoy}`
+      : "/recorrido-camiones";
   }
   return `/ficha/visita/${s.id}`;
 }
@@ -414,7 +417,7 @@ export default function DashboardPage() {
             .order("created_at", { ascending: false }),
           supabase
             .from("asignaciones")
-            .select("solicitud_id, solicitud_fabrica_id")
+            .select("solicitud_id, solicitud_fabrica_id, usuario_id")
             .eq("fecha", hoy),
         ]);
 
@@ -426,6 +429,11 @@ export default function DashboardPage() {
           .map((a: any) => a.solicitud_id)
           .filter(Boolean)
       );
+      const tecnicoDeHoy = new Map(
+        (asignacionesHoy || [])
+          .filter((a: any) => a.solicitud_id)
+          .map((a: any) => [a.solicitud_id, a.usuario_id])
+      );
 
       setParaHoy(
         lista
@@ -435,7 +443,7 @@ export default function DashboardPage() {
             id: `hoy-adm-${s.id}`,
             titulo: `Visita #${s.numero || s.id} - ${s.cliente_nombre || "Cliente"}`,
             detalle: s.direccion || "Sin dirección",
-            link: destinoParaHoy(s),
+            link: destinoParaHoy(s, tecnicoDeHoy.get(s.id), hoy),
           }))
       );
 
