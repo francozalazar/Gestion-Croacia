@@ -8,6 +8,7 @@ import { cargarCuentas, fechaCarga, type CuentaPedido } from "@/lib/saldoPedido"
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { ArrowLeft } from "lucide-react";
+import { useConfirmar } from "@/components/ConfirmarApp";
 
 type SolicitudFabrica = {
   id: number;
@@ -43,6 +44,7 @@ export default function DetalleAprobacionFabricaPage() {
   const [cuenta, setCuenta] = useState<CuentaPedido | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const { confirmar, dialogo } = useConfirmar();
   const [procesando, setProcesando] = useState(false);
   const [mensaje, setMensaje] = useState("");
 
@@ -112,7 +114,7 @@ export default function DetalleAprobacionFabricaPage() {
 
   async function enviarACortar() {
     if (!solicitud || procesando) return;
-    if (!window.confirm(`¿Aprobar o comprobar el vínculo del pedido Nº ${solicitud.numero_remito}? No cambia una etapa ya avanzada.`)) return;
+    if (!(await confirmar(`¿Aprobar o comprobar el vínculo del pedido Nº ${solicitud.numero_remito}? No cambia una etapa ya avanzada.`))) return;
     setProcesando(true); setError(""); setMensaje("");
     try {
       const { error } = await supabase.rpc("aprobar_pedido_fabrica", { p_pedido: solicitud.id });
@@ -124,7 +126,7 @@ export default function DetalleAprobacionFabricaPage() {
 
   async function finalizar() {
     if (!solicitud || procesando) return;
-    if (!window.confirm("¿Cerrar la aprobación por pago completo? La fabricación y la instalación conservan su estado.")) return;
+    if (!(await confirmar("¿Cerrar la aprobación por pago completo? La fabricación y la instalación conservan su estado."))) return;
     setProcesando(true); setMensaje("");
     try {
       const { error } = await supabase.rpc("cerrar_cobro_pedido", { p_pedido: solicitud.id });
@@ -468,6 +470,7 @@ export default function DetalleAprobacionFabricaPage() {
         </section>
 
       </div>
+      {dialogo}
     </main>
   );
 }
