@@ -7,6 +7,8 @@ import Sidebar from "@/components/Sidebar";
 import { anularPedidoPendienteAction } from "@/app/aprobacion-fabrica/actions";
 import { CheckCircle2, User, Scissors, X, ArrowRight, ShieldAlert, FileText, DollarSign, MapPin } from "lucide-react";
 import { useConfirmar } from "@/components/ConfirmarApp";
+import { toast } from "@/lib/toast";
+import { mensajeErrorCerrarCobro } from "@/lib/mensajeErrorCobro";
 
 export default function AprobacionFabricaPage() {
   const supabase = createClient();
@@ -100,7 +102,10 @@ export default function AprobacionFabricaPage() {
     setProcesando(true);
     try {
       const { error } = await supabase.rpc("cerrar_cobro_pedido", { p_pedido: id });
-      if (error) { alert("No se cerró el cobro: " + error.message); return; }
+      if (error) {
+        toast.error(mensajeErrorCerrarCobro(error.message, modalRemito?.usuario_creador));
+        return;
+      }
       setModalRemito(null);
       await cargarDatos();
     } finally { setProcesando(false); }
