@@ -9,6 +9,8 @@ import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { ArrowLeft } from "lucide-react";
 import { useConfirmar } from "@/components/ConfirmarApp";
+import { toast } from "@/lib/toast";
+import { mensajeErrorCerrarCobro } from "@/lib/mensajeErrorCobro";
 
 type SolicitudFabrica = {
   id: number;
@@ -31,6 +33,7 @@ type SolicitudFabrica = {
   created_at: string;
   fecha_enviada_cortar: string | null;
   fecha_finalizado: string | null;
+  usuario_creador?: string;
 };
 
 export default function DetalleAprobacionFabricaPage() {
@@ -95,7 +98,7 @@ export default function DetalleAprobacionFabricaPage() {
 
     const { data, error: errorSolicitud } = await supabase
       .from("solicitudes_fabrica")
-      .select("*")
+      .select("*, creador:profiles!creado_por(nombre, apellido)")
       .eq("id", id)
       .single();
 
@@ -106,7 +109,13 @@ export default function DetalleAprobacionFabricaPage() {
       return;
     }
 
-    setSolicitud(data);
+    const creador = data.creador;
+    setSolicitud({
+      ...data,
+      usuario_creador: creador
+        ? `${creador.nombre} ${creador.apellido || ""}`.trim()
+        : "Oficina",
+    });
     const cuentas = await cargarCuentas(supabase, [data.id]);
     setCuenta(cuentas[data.id] || null);
     setCargando(false);
@@ -130,7 +139,7 @@ export default function DetalleAprobacionFabricaPage() {
     setProcesando(true); setMensaje("");
     try {
       const { error } = await supabase.rpc("cerrar_cobro_pedido", { p_pedido: solicitud.id });
-      if (error) { setMensaje("No se cerró el cobro: " + error.message); return; }
+      if (error) { toast.error(mensajeErrorCerrarCobro(error.message, solicitud.usuario_creador)); return; }
       await cargarSolicitud();
       setMensaje("Cobro cerrado. La etapa operativa no se modificó.");
     } finally { setProcesando(false); }
