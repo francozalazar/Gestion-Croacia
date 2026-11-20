@@ -5,6 +5,27 @@ import { colorCoordinacion, esUrgencia, compararCoordinacion } from "@/lib/coord
 import { Search, X, User, ShieldAlert } from "lucide-react";
 import Desplegable from "@/components/Desplegable";
 import CabeceraTarjeta from "@/components/TarjetaSolicitud";
+import { textoFranja } from "@/lib/franjas";
+
+// La preferencia pactada se guarda dentro de observaciones como "[Aviso: ...]".
+function preferenciaDe(observaciones?: string | null): string | null {
+  if (!observaciones) return null;
+  const m = observaciones.match(/\[Aviso:\s*([^\]]+)\]/);
+  return m ? m[1].trim() : null;
+}
+
+// Fecha de carga de la solicitud (cuándo se cargó, no la pactada con el cliente).
+function fechaCargaDe(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
 // =========================================================
 // FRANJAS HORARIAS (misma convención que solicitudes)
@@ -276,25 +297,57 @@ export default function CoordinacionVista({
                 />
 
                 {/* =================================================
+                    FECHA DE CARGA
+                ================================================== */}
+
+                {fechaCargaDe(s.created_at) && (
+                <p className="mt-1 text-base font-semibold text-slate-900">
+                  {fechaCargaDe(s.created_at)}
+                </p>
+                )}
+
+                {/* =================================================
                     QUIÉN CARGÓ
                 ================================================== */}
 
                 {s.usuario_creador !== undefined && (
-                <div className="mt-3 flex items-center gap-1.5 border-t border-slate-100 pt-2 text-xs text-slate-500">
+                <div className="mt-3 border-t border-slate-100 pt-2 text-xs text-slate-500">
 
-                  <User
-                    size={13}
-                    className="text-slate-400"
-                  />
+                  <div className="flex items-center gap-1.5">
 
-                  <span>
-                    Cargado por:
-                  </span>
+                    <User
+                      size={13}
+                      className="text-slate-400"
+                    />
 
-                  <span className="font-semibold text-slate-800">
-                    {s.usuario_creador ||
-                      "Sin usuario"}
-                  </span>
+                    <span>
+                      Cargado por:
+                    </span>
+
+                    <span className="font-semibold text-slate-800">
+                      {s.usuario_creador ||
+                        "Sin usuario"}
+                    </span>
+
+                  </div>
+
+                  {preferenciaDe(s.observaciones) && (
+                  <p className="mt-1.5">
+
+                    <span>
+                      Preferencia:
+                    </span>{" "}
+
+                    <span className="font-semibold text-slate-800">
+                      {preferenciaDe(s.observaciones)}
+                    </span>
+
+                  </p>
+                  )}
+
+                  <p className="mt-1.5">
+                    {textoFranja(s.horario_desde, s.horario_hasta)}
+                  </p>
 
                 </div>
                 )}
